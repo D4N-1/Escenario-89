@@ -1,0 +1,75 @@
+<div class="shell">
+  <aside class="side">
+    <a class="logo" routerLink="/admin"><img src="logo.png" alt=""><span class="brand">Escenario 89</span></a>
+
+    <nav>
+      @if (!isPanel) { <a class="btn-gold" routerLink="/admin"><app-icon name="back" [size]="14" /> Panel principal</a> }
+      @if (!isAnuncios) { <a class="btn-gold big" routerLink="/admin/anuncios">Anuncios <app-icon name="clapper" [size]="16" /></a> }
+      @if (!isAudios) { <a class="btn-gold big" routerLink="/admin/audios">Audios <app-icon name="mic" [size]="16" /></a> }
+    </nav>
+
+    @if (isPanel) {
+      <div class="close-at">
+        <small>El local cerrará a las:</small>
+        <div class="hour-selector">
+          <button type="button" class="hour" (click)="toggleHourMenu()">
+            {{ selectedHour }} <app-icon name="chevron" [size]="16" [class.rotated]="hourMenuOpen" />
+          </button>
+          @if (hourMenuOpen) {
+            <div class="hour-dropdown">
+              @for (h of hoursList; track h) {
+                <button type="button" class="hour-item" [class.active]="h === selectedHour" (click)="selectHour(h)">
+                  <span>{{ h }}</span>
+                  @if (h === selectedHour) {
+                    <app-icon name="check" [size]="13" />
+                  }
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="estado">
+      <small>Estado</small>
+      <div class="estado-selector">
+        <button type="button" class="estado-trigger" [class]="'s-' + activeState" (click)="toggleEstadoMenu()">
+          <span>{{ stateLabel(activeState) }}</span>
+          <app-icon name="chevron" [size]="16" [class.rotated]="estadoMenuOpen" />
+        </button>
+        @if (estadoMenuOpen) {
+          <div class="estado-dropdown">
+            <button type="button" class="estado-option s-abierto" [class.selected]="activeState === 'abierto'" (click)="selectState('abierto')">
+              <span>Abierto</span>
+              @if (activeState === 'abierto') { <app-icon name="check" [size]="14" /> }
+            </button>
+            <button type="button" class="estado-option s-cerrando" [class.selected]="activeState === 'cerrando'" (click)="selectState('cerrando')">
+              <span>Cerrando</span>
+              @if (activeState === 'cerrando') { <app-icon name="check" [size]="14" /> }
+            </button>
+            <button type="button" class="estado-option s-cerrado" [class.selected]="activeState === 'cerrado'" (click)="selectState('cerrado')">
+              <span>Cerrado</span>
+              @if (activeState === 'cerrado') { <app-icon name="check" [size]="14" /> }
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  </aside>
+
+  <section class="main"><router-outlet /></section>
+
+  <footer class="player">
+    <div class="bar"><i></i></div>
+    <div class="np"><b>El gran varón</b><span>Willie Colón</span></div>
+    <div class="ctrl">
+      <button type="button" class="ctrl-btn" title="Anterior"><app-icon name="prev" [size]="24" /></button>
+      <button type="button" class="play" title="Reproducir"><app-icon name="play" [size]="22" /></button>
+      <button type="button" class="ctrl-btn" title="Siguiente"><app-icon name="next" [size]="24" /></button>
+    </div>
+    <span class="time">0:00 / 7:23</span>
+  </footer>
+
+  <div class="queue"><app-queue-panel [showAds]="!isPanel" /></div>
+</div>

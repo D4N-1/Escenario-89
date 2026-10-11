@@ -1,0 +1,11 @@
+<main>
+  <h1 class="brand">Escenario 89 · Índice de vistas</h1>
+  @for (g of grupos; track g.t) {
+    <h2>{{ g.t }}</h2>
+    <ul>@for (v of g.l; track v[0]) { <li><a [routerLink]="v[0]">{{ v[1] }}</a> <code>{{ v[0] }}</code></li> }</ul>
+  }
+  <h2>Menú contextual de la cola</h2>
+  <app-queue-menu />
+  <h2>Paleta</h2>
+  <div class="sw">@for (c of colores; track c[0]) { <div><i [style.background]="c[1]"></i>{{ c[0] }} <code>{{ c[1] }}</code></div> }</div>
+</main>
