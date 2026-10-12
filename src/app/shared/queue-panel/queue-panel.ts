@@ -1,6 +1,6 @@
-import { Component, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { Icon } from '../icon/icon';
-import { NOW_PLAYING, QUEUE, QueueItem } from '../../mock-data';
+import { AppState } from '../../core/app-state';
 
 @Component({
   selector: 'app-queue-panel',
@@ -9,16 +9,21 @@ import { NOW_PLAYING, QUEUE, QueueItem } from '../../mock-data';
   styleUrl: './queue-panel.css',
 })
 export class QueuePanel {
+  state = inject(AppState);
   /** Muestra anuncios mezclados en la cola (vistas Anuncios / Audios) */
   showAds = input(false);
-  now = NOW_PLAYING;
 
-  get items(): QueueItem[] {
-    const list = [...QUEUE];
+  items = computed(() => {
+    const lista = [...this.state.cola()];
     if (this.showAds()) {
-      list.splice(4, 0, { title: 'La hora del brindis', artist: 'Anuncio', dur: '0:15', mesa: 0, ad: true });
-      list.push({ title: 'Tu canción, tu escenario', artist: 'Anuncio', dur: '0:10', mesa: 0, ad: true });
+      const activos = this.state.anuncios().filter(a => a.estado === 'En cola');
+      activos.forEach((a, i) => {
+        lista.splice(i === 0 ? Math.min(4, lista.length) : lista.length, 0, {
+          id: 1000 + a.id, titulo: a.titulo, artista: 'Anuncio',
+          duracion: a.duracion, mesa: 0, tipo: 'anuncio',
+        });
+      });
     }
-    return list;
-  }
+    return lista;
+  });
 }

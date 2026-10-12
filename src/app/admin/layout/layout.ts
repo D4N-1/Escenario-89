@@ -2,10 +2,12 @@ import { Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { Icon } from '../../shared/icon/icon';
 import { QueuePanel } from '../../shared/queue-panel/queue-panel';
+import { AppState } from '../../core/app-state';
 
 @Component({ selector: 'app-layout', imports: [RouterOutlet, RouterLink, Icon, QueuePanel], templateUrl: './layout.html', styleUrl: './layout.css' })
 export class Layout {
   router = inject(Router);
+  state = inject(AppState);
 
   currentState: 'abierto' | 'cerrando' | 'cerrado' = 'abierto';
   estadoMenuOpen = false;

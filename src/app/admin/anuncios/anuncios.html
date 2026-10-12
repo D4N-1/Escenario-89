@@ -1,6 +1,6 @@
 <div class="head">
   <span class="crumb">Panel principal › Anuncios</span>
-  <span class="clock">5:33 p. m.</span>
+  <span class="clock">{{ state.hora() }}</span>
 </div>
 <div class="page">
   <div class="title">
@@ -12,44 +12,69 @@
   </div>
 
   <div class="card">
-    <div class="tabs"><b>Todos <sup>5</sup></b><span>En cola <sup>2</sup></span><span>Programados <sup>1</sup></span></div>
+    <div class="tabs">
+      <b>Todos <sup>{{ state.anuncios().length }}</sup></b>
+      <span>En cola <sup>{{ enCola }}</sup></span>
+      <span>Programados <sup>{{ programados }}</sup></span>
+    </div>
     <div class="tools">
       <div class="search"><app-icon name="search" [size]="16" /> <input placeholder="Buscar anuncio..."></div>
-      <button class="filter"><app-icon name="filter" [size]="16" /> Todos los tipos <app-icon name="chevron" [size]="14" /></button>
+      <button class="filter"><app-icon name="filter" [size]="16" /> Todos los tipos <app-icon name="chevron"
+          [size]="14" /></button>
     </div>
     <table>
-      <thead><tr><th>ANUNCIO</th><th>ESTADO</th><th>PROGRAMACIÓN</th><th class="r">ACCIONES</th></tr></thead>
+      <thead>
+        <tr>
+          <th>ANUNCIO</th>
+          <th>ESTADO</th>
+          <th>PROGRAMACIÓN</th>
+          <th class="r">ACCIONES</th>
+        </tr>
+      </thead>
       <tbody>
-        @for (a of ads; track a.title) {
-          <tr>
-            <td><div class="who"><div class="img"></div><div><b>{{ a.title }}</b><small>{{ a.sub }}</small></div></div></td>
-            <td><span class="chip" [class]="'chip ' + chip(a.estado)">● {{ a.estado }}</span></td>
-            <td><b class="p">{{ a.prog }}</b><small>{{ a.dur }}</small></td>
-            <td class="r"><app-icon name="edit" [size]="16" /> <app-icon name="more-h" [size]="16" /></td>
-          </tr>
+        @for (a of state.anuncios(); track a.id) {
+        <tr>
+          <td>
+            <div class="who">
+              <div class="img"></div>
+              <div><b>{{ a.titulo }}</b><small>{{ a.detalle }}</small></div>
+            </div>
+          </td>
+          <td><span class="chip" [class]="'chip ' + chip(a.estado)">● {{ a.estado }}</span></td>
+          <td><b class="p">{{ a.programacion }}</b><small>{{ a.duracion }}</small></td>
+          <td class="r"><app-icon name="edit" [size]="16" /> <app-icon name="more-h" [size]="16" /></td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="4" class="vacio">Aún no hay anuncios.</td>
+        </tr>
         }
       </tbody>
     </table>
-    <div class="foot"><span>Mostrando 5 de 5 anuncios</span><span>Última actualización: hoy, 17:20</span></div>
+    <div class="foot"><span>Mostrando {{ state.anuncios().length }} de {{ state.anuncios().length }}
+        anuncios</span><span>Última actualización: hoy, 17:20</span></div>
   </div>
 
-  <div class="note"><app-icon name="clapper" [size]="16" /><div><b>La música no se detiene</b><small>Los anuncios activos aparecen entre canciones, sin interrumpir la reproducción.</small></div></div>
+  <div class="note"><app-icon name="clapper" [size]="16" />
+    <div><b>La música no se detiene</b><small>Los anuncios activos aparecen entre canciones, sin interrumpir la
+        reproducción.</small></div>
+  </div>
 </div>
 
 @if (modal) {
-  <div class="backdrop">
-    <div class="modal">
-      <h2>Crear anuncio</h2>
-      <div class="grid">
-        <div class="field">Nombre del anuncio:</div>
-        <div class="field">Descripción:</div>
-        <div class="field wide">Seleccione el horario del anuncio:</div>
-      </div>
-      <div class="uploads">
-        <button class="btn-gold up"><b>Seleccionar video:</b><small>Seleccione el video desde su equipo.</small></button>
-        <button class="btn-gold up"><b>Seleccionar audio:</b><small>Seleccione el audio desde su equipo.</small></button>
-      </div>
-      <a class="close" routerLink="/admin/anuncios"><app-icon name="close" /></a>
+<div class="backdrop">
+  <div class="modal">
+    <h2>Crear anuncio</h2>
+    <div class="grid">
+      <div class="field">Nombre del anuncio:</div>
+      <div class="field">Descripción:</div>
+      <div class="field wide">Seleccione el horario del anuncio:</div>
     </div>
+    <div class="uploads">
+      <button class="btn-gold up"><b>Seleccionar video:</b><small>Seleccione el video desde su equipo.</small></button>
+      <button class="btn-gold up"><b>Seleccionar audio:</b><small>Seleccione el audio desde su equipo.</small></button>
+    </div>
+    <a class="close" routerLink="/admin/anuncios"><app-icon name="close" /></a>
   </div>
+</div>
 }

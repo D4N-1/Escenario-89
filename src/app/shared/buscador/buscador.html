@@ -1,0 +1,42 @@
+<div class="pill-input">
+  <input placeholder="Busca tu proxima canción" [value]="consulta()" (input)="onInput($event)" (keydown.enter)="buscar()">
+  <button class="pill-btn" type="button" title="Buscar" (click)="buscar()"><app-icon name="search" /></button>
+  <button class="pill-btn" type="button" title="Buscar por voz"><app-icon name="mic" /></button>
+</div>
+
+@if (abierto()) {
+  <div class="resultados">
+    <div class="cab">
+      <span>Resultados de «{{ ultima() }}»</span>
+      <button type="button" title="Cerrar" (click)="cerrar()"><app-icon name="close" [size]="16" /></button>
+    </div>
+
+    @if (!yt.usaApiReal) {
+      <p class="aviso">Modo demostración: resultados de prueba (falta la API key de YouTube).</p>
+    }
+
+    @if (cargando()) {
+      <p class="msg">Buscando…</p>
+    } @else if (error()) {
+      <p class="msg err">{{ error() }}</p>
+    } @else {
+      @for (v of resultados(); track v.id) {
+        <button type="button" class="fila" (click)="agregar(v)">
+          <div class="mini" [class.thumb-karaoke]="!v.miniatura" [style.background]="v.miniatura ? null : v.fondo">
+            @if (v.miniatura) { <img [src]="v.miniatura" [alt]="v.titulo"> }
+            @else { <span class="txt">{{ v.miniaturaTitulo }}</span> }
+            <i class="time">{{ v.duracion }}</i>
+          </div>
+          <div class="datos">
+            <b>{{ v.titulo }}</b>
+            <small>{{ v.canal }} · {{ v.vistas }} vistas · {{ v.antiguedad }}</small>
+            @if (v.tipo === 'karaoke') { <span class="tag">Karaoke</span> }
+          </div>
+          <span class="add"><app-icon name="add" [size]="16" /> Agregar</span>
+        </button>
+      } @empty {
+        <p class="msg">Sin resultados.</p>
+      }
+    }
+  </div>
+}

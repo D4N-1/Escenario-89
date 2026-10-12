@@ -1,0 +1,23 @@
+:host { display: block; position: relative; width: 260px; z-index: 10; }
+.resultados {
+  position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+  width: min(640px, 90vw); max-height: 70vh; overflow-y: auto;
+  background: #121212; border: 1px solid var(--c-gold-border); border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .65); padding: 8px;
+}
+.cab { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px 10px; color: var(--c-text2); font-size: 12px; }
+.cab button { background: none; border: 0; color: var(--c-icon); display: grid; }
+.aviso { margin: 0 8px 8px; font-size: 11px; color: var(--c-gold); background: #1c170a; border: 1px solid var(--c-gold-dark); border-radius: 6px; padding: 6px 8px; }
+.msg { text-align: center; color: var(--c-text2); padding: 24px 8px; margin: 0; }
+.msg.err { color: #ff7a7a; }
+.fila { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; background: transparent; border: 0; border-radius: 8px; padding: 8px; color: var(--c-title); }
+.fila:hover { background: #1e1e1e; }
+.mini { position: relative; width: 128px; height: 72px; border-radius: 6px; overflow: hidden; flex: none; font-size: 11px; }
+.mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mini .txt { padding: 0 6px; }
+.time { position: absolute; right: 4px; bottom: 4px; background: rgba(0, 0, 0, .85); font-style: normal; font-size: 10px; padding: 1px 4px; border-radius: 3px; color: #fff; text-shadow: none; }
+.datos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.datos b { font-size: 13px; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.datos small { color: var(--c-text2); font-size: 11px; }
+.tag { align-self: flex-start; font-size: 9px; color: var(--c-gold); border: 1px solid var(--c-gold-dark); border-radius: 4px; padding: 1px 6px; }
+.add { display: inline-flex; gap: 4px; align-items: center; color: var(--c-gold); font-size: 12px; font-weight: 600; white-space: nowrap; }

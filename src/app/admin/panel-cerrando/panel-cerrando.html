@@ -4,7 +4,7 @@
     <input placeholder="Busca tu proxima canción">
     <button class="pill-btn"><app-icon name="mic" /></button>
   </div>
-  <span class="clock">5:33 p. m.</span>
+  <span class="clock">{{ state.hora() }}</span>
 </div>
 <div class="stage">
   <a class="btn-gold dup" routerLink="/pantalla" target="_blank">Duplicar video <app-icon name="share" [size]="16" /></a>

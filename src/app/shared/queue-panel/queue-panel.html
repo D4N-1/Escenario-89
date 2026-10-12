@@ -1,25 +1,31 @@
 <aside class="queue">
   <h2>Canciones en cola</h2>
+
+  @if (state.sonando(); as s) {
   <div class="row now">
-    <div class="num"><app-icon name="play" [size]="18" /><span class="mesa">#{{ now.mesa }}</span></div>
+    <div class="num"><app-icon name="play" [size]="18" /><span class="mesa">#{{ s.mesa }}</span></div>
     <div class="thumb now-thumb"></div>
-    <div class="info"><b>{{ now.title }}</b><small>{{ now.artist }}</small></div>
-    <span class="dur">{{ now.dur }}</span>
+    <div class="info"><b>{{ s.titulo }}</b><small>{{ s.artista }}</small></div>
+    <span class="dur">{{ s.duracion }}</span>
     <app-icon name="more-v" [size]="16" />
   </div>
-  @for (it of items; track $index) {
-    <div class="row" [class.ad]="it.ad">
-      <div class="num">
-        <span class="n" [class.big]="it.ad">{{ $index + 1 }}</span>
-        @if (!it.ad) { <span class="mesa">#{{ it.mesa }}</span> }
-      </div>
-      <div class="thumb" [class.ad-thumb]="it.ad"></div>
-      <div class="info">
-        <b>{{ it.title }}@if (it.karaoke) { <span class="kara"> (Karaoke)</span> }</b>
-        <small>{{ it.artist }}</small>
-      </div>
-      <span class="dur">{{ it.dur }}</span>
-      <app-icon name="more-v" [size]="16" />
+  }
+
+  @for (it of items(); track it.id) {
+  <div class="row" [class.ad]="it.tipo === 'anuncio'">
+    <div class="num">
+      <span class="n" [class.big]="it.tipo === 'anuncio'">{{ $index + 1 }}</span>
+      @if (it.tipo !== 'anuncio') { <span class="mesa">#{{ it.mesa }}</span> }
     </div>
+    <div class="thumb" [class.ad-thumb]="it.tipo === 'anuncio'"></div>
+    <div class="info">
+      <b>{{ it.titulo }}@if (it.tipo === 'karaoke') { <span class="kara"> (Karaoke)</span> }</b>
+      <small>{{ it.artista }}</small>
+    </div>
+    <span class="dur">{{ it.duracion }}</span>
+    <app-icon name="more-v" [size]="16" />
+  </div>
+  } @empty {
+  <p class="vacio">Aún no hay canciones en la cola.</p>
   }
 </aside>
