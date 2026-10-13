@@ -1,0 +1,54 @@
+:host {
+    display: block;
+    margin: 0 -14px;
+}
+
+.head {
+    position: relative;
+    text-align: center;
+    padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+    border-bottom: 2px solid var(--c-gold-border);
+}
+
+.logo {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    margin: 0 auto;
+}
+
+h1 {
+    margin: 4px 0 0;
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1.1;
+}
+
+.nav {
+    position: absolute;
+    left: 4px;
+    top: calc(6px + env(safe-area-inset-top));
+    display: flex;
+}
+
+.nav a {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    color: var(--c-gold);
+}
+
+.mesa {
+    position: absolute;
+    right: 14px;
+    top: calc(16px + env(safe-area-inset-top));
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-gold);
+    border: 1px solid var(--c-gold-dark);
+    border-radius: 999px;
+    padding: 4px 10px;
+}

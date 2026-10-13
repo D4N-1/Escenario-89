@@ -1,11 +1,12 @@
-<div class="backdrop">
-  <div class="dialog">
-    <app-icon name="add-circle" [size]="64" class="plus" />
-    <h3>Canción<br>Autor</h3>
-    <p>¿Pedir canción?</p>
+<div class="backdrop" (click)="cerrar.emit()">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-titulo" (click)="$event.stopPropagation()">
+    <app-icon name="add-circle" [size]="56" class="plus" />
+    <h3 id="dlg-titulo">{{ video()?.titulo ?? 'Canción' }}</h3>
+    <p class="autor">{{ video()?.canal ?? 'Autor' }}</p>
+    <p class="ask">¿Pedir canción?</p>
     <div class="actions">
-      <a class="no" routerLink="/buscar" title="Cancelar"><app-icon name="close" /></a>
-      <a class="yes" routerLink="/agregado" title="Confirmar"><app-icon name="check" /></a>
+      <button type="button" class="no" (click)="cerrar.emit()" aria-label="Cancelar"><app-icon name="close" /></button>
+      <button type="button" class="yes" (click)="confirmar()" aria-label="Pedir canción"><app-icon name="check" /></button>
     </div>
   </div>
 </div>

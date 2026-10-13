@@ -1,27 +1,151 @@
-.screen { max-width: 420px; margin: 0 auto; min-height: 100vh; padding: 0 12px 24px; background: var(--c-contrast); }
-.head { text-align: center; padding: 14px 0 6px; border-bottom: 2px solid var(--c-gold-border); margin: 0 -12px 18px; }
-.logo { width: 44px; height: 44px; object-fit: contain; display: block; margin: 0 auto; }
-h1 { margin: 2px 0 8px; font-size: 22px; font-weight: 400; }
-.voice { background: var(--c-section); border-radius: 14px; margin-top: 8px; padding: 14px 0 8px; display: grid; place-items: center; }
-.mic { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--c-gold-border); background: var(--c-icon); color: var(--c-gold); display: grid; place-items: center; }
-h2 { text-align: center; font-size: 17px; margin: 22px 0 6px; font-weight: 600; }
-.sub { text-align: center; color: var(--c-text2); font-size: 11px; margin: 0 0 12px; }
-.hscroll { display: flex; gap: 10px; overflow-x: auto; background: var(--c-section); border-radius: 14px; padding: 10px; }
-.card { flex: none; width: 150px; border: 1px solid var(--c-gold-border); border-radius: 12px; overflow: hidden; background: var(--c-section); text-align: center; }
-.card .t { display: block; padding: 6px 6px 0; font-size: 8px; color: var(--c-text2); text-align: left; }
-.pos { display: block; color: var(--c-gold); padding: 6px 0 8px; font-size: 12px; }
-.thumb { height: 82px; position: relative; font-size: 15px; }
-.big { display: block; width: auto; margin-bottom: 14px; }
-.big .thumb { height: 170px; font-size: 30px; }
-.time { position: absolute; right: 8px; bottom: 8px; background: rgba(0,0,0,.8); font-style: normal; font-size: 10px; padding: 2px 5px; border-radius: 4px; }
-.meta { display: flex; gap: 8px; padding: 8px 10px; text-align: left; }
-.meta b { display: block; font-size: 12px; font-weight: 500; }
-.meta small { color: var(--c-text2); font-size: 10px; }
-.av { width: 22px; height: 22px; border-radius: 50%; background: #e6e0d8; color: #333; font-size: 8px; display: grid; place-items: center; flex: none; }
-.head { position: relative; }
-.nav-l { position: absolute; left: 12px; bottom: 10px; color: var(--c-gold); }
-.nav-l.r { left: 40px; }
-.ok { margin: 22px 20px; padding: 22px 12px; text-align: center; background: #202020; border: 1px solid var(--c-gold-border); border-radius: 18px; }
-.ok h3 { margin: 8px 0; font-size: 22px; }
-.ok p { color: var(--c-text2); margin: 0; }
-.ok b { color: var(--c-gold); }
+:host {
+    display: block;
+    min-height: 100dvh;
+    background: #000;
+}
+
+.screen {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    padding: 0 14px calc(28px + env(safe-area-inset-bottom));
+    background: #000;
+}
+
+@media (min-width: 480px) {
+    .screen {
+        border-inline: 1px solid #2a2208;
+    }
+}
+
+/* Buscador fijo arriba al hacer scroll */
+.buscar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #000;
+    padding: 12px 0 10px;
+}
+
+.pill-input input {
+    font-size: 16px;
+    padding: 12px 16px;
+}
+
+/* 16px evita el zoom automático de iOS */
+.pill-input .pill-btn {
+    width: 52px;
+    display: grid;
+    place-items: center;
+}
+
+/* Búsqueda por voz */
+.voz {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 2px;
+    padding: 10px 14px;
+    background: var(--c-section);
+    border: 1px solid #2a2a2a;
+    border-radius: 14px;
+    color: var(--c-text2);
+    font-size: 14px;
+}
+
+.mic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--c-gold-border);
+    background: var(--c-icon);
+    color: var(--c-gold);
+    display: grid;
+    place-items: center;
+    flex: none;
+}
+
+h2 {
+    text-align: center;
+    font-size: 18px;
+    margin: 24px 0 6px;
+    font-weight: 600;
+}
+
+.sub {
+    text-align: center;
+    color: var(--c-text2);
+    font-size: 12px;
+    margin: 0 0 14px;
+}
+
+.vacio {
+    text-align: center;
+    color: var(--c-subtext);
+    font-size: 13px;
+    padding: 20px 12px;
+    margin: 0;
+}
+
+/* Carrusel "Mis canciones" */
+.hscroll {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    margin: 0 -14px;
+    padding: 4px 14px 8px;
+}
+
+.hscroll::-webkit-scrollbar {
+    display: none;
+}
+
+.mini {
+    flex: none;
+    width: min(62vw, 230px);
+    scroll-snap-align: start;
+}
+
+.lista {
+    display: grid;
+    gap: 14px;
+    margin-top: 6px;
+}
+
+/* Vista "Añadido a la cola" */
+.ok {
+    margin: 20px 0;
+    padding: 22px 14px;
+    text-align: center;
+    background: #202020;
+    border: 1px solid var(--c-gold-border);
+    border-radius: 18px;
+}
+
+.ok h3 {
+    margin: 8px 0;
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.ok p {
+    color: var(--c-text2);
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.ok b {
+    color: var(--c-gold);
+}
+
+.btn-gold.otra {
+    display: flex;
+    width: 100%;
+    margin-top: 18px;
+    min-height: 52px;
+    font-size: 16px;
+    border-radius: 14px;
+}

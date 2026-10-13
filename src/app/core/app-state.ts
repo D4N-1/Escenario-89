@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
-import { Anuncio, AudioItem, Cancion, EstadoLocal, Video } from './models';
-import { ANUNCIOS, AUDIOS, COLA, SONANDO } from './mock-data';
+import { Anuncio, AudioItem, Cancion, EstadoLocal, MiCancion, Video } from './models';
+import { ANUNCIOS, AUDIOS, COLA, SONANDO, VIDEOS } from './mock-data';
 
 /** true = arranca con datos de ejemplo; false = todo vacío (producción) */
 const USAR_MOCK = false;
@@ -22,8 +22,22 @@ export class AppState {
   anuncios = signal<Anuncio[]>(USAR_MOCK ? ANUNCIOS : []);
   audios = signal<AudioItem[]>(USAR_MOCK ? AUDIOS : []);
 
-  /** Agrega una canción elegida por un cliente al final de la cola. Devuelve su posición. */
-   agregarACola(video: Video, mesa = 0): number {
+  // ---- Cliente (móvil) ----
+  mesa = signal(0);                                   // viene del QR: /?mesa=5
+  busqueda = signal('El gran varon');
+  resultados = signal<Video[]>(VIDEOS.slice(0, 2));   // se reemplaza con la búsqueda de YouTube
+  populares = signal<Video[]>(VIDEOS);
+  misCanciones = signal<MiCancion[]>(
+    USAR_MOCK ? [{ video: VIDEOS[0], posicion: 1 }, { video: VIDEOS[2], posicion: 5 }] : [],
+  );
+  cancionSeleccionada = signal<Video>(VIDEOS[0]);
+  posicionEnCola = signal(1);
+
+  /**
+   * Agrega una canción elegida por un cliente.
+   * Si no hay nada sonando, pasa directo a "sonando". Devuelve su posición (0 = suena ahora).
+   */
+  agregarACola(video: Video, mesa = 0): number {
     const nueva: Cancion = {
       id: Date.now(),
       titulo: video.titulo,

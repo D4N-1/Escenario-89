@@ -44,3 +44,9 @@ export interface AudioItem {
   duracion: string;
   sonando: boolean;
 }
+
+/** Canción que el cliente ya pidió y su posición en la cola */
+export interface MiCancion {
+  video: Video;
+  posicion: number;
+}

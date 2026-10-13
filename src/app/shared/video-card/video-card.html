@@ -1,0 +1,25 @@
+<button type="button" class="card" [class.compact]="compact()" [disabled]="inactiva()">
+    <div class="thumb" [class.thumb-karaoke]="!video().miniatura"
+        [style.background]="video().miniatura ? null : video().fondo">
+        @if (video().miniatura) {
+        <img [src]="video().miniatura" alt="" loading="lazy">
+        } @else {
+        <span class="txt">{{ video().miniaturaTitulo }}<small>{{ video().miniaturaSub }}</small></span>
+        }
+        <i class="time">{{ video().duracion }}</i>
+    </div>
+
+    @if (compact()) {
+    <span class="t">{{ video().titulo }}</span>
+    @if (posicion() !== null) { <b class="pos">{{ posicion() === 0 ? 'Suena ahora' : 'Posición ' + posicion() + 'º'
+        }}</b> }
+    } @else {
+    <div class="meta">
+        <span class="av">{{ video().inicialesCanal }}</span>
+        <div>
+            <b>{{ video().titulo }}</b>
+            <small>{{ video().canal }} · {{ video().vistas }} vistas · {{ video().antiguedad }}</small>
+        </div>
+    </div>
+    }
+</button>

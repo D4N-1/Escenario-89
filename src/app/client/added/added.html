@@ -1,21 +1,17 @@
 <main class="screen">
-  <header class="head">
-    <img src="logo.png" alt="Escenario 89" class="logo">
-    <h1 class="brand">Escenario 89</h1>
-    <a class="nav-l" routerLink="/"><app-icon name="home" /></a>
-    <a class="nav-l r" routerLink="/buscar"><app-icon name="reply" /></a>
-  </header>
-  <div class="pill-input">
-    <input placeholder="Busca tu canción favorita para cantar">
-    <button class="pill-btn"><app-icon name="mic" /></button>
-  </div>
-  <div class="ok">
-    <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#e8c96a" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5"/></svg>
-    <h3>añadido a la cola</h3>
-    <p>Tu canción esta en la<br>posición <b>1º</b> de la lista</p>
-  </div>
-  <a class="card big" routerLink="/">
-    <div class="thumb thumb-karaoke"><span>EL GRAN VARON<small>Willie Colon</small></span><i class="time">3:42</i></div>
-    <div class="meta"><span class="av">CR</span><div><b>Willie Colon - El Gran Varon (Versión Karaoke)</b><small>PARTY TYME KARAOKE EN ESPAÑOL · 636 k · hace 1 a</small></div></div>
-  </a>
+  <app-client-header atras="/buscar" />
+
+  <section class="ok" aria-live="polite">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e8c96a" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5"/></svg>
+    <h3>Añadido a la cola</h3>
+    @if (state.posicionEnCola() === 0) {
+      <p>Tu canción <b>suena ahora</b>.</p>
+    } @else {
+      <p>Tu canción está en la<br>posición <b>{{ state.posicionEnCola() }}º</b> de la lista</p>
+    }
+  </section>
+
+  <app-video-card [video]="state.cancionSeleccionada()" [inactiva]="true" />
+
+  <a class="btn-gold otra" routerLink="/">Pedir otra canción</a>
 </main>

@@ -1,35 +1,37 @@
 <main class="screen">
-  <header class="head">
-    <img src="logo.png" alt="Escenario 89" class="logo">
-    <h1 class="brand">Escenario 89</h1>
-  </header>
+  <app-client-header></app-client-header>
 
-  <div class="pill-input">
-    <input placeholder="Busca tu canción favorita para cantar">
-    <a class="pill-btn" routerLink="/buscar"><app-icon name="search" /></a>
+  <div class="buscar">
+    <div class="pill-input">
+      <input #q placeholder="Busca tu canción favorita" enterkeyhint="search" autocomplete="off" (keydown.enter)="irABuscar(q.value)">
+      <button type="button" class="pill-btn" aria-label="Buscar" (click)="irABuscar(q.value)"><app-icon name="search" /></button>
+    </div>
+    <a class="voz" routerLink="/buscar">
+      <span class="mic"><app-icon name="mic" [size]="22" /></span>
+      <span>Toca para buscar por voz</span>
+    </a>
   </div>
-  <div class="voice"><a class="mic" routerLink="/buscar"><app-icon name="mic" [size]="26" /></a></div>
 
   <h2>Mis canciones</h2>
-  <div class="hscroll">
-    <a class="card" routerLink="/agregado">
-      <div class="thumb thumb-karaoke"><span>EL GRAN VARON<small>Willie Colon</small></span></div>
-      <small class="t">Willie Colon - El Gran Varon (Versión Karaoke)</small>
-      <b class="pos">Posicion 1º</b>
-    </a>
-    <a class="card" routerLink="/agregado">
-      <div class="thumb dim"></div>
-      <small class="t">Hotline Bling - Billie Eilish (Español/Inglés)</small>
-      <b class="pos">Posicion 5º</b>
-    </a>
-  </div>
-
-  <h2>Canciones mas buscadas</h2>
-  <p class="sub">Los sencillos mas amados de los clientes</p>
-  @for (p of popular; track p) {
-    <a class="card big" routerLink="/agregado">
-      <div class="thumb thumb-karaoke"><span>EL GRAN VARON<small>Willie Colon</small></span><i class="time">3:42</i></div>
-      <div class="meta"><span class="av">CR</span><div><b>Willie Colon - El Gran Varon (Versión Karaoke)</b><small>PARTY TYME KARAOKE EN ESPAÑOL · 636 k · hace 1 a</small></div></div>
-    </a>
+  @if (state.misCanciones().length) {
+    <div class="hscroll">
+      @for (m of state.misCanciones(); track $index) {
+        <div class="mini"><app-video-card [video]="m.video" [compact]="true" [posicion]="m.posicion" (click)="seleccion.set(m.video)" /></div>
+      }
+    </div>
+  } @else {
+    <p class="vacio">Todavía no has pedido canciones. Busca la primera.</p>
   }
+
+  <h2>Canciones más buscadas</h2>
+  <p class="sub">Los sencillos más amados de los clientes</p>
+  <section class="lista">
+    @for (v of state.populares(); track v.id) {
+      <app-video-card [video]="v" (click)="seleccion.set(v)" />
+    }
+  </section>
 </main>
+
+@if (seleccion(); as v) {
+  <app-confirm-dialog [video]="v" (cerrar)="seleccion.set(null)" />
+}
