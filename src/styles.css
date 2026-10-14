@@ -1,5 +1,4 @@
 :root {
-  /* Paleta mejorada y refinada */
   --c-contrast: #000000;
   --c-bg: #09090b;
   --c-section: #141417;
@@ -14,8 +13,8 @@
   --c-gold-dark: #7a5a1f;
   --c-green: #15803d;
   --c-green-light: #22c55e;
-  --c-yellow: #d97706;
-  --c-yellow-light: #f59e0b;
+  --c-yellow: #d8801c;
+  --c-yellow-light: #fcb232;
   --c-red: #b91c1c;
   --c-red-light: #ef4444;
   --font-ui: 'Inter', system-ui, sans-serif;

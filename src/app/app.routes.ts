@@ -15,17 +15,15 @@ import { Pantalla } from './pantalla/pantalla';
 import { Vistas } from './vistas/vistas';
 
 export const routes: Routes = [
-  // Cliente (móvil, se llega por QR)
+
   { path: '', component: Home },
   { path: 'buscar', component: Results },
   { path: 'agregado', component: Added },
   { path: 'confirmar', component: ConfirmDialog },
 
-  // Pantalla secundaria (TV / proyector) y splash
   { path: 'pantalla', component: Pantalla },
   { path: 'splash', component: Splash },
 
-  // Administración
   { path: 'admin/login', component: Login },
   {
     path: 'admin',
@@ -40,7 +38,6 @@ export const routes: Routes = [
     ],
   },
 
-  // Índice de todas las vistas (solo desarrollo)
   { path: 'vistas', component: Vistas },
   { path: '**', redirectTo: '' },
 ];
