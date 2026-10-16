@@ -1,48 +1,49 @@
 # Escenario 89 - Karaoke Bar
-
 Proyecto de página web oficial del Karaoke Bar
 
-
-
 ## Instalación
-
-Descargar el repositorio o clonarlo con
+1. Descargar el repositorio o clonarlo con
 ```{powershell}
 git clone https://github.com/D4N-1/Escenario-89
 ```
-
-Ubicarse en el repositorio localmente
+2. Ubicarse en el repositorio localmente
 ```{powershell}
 cd escenario89
 ```
-
-Instalación de dependencias
+3. Instalación de dependencias
 ```{powershell}
 npm i
 ```
 
-En dos terminales por separado, levantar frontend y backend con
+> [!NOTE]
+> Abrir dos terminales por separado para levantar las dos aplicaciones.
+>
+> Siendo estas **frontend** y **backend** respectivamente.
+
 ### Frontend
 
+- Build y ejecución
 ```{powershell}
 npm run start -w frontend
 ```
 
-Despliegue
-
-
+- Ejecución en modo desarrollador
 ```{powershell}
 npm run watch -w frontend
 ```
 
-Recarga automatica
+### Backend
 
+- Build y ejecución
+```{powershell}
+npm run start -w backend
+```
 
+- Ejecución en modo desarrollador
+```{powershell}
+npm run start:dev -w backend
+```
 
-Solo vistas (maquetación), sin funcionalidad.
+> [!TIP]
+> **-w** hace referencia a que aplicacion usar su **package.json** sin necesidad de ubicarse fisicamente adentro de la carpeta
 
-    npm install
-    npm start          # http://localhost:4200  → /vistas tiene el índice de todas las pantallas
-
-Estructura: `src/app/{client,admin,pantalla,splash,shared}`. Datos de ejemplo en `src/app/mock-data.ts`.
-Colores en `src/styles.css` (variables `--c-*`).
