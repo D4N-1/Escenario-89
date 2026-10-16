@@ -1,0 +1,122 @@
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { SongEntity } from "./entities/song.entity.js";
+import { Repository } from "typeorm";
+import { GetAllQueryDto } from "../../common/dto/getAllQuery.dto.js";
+import { ResAllInterface } from "../../common/interfaces/resAll.interface.js";
+import { CreateSongDto } from "./dto/create-song.dto.js";
+import { ResCreateInterface } from "../../common/interfaces/resCreate.interface.js";
+import { UpdateSongDto } from "./dto/update-song.dto.js";
+import { ResUpdateInterface } from "../../common/interfaces/resUpdate.interface.js";
+
+
+
+@Injectable()
+export class SongService {
+
+    constructor(
+
+        @InjectRepository(SongEntity)
+        private readonly songRepository: Repository<SongEntity>
+
+    ) {}
+
+
+    findOne = {
+
+        id: async( id: string ): Promise<SongEntity> => {
+
+            const song = await this.songRepository.findOne({
+                where: { id }
+            })
+
+            if (!song) throw new NotFoundException('No existe esa id de cancion')
+                return song
+        },
+
+    }
+
+
+    findOrNull = {
+
+        id: async( id: string ): Promise<SongEntity|null> => {
+
+            return await this.songRepository.findOne({
+                where: { id }
+            })
+        },
+
+    }
+
+
+    async findAll(query:GetAllQueryDto): Promise<ResAllInterface> {
+
+        const page = Math.max(1, query?.page);
+        const limit = Math.max(1, query?.limit);
+        const skip = (query.page - 1) * query.limit;
+
+        const [ data, total ] = await this.songRepository.findAndCount({
+            skip,
+            take: limit,
+            order: { index: 'ASC' }
+        })
+
+        return {
+            data,
+            meta: {
+                total,
+                count: data.length,
+                perPage: limit,
+                totalPages: Math.ceil(total / limit),
+                currentPage: page
+            }
+        }
+        
+    }
+
+
+    async create(createSongDto: CreateSongDto): Promise<ResCreateInterface> {
+
+        const { id } = createSongDto;
+
+        const newData: Partial<SongEntity> = { ...createSongDto }
+
+        const song = await this.findOrNull.id(id)
+        if (song) throw new ConflictException('Ya existe este id de canción')
+
+        newData.id = id;
+
+        const newSong = this.songRepository.create(newData)
+
+        return {
+            message: "La cancion ha sido creada con exito",
+            data: await this.songRepository.save(newSong)
+        }
+    }
+
+
+    async update(updateSongDto: UpdateSongDto): Promise<ResUpdateInterface> {
+        
+        const { id } = updateSongDto;
+
+        if (!id) throw new BadRequestException({
+            message: 'Se debe especificar la id de la canción a editar',
+            example: { id: '9kAjZQb_ULE', title: 'All We Are (Instrumental)' }
+        })
+
+        const song = await this.findOne.id(id)
+
+        const newData: Partial<SongEntity> = { ...updateSongDto }
+        newData.id = id;
+
+        const editSong = this.songRepository.merge(song, newData)
+
+        return {
+            message: "La cancion ha sido modificada con exito",
+            change: updateSongDto,
+            data: await this.songRepository.save(editSong)
+        }
+
+    }
+
+}

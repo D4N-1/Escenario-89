@@ -18,7 +18,7 @@ export class TableSeederService implements OnModuleInit {
         
         await this.seedTables()
 
-        this.logger.log('Table Seeder executed')
+        this.logger.debug('Table Seeder executed')
 
     }
 
@@ -39,8 +39,6 @@ export class TableSeederService implements OnModuleInit {
         for (const table of tablesToCreate) {
 
             const exist = await this.tableService.findOrNull.number(table?.number)
-
-            console.log(exist)
             
             if (!exist) await this.tableService.create(table)
         }

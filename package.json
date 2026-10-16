@@ -4,7 +4,6 @@
     "./frontend",
     "./backend"
   ],
-
   "prettier": {
     "printWidth": 100,
     "singleQuote": true,
@@ -20,6 +19,8 @@
   "private": true,
   "repository": {
     "url": "https://github.com/D4N-1/Escenario-89"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.1"
   }
-
 }
