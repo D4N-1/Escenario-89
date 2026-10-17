@@ -24,11 +24,11 @@ export class QueueEntity {
 
     @ApiProperty({ description: DESCRIPTION.VALUE, example: EXAMPLE.VALUE })
     @Column({ type: 'int', nullable: true })
-    value?: number;
+    value: number;
 
     @ApiProperty({ description: DESCRIPTION.POSITION, example: EXAMPLE.POSITION })
     @Column({ type: 'int', nullable: true })
-    position?: number;
+    position: number;
 
     @ApiProperty({ description: DESCRIPTION.FIXED, example: EXAMPLE.FIXED })
     @Column({ type: 'boolean', default: false })

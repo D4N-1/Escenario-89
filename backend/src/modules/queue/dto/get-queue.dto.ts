@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { GetAllQueryDto } from "../../../common/dto/getAllQuery.dto";
 import { QueueRelations } from "../entities/queue.entity";
-import { IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsOptional, IsString } from "class-validator";
 
 
 export class GetAllQueueDto extends GetAllQueryDto {
@@ -13,4 +13,12 @@ export class GetAllQueueDto extends GetAllQueryDto {
     @IsOptional()
     @IsString()
     include?: string;
+
+    @ApiProperty({
+        description: 'Traer todas las relaciones de la lista',
+        example: true
+    })
+    @IsOptional()
+    @IsBoolean()
+    all: boolean
 }

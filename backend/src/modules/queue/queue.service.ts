@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import type { FindOptionsRelations } from 'typeorm';
 import { ResAllInterface } from '../../common/interfaces/resAll.interface.js';
 import { CreateQueueDto } from './dto/create-queue.dto.js';
-import { ResCreateInterface } from '../../common/interfaces/resCreate.interface.js';
+import { QueueResCreateInterface } from './interface/queue-resCreate.interface.js';
 import { SongService } from '../song/song.service.js';
 import { TableService } from '../table/table.service.js';
 import { GetAllQueueDto } from './dto/get-queue.dto.js';
@@ -53,11 +53,13 @@ export class QueueService {
 
     async findAll(query:GetAllQueueDto): Promise<ResAllInterface> {
 
-        const { include, limit = 10, page = 1 } = query;
+        const { all, include, limit = 10, page = 1 } = query;
 
         const skip = (page - 1) * limit;
 
-        const rawRelations = include ? include.split(',') : [];
+        const rawRelations = all ? QueueRelations :
+            include ? include.split(',')
+            : [];
         const relations: Record<string, boolean> = {};
         rawRelations.forEach(rel => {
             if (QueueRelations.includes(rel)) {
@@ -89,7 +91,7 @@ export class QueueService {
         
     }
 
-    async create(createQueueDto: CreateQueueDto): Promise<ResCreateInterface> {
+    async create(createQueueDto: CreateQueueDto): Promise<QueueResCreateInterface> {
 
         const { songId, tableCode } = createQueueDto;
 
@@ -101,20 +103,31 @@ export class QueueService {
         newData.song = song;
         newData.table = table;
 
-        const queue: QueueEntity[] = (await this.findAll({})).data
-        console.log(queue)
+        const queueResult = await this.findAll({ all: true })
+        const queue: QueueEntity[] = queueResult.data
 
-        const waitingSongs = queue.filter( (p) => p.table.code === tableCode )
+        const waitingSongs = queue.filter( (q) => q.table.code === table.code )
 
-        console.log(waitingSongs)
+        const value = waitingSongs.length
+        newData.value = value
 
-        newData.value = 1;
-        newData.position = 1;
+        const prev = queue.findLastIndex( (q) => q.value === value)
+        const position = prev === -1 ? queue.length
+            : prev + 1
+
+        newData.position = position
+        newData.status = newData.position == 0 ? SongStatus.PLAYING : SongStatus.WAITING
+
+        queue.forEach( (q) => q.position >= position ? q.position++ : null )
 
         const newQueue = this.queueRepository.create(newData)
 
+        await this.queueRepository.save(queue)
+
         return {
-            message: 'Cancion añadida a la lista',
+            message: `Cancion añadida a la lista`,
+            position,
+            status: newData.status,
             data: await this.queueRepository.save(newQueue)
         }
 
