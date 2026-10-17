@@ -10,6 +10,7 @@ import { TableSeederService } from "../../common/seeders/table-seeder.service.js
         TypeOrmModule.forFeature([TableEntity])
     ],
     controllers: [ TableController ],
-    providers: [ TableService, TableSeederService ]
+    providers: [ TableService, TableSeederService ],
+    exports: [ TableService ]
 })
 export class TableModule {}

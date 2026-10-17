@@ -9,6 +9,7 @@ import { SongController } from "./song.controller.js";
         TypeOrmModule.forFeature([SongEntity])
     ],
     providers: [ SongService ],
-    controllers: [ SongController ]
+    controllers: [ SongController ],
+    exports: [ SongService ]
 })
 export class SongModule {}

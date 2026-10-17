@@ -6,6 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TableModule } from './modules/table/table.module.js';
 import { DatabaseModule } from './database/database.module.js';
 import { SongModule } from './modules/song/song.module.js';
+import { QueueModule } from './modules/queue/queue.module.js';
 
 @Module({
   imports: [
@@ -18,7 +19,9 @@ import { SongModule } from './modules/song/song.module.js';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '../.env'
-    })
+    }),
+
+    QueueModule
 
   ],
   controllers: [AppController],

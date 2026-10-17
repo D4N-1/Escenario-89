@@ -1,5 +1,11 @@
 import { Exclude } from "class-transformer";
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { QueueEntity } from "../../queue/entities/queue.entity.js";
+
+enum SongType {
+    SINGLE = 'SINGLE',
+    KARAOKE = 'KARAOKE'
+}
 
 
 @Entity('song')
@@ -18,6 +24,9 @@ export class SongEntity {
     @Column({ type: 'text' })
     description: string;
 
+    @Column({ type: 'enum', enum: SongType, default: SongType.SINGLE })
+    type: SongType.SINGLE;
+
     @Column({ type: 'varchar' })
     image: string;
 
@@ -31,8 +40,19 @@ export class SongEntity {
     views: number;
 
     @Column({ type: 'varchar' })
+    url: string;
+
+    @Column({ type: 'varchar' })
+    ago: string;
+
+    @Column({ type: 'varchar' })
     author: string;
 
-    @Column({ type: 'int' })
+    @Column({ type: 'int', default: 1 })
     count: number;
+
+    /// Relations
+
+    @OneToMany( () => QueueEntity, (queue) => queue.song)
+    queues: QueueEntity[]
 }

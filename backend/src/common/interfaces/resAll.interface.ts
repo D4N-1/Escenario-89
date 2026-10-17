@@ -1,6 +1,6 @@
 export interface ResAllInterface {
 
-    data: any,
+    data: any[],
     meta: {
         total: number,
         count: number,

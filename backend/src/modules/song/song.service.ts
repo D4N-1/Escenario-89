@@ -36,7 +36,6 @@ export class SongService {
 
     }
 
-
     findOrNull = {
 
         id: async( id: string ): Promise<SongEntity|null> => {
@@ -48,12 +47,11 @@ export class SongService {
 
     }
 
+    async findAll(query?:GetAllQueryDto): Promise<ResAllInterface> {
 
-    async findAll(query:GetAllQueryDto): Promise<ResAllInterface> {
-
-        const page = Math.max(1, query?.page);
-        const limit = Math.max(1, query?.limit);
-        const skip = (query.page - 1) * query.limit;
+        const page = Math.max(1, Number(query?.page) );
+        const limit = Math.max(1, Number(query?.limit) );
+        const skip = (page - 1) * limit;
 
         const [ data, total ] = await this.songRepository.findAndCount({
             skip,
@@ -73,7 +71,6 @@ export class SongService {
         }
         
     }
-
 
     async create(createSongDto: CreateSongDto): Promise<ResCreateInterface> {
 
