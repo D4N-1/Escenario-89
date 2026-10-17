@@ -1,13 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueueEntity, SongStatus } from './entities/queue.entity.js';
+import { QueueEntity, QueueRelations, SongStatus } from './entities/queue.entity.js';
 import { Repository } from 'typeorm';
-import { GetAllQueryDto } from '../../common/dto/getAllQuery.dto.js';
+import type { FindOptionsRelations } from 'typeorm';
 import { ResAllInterface } from '../../common/interfaces/resAll.interface.js';
 import { CreateQueueDto } from './dto/create-queue.dto.js';
 import { ResCreateInterface } from '../../common/interfaces/resCreate.interface.js';
 import { SongService } from '../song/song.service.js';
 import { TableService } from '../table/table.service.js';
+import { GetAllQueueDto } from './dto/get-queue.dto.js';
 
 @Injectable()
 export class QueueService {
@@ -50,13 +51,22 @@ export class QueueService {
 
     }
 
-    async findAll(query?:GetAllQueryDto): Promise<ResAllInterface> {
+    async findAll(query:GetAllQueueDto): Promise<ResAllInterface> {
 
-        const page = Math.max(1, Number(query?.page) );
-        const limit = Math.max(1, Number(query?.limit) );
+        const { include, limit = 10, page = 1 } = query;
+
         const skip = (page - 1) * limit;
 
+        const rawRelations = include ? include.split(',') : [];
+        const relations: Record<string, boolean> = {};
+        rawRelations.forEach(rel => {
+            if (QueueRelations.includes(rel)) {
+                relations[rel as keyof FindOptionsRelations<QueueEntity>] = true;
+            }
+        });
+
         const [ data, total ] = await this.queueRepository.findAndCount({
+            relations,
             skip,
             take: limit,
             order: { position: 'ASC' },
@@ -91,7 +101,8 @@ export class QueueService {
         newData.song = song;
         newData.table = table;
 
-        const queue: QueueEntity[] = (await this.findAll()).data
+        const queue: QueueEntity[] = (await this.findAll({})).data
+        console.log(queue)
 
         const waitingSongs = queue.filter( (p) => p.table.code === tableCode )
 
@@ -100,10 +111,10 @@ export class QueueService {
         newData.value = 1;
         newData.position = 1;
 
-        const newQueue = await this.queueRepository.create(newData)
+        const newQueue = this.queueRepository.create(newData)
 
         return {
-            message: '',
+            message: 'Cancion añadida a la lista',
             data: await this.queueRepository.save(newQueue)
         }
 

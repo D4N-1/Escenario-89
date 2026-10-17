@@ -41,7 +41,7 @@ export class TableController {
     }
 
 
-    @ApiOperation({ summary: 'Listar o validar estado general de Code' })
+    @ApiOperation({ summary: 'Fallback general de Code' })
     @Get('/code')
     getCodeRoot() {
         throw new BadRequestException({
@@ -50,7 +50,7 @@ export class TableController {
         });
     }
 
-    @ApiOperation({ summary: 'Listar o validar estado general de Number' })
+    @ApiOperation({ summary: 'Fallback general de Number' })
     @Get('/number')
     getNumberRoot() {
         throw new BadRequestException({

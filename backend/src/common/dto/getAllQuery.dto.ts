@@ -12,7 +12,7 @@ export class GetAllQueryDto {
     @IsOptional()
     @IsNumber()
     @Min(1)
-    limit: number;
+    limit?: number;
 
     @ApiProperty({
         description: 'Especificar el número de página',
@@ -22,5 +22,5 @@ export class GetAllQueryDto {
     @IsNumber()
     @IsOptional()
     @Min(1)
-    page: number;
+    page?: number;
 }

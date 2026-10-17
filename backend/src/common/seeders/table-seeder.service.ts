@@ -1,5 +1,4 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
-import { TableEntity } from "../../modules/table/entities/table.entity.js";
 import { CreateTableDto } from "../../modules/table/dto/create-table.dto.js";
 import { TableService } from "../../modules/table/table.service.js";
 

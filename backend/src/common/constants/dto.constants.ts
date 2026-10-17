@@ -10,7 +10,14 @@ export const EXAMPLE = {
     URL: 'https://youtube.com/watch?v=nF1Rh3vdaeQ',
     AGO: '11mo ago',
     AUTHOR: 'Kevin Sherwood and 3 more',
-    COUNT: 1
+    COUNT: 1,
+    NUMBER: 3,
+    CODE: 'VFRQZ0',
+    TYPE: 'SINGLE',
+    VALUE: 2,
+    POSITION: 6,
+    FIXED: false,
+    STATUS: 'PLAYING'
 
 }
 
@@ -27,6 +34,13 @@ export const DESCRIPTION = {
     URL: 'URL directa de la entidad',
     AGO: 'Fecha corta o estandar de la creación',
     AUTHOR: 'Nombre del autor',
-    COUNT: 'Contador interno de la entidad'
+    COUNT: 'Contador interno de la entidad',
+    NUMBER: 'Numero',
+    CODE: 'Codigo interno',
+    TYPE: 'Tipo del video',
+    VALUE: 'El valor/perso en la lista',
+    POSITION: 'La posicion de la entidad en la lista',
+    FIXED: 'Si se fija la posicion actual en la lista (admin)',
+    STATUS: 'Estado de la cancion en la lista'
 
 }

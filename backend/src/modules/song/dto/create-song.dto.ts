@@ -41,7 +41,8 @@ export class CreateSongDto {
 
     @ApiProperty({ description: DESCRIPTION.AGO, example: EXAMPLE.AGO })
     @IsString()
-    ago: string;
+    @IsOptional()
+    ago?: string|null;
     
     @ApiProperty({ description: DESCRIPTION.AUTHOR, example: EXAMPLE.AUTHOR })
     @IsString()
