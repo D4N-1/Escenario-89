@@ -3,6 +3,7 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { QueueEntity } from "../../queue/entities/queue.entity.js";
 import { ApiHideProperty, ApiProperty } from "@nestjs/swagger";
 import { DESCRIPTION, EXAMPLE } from "../../../common/constants/dto.constants.js";
+import { BaseEntity } from "../../../common/entities/base.entity.js";
 
 enum SongType {
     SINGLE = 'SINGLE',
@@ -11,12 +12,7 @@ enum SongType {
 
 
 @Entity('song')
-export class SongEntity {
-
-    @PrimaryGeneratedColumn()
-    @Exclude()
-    @ApiHideProperty()
-    index: number;
+export class SongEntity extends BaseEntity {
 
     @ApiProperty({ description: DESCRIPTION.ID, example: EXAMPLE.ID })
     @Column({ unique: true, type: 'varchar', length: 25 })

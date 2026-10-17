@@ -1,6 +1,6 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module.js';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { ClassSerializerInterceptor, Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { apiReference } from '@scalar/nestjs-api-reference';
@@ -21,6 +21,8 @@ async function bootstrap() {
     forbidNonWhitelisted: true,
     transform: true
   }))
+
+  app.useGlobalInterceptors(new ClassSerializerInterceptor( app.get(Reflector) ) );
 
 
   /// DOC ///

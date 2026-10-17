@@ -7,6 +7,7 @@ import { TableModule } from './modules/table/table.module.js';
 import { DatabaseModule } from './database/database.module.js';
 import { SongModule } from './modules/song/song.module.js';
 import { QueueModule } from './modules/queue/queue.module.js';
+import { UserModule } from './modules/user/user.module.js';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { QueueModule } from './modules/queue/queue.module.js';
 
     TableModule,
     SongModule,
+    UserModule,
     SearchModule,
 
     ConfigModule.forRoot({

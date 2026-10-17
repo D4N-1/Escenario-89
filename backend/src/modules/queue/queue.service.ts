@@ -106,7 +106,7 @@ export class QueueService {
         const queueResult = await this.findAll({ all: true })
         const queue: QueueEntity[] = queueResult.data
 
-        const waitingSongs = queue.filter( (q) => q.table.code === table.code )
+        const waitingSongs = queue.filter( (q) => q.table?.code === table.code )
 
         const value = waitingSongs.length
         newData.value = value

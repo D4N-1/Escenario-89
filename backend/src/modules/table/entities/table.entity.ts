@@ -1,16 +1,11 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm"
-import { Exclude } from "class-transformer"
+import { Column, Entity, OneToMany } from "typeorm"
 import { QueueEntity } from "../../queue/entities/queue.entity.js";
-import { ApiHideProperty, ApiProperty } from "@nestjs/swagger";
+import { ApiProperty } from "@nestjs/swagger";
 import { DESCRIPTION, EXAMPLE } from "../../../common/constants/dto.constants.js";
+import { BaseEntity } from "../../../common/entities/base.entity.js";
 
 @Entity('table')
-export class TableEntity {
-
-    @PrimaryGeneratedColumn()
-    @Exclude()
-    @ApiHideProperty()
-    index: number;
+export class TableEntity extends BaseEntity {
 
     @ApiProperty({ description: DESCRIPTION.CODE, example: EXAMPLE.CODE })
     @Column({ unique: true, type: 'varchar', length: 6 })
