@@ -10,4 +10,3 @@ export const TableSummary = new Summary(single_name, plural_name)
 export const TableOk = new Ok(single_name, plural_name)
 export const TableExceptions = new Exception(single_name)
 export const TableErrorCode = new ErrorCode(single_name)
-

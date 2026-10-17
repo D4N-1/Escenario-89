@@ -6,7 +6,7 @@ import { TableService } from "../../modules/table/table.service.js";
 
 @Injectable()
 export class TableSeederService implements OnModuleInit {
-    private readonly logger = new Logger(TableSeederService.name)
+    private readonly logger = new Logger(TableSeederService.name, { timestamp: true })
 
     constructor(
 

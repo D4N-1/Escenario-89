@@ -16,6 +16,7 @@ export class TableController {
 
     @ApiOperation({ summary: TableSummary.ALL() })
     @ApiOkResponse({ description: TableOk.ALL(), type: [TableEntity] })
+    @ApiBadRequestResponse({ description: TableExceptions.BAD_RQUEST(), schema: { example: TableErrorCode.BAD_REQUEST('QUERY') } })
     @Get()
     getAll(@Query(AllQueryPipe) query: GetAllQueryDto) {
         return this.tableService.findAll(query)
