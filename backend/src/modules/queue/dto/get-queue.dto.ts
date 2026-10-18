@@ -2,6 +2,7 @@ import { ApiProperty } from "@nestjs/swagger";
 import { GetAllQueryDto } from "../../../common/dto/getAllQuery.dto";
 import { QueueRelations } from "../entities/queue.entity";
 import { IsBoolean, IsOptional, IsString } from "class-validator";
+import { Type } from "class-transformer";
 
 
 export class GetAllQueueDto extends GetAllQueryDto {
@@ -20,5 +21,6 @@ export class GetAllQueueDto extends GetAllQueryDto {
     })
     @IsOptional()
     @IsBoolean()
+    @Type( () => Boolean)
     all: boolean
 }

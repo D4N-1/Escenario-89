@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
+import { Column, Entity, Generated, JoinColumn, ManyToOne } from "typeorm";
 import { SongEntity } from "../../song/entities/song.entity.js";
 import { TableEntity } from "../../table/entities/table.entity.js";
 import { ApiProperty } from "@nestjs/swagger";
@@ -21,6 +21,11 @@ export class QueueEntity extends BaseEntity {
     @ApiProperty({ description: DESCRIPTION.POSITION, example: EXAMPLE.POSITION })
     @Column({ type: 'int', nullable: true })
     position: number;
+
+    @ApiProperty({ description: DESCRIPTION.UUID, example: EXAMPLE.UUID })
+    @Column({ type: 'uuid', length: 36 })
+    @Generated('uuid')
+    uuid: string;
 
     @ApiProperty({ description: DESCRIPTION.VALUE, example: EXAMPLE.VALUE })
     @Column({ type: 'int', nullable: true })

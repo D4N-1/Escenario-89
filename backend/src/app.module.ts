@@ -8,6 +8,7 @@ import { DatabaseModule } from './database/database.module.js';
 import { SongModule } from './modules/song/song.module.js';
 import { QueueModule } from './modules/queue/queue.module.js';
 import { UserModule } from './modules/user/user.module.js';
+import { QueueSocketModule } from './modules/queue-socket/queue-socket.module.js';
 
 @Module({
   imports: [
@@ -16,14 +17,14 @@ import { UserModule } from './modules/user/user.module.js';
     TableModule,
     SongModule,
     UserModule,
+    QueueModule,
+    QueueSocketModule,
     SearchModule,
 
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '../.env'
-    }),
-
-    QueueModule
+    })
 
   ],
   controllers: [AppController],

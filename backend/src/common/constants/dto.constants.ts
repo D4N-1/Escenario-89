@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto"
+
 export const EXAMPLE = {
 
     ID: 'nF1Rh3vdaeQ',
@@ -17,7 +19,8 @@ export const EXAMPLE = {
     VALUE: 2,
     POSITION: 6,
     FIXED: false,
-    STATUS: 'PLAYING'
+    STATUS: 'PLAYING',
+    UUID: randomUUID()
 
 }
 
@@ -41,6 +44,7 @@ export const DESCRIPTION = {
     VALUE: 'El valor/perso en la lista',
     POSITION: 'La posicion de la entidad en la lista',
     FIXED: 'Si se fija la posicion actual en la lista (admin)',
-    STATUS: 'Estado de la cancion en la lista'
+    STATUS: 'Estado de la cancion en la lista',
+    UUID: 'Indice único publico'
 
 }

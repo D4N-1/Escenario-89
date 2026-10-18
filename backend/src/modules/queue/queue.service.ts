@@ -38,7 +38,6 @@ export class QueueService {
 
     }
     
-    
     findOrNull = {
 
         position: async( position: number ): Promise<QueueEntity|null> => {
