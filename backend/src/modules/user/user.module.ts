@@ -11,6 +11,7 @@ import { UserSeederService } from "../../common/seeders/user-seeder.service";
         TypeOrmModule.forFeature([UserEntity])
     ],
     controllers: [],
-    providers: [ UserService, UserSeederService ]
+    providers: [ UserService, UserSeederService ],
+    exports: [ UserService ]
 })
 export class UserModule {}

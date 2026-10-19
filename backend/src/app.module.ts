@@ -9,6 +9,7 @@ import { SongModule } from './modules/song/song.module.js';
 import { QueueModule } from './modules/queue/queue.module.js';
 import { UserModule } from './modules/user/user.module.js';
 import { QueueSocketModule } from './modules/queue-socket/queue-socket.module.js';
+import { AuthModule } from './modules/auth/auth.module.js';
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { QueueSocketModule } from './modules/queue-socket/queue-socket.module.js
     SongModule,
     UserModule,
     QueueModule,
-    QueueSocketModule,
+    //QueueSocketModule,
+    AuthModule,
     SearchModule,
 
     ConfigModule.forRoot({

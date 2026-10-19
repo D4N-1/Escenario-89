@@ -41,11 +41,12 @@ export default class ErrorCode {
         }
     }
 
-    NOT_FOUND(text?: string) {
+    NOT_FOUND(text?: string, extra?: object) {
         return {
             statusCode: 404,
             error: 'Not Found',
-            message: text || `No se encontró ese registro de ${this.single_name}`
+            message: text || `No se encontró ese registro de ${this.single_name}`,
+            ...extra
         }
     }
 

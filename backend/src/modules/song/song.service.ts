@@ -8,7 +8,7 @@ import { CreateSongDto } from "./dto/create-song.dto.js";
 import { ResCreateInterface } from "../../common/interfaces/resCreate.interface.js";
 import { UpdateSongDto } from "./dto/update-song.dto.js";
 import { ResUpdateInterface } from "../../common/interfaces/resUpdate.interface.js";
-
+import { SongErrorCode } from "./song.constants.js";
 
 
 @Injectable()
@@ -30,7 +30,7 @@ export class SongService {
                 where: { id }
             })
 
-            if (!song) throw new NotFoundException('No existe esa id de cancion')
+            if (!song) throw new NotFoundException( SongErrorCode.NOT_FOUND('No existe esa id de cancion') )
                 return song
         },
 
@@ -79,7 +79,7 @@ export class SongService {
         const newData: Partial<SongEntity> = { ...createSongDto }
 
         const song = await this.findOrNull.id(id)
-        if (song) throw new ConflictException('Ya existe este id de canción')
+        if (song) throw new ConflictException( SongErrorCode.CONFLICT('Ya existe este id de canción') )
 
         newData.id = id;
 
@@ -97,7 +97,7 @@ export class SongService {
         const { id } = updateSongDto;
 
         if (!id) throw new BadRequestException({
-            message: 'Se debe especificar la id de la canción a editar',
+            message: 'Se debe especificar la id de la canción a editar junto a los cambios',
             example: { id: '9kAjZQb_ULE', title: 'All We Are (Instrumental)' }
         })
 

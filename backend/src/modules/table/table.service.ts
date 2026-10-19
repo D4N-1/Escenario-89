@@ -6,6 +6,7 @@ import { GetAllQueryDto } from "../../common/dto/getAllQuery.dto.js";
 import { ResAllInterface } from "../../common/interfaces/resAll.interface.js";
 import { CreateTableDto } from "./dto/create-table.dto.js";
 import { ResCreateInterface } from "../../common/interfaces/resCreate.interface.js";
+import { TableErrorCode } from "./table.constants.js";
 
 
 
@@ -28,7 +29,7 @@ export class TableService {
                 where: { code }
             })
 
-            if (!table) throw new NotFoundException('No existe ese codigo de mesa')
+            if (!table) throw new NotFoundException( TableErrorCode.NOT_FOUND('No existe ese codigo de mesa') )
                 return table
         },
 
@@ -38,7 +39,7 @@ export class TableService {
                 where: { number }
             })
 
-            if (!table) throw new NotFoundException('No existe ese numero de mesa')
+            if (!table) throw new NotFoundException( TableErrorCode.NOT_FOUND('No existe ese numero de mesa') )
                 return table
         }
 
@@ -105,7 +106,7 @@ export class TableService {
         const newData: Partial<TableEntity> = {  }
 
         const table = await this.findOrNull.number(number)
-        if (table) throw new ConflictException('Ya existe este número de mesa')
+        if (table) throw new ConflictException( TableErrorCode.CONFLICT('Ya existe este número de mesa') )
 
         newData.number = number;
         newData.code = this.generateTableCode()

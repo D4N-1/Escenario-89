@@ -20,7 +20,9 @@ export const EXAMPLE = {
     POSITION: 6,
     FIXED: false,
     STATUS: 'PLAYING',
-    UUID: randomUUID()
+    UUID: randomUUID(),
+    NAME: 'Juan',
+    PASSWORD: 'juan_password'
 
 }
 
@@ -45,6 +47,8 @@ export const DESCRIPTION = {
     POSITION: 'La posicion de la entidad en la lista',
     FIXED: 'Si se fija la posicion actual en la lista (admin)',
     STATUS: 'Estado de la cancion en la lista',
-    UUID: 'Indice único publico'
+    UUID: 'Indice único publico',
+    NAME: 'Nombre',
+    PASSWORD: 'Contraseña'
 
 }

@@ -5,6 +5,7 @@ import { Repository } from "typeorm";
 import { CreateUserDto } from "./dto/user.dto";
 import { ResCreateInterface } from "../../common/interfaces/resCreate.interface";
 import { hash } from "bcrypt"
+import { UserErrorCode } from "./user.constants";
 
 
 
@@ -27,7 +28,7 @@ export class UserService {
                 where: { name }
             })
 
-            if (!user) throw new NotFoundException('No existe ese usuario')
+            if (!user) throw new NotFoundException( UserErrorCode.NOT_FOUND('No existe ese usuario') )
                 return user
         }
 
@@ -54,7 +55,7 @@ export class UserService {
         newData.passwordHash = await hash(password, 10)
 
         const exist = await this.findOrNull.name(name)
-        if (exist) throw new ConflictException('Ese usuario ya existe')
+        if (exist) throw new ConflictException( UserErrorCode.CONFLICT('Ese usuario ya existe') )
 
         newData.name = name;
 
