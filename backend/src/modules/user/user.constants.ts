@@ -10,3 +10,8 @@ export const UserSummary = new Summary(single_name, plural_name)
 export const UserOk = new Ok(single_name, plural_name)
 export const UserExceptions = new Exception(single_name)
 export const UserErrorCode = new ErrorCode(single_name)
+
+export enum UserRole {
+    ADMIN = 'ADMIN',
+    USER = 'USER'
+}

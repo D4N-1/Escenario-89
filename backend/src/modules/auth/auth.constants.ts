@@ -2,6 +2,7 @@ import ErrorCode from "../../common/constants/error-code.constants.js";
 import Exception from "../../common/constants/exception-sw.constants.js";
 import Ok from "../../common/constants/ok-sw.constants.js";
 import Summary from "../../common/constants/summary-sw.constants.js";
+import { AuthResCreateInterface } from "./interfaces/auth-resCreate.interface.js";
 
 export const single_name = 'Autenticacion'
 export const plural_name = 'Autenticaciones'

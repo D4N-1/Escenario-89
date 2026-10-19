@@ -10,6 +10,7 @@ import { QueueModule } from './modules/queue/queue.module.js';
 import { UserModule } from './modules/user/user.module.js';
 import { QueueSocketModule } from './modules/queue-socket/queue-socket.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import * as Joi from 'joi'
 
 @Module({
   imports: [
@@ -25,7 +26,12 @@ import { AuthModule } from './modules/auth/auth.module.js';
 
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '../.env'
+      envFilePath: '../.env',
+      validationSchema: Joi.object({
+        ADMIN_NAME: Joi.string().required().min(3),
+        ADMIN_PASSWORD: Joi.string().required().min(8),
+        JWT_SECRET: Joi.string().required().min(4)
+      })
     })
 
   ],

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+import { UserRole } from "../../modules/user/user.constants"
 
 export const EXAMPLE = {
 
@@ -14,7 +15,7 @@ export const EXAMPLE = {
     AUTHOR: 'Kevin Sherwood and 3 more',
     COUNT: 1,
     NUMBER: 3,
-    CODE: 'VFRQZ0',
+    CODE: 'BGRRX0',
     TYPE: 'SINGLE',
     VALUE: 2,
     POSITION: 6,
@@ -22,7 +23,10 @@ export const EXAMPLE = {
     STATUS: 'PLAYING',
     UUID: randomUUID(),
     NAME: 'Juan',
-    PASSWORD: 'juan_password'
+    PASSWORD: 'juan_password',
+    MESSAGE: 'Exito',
+    ROLE: UserRole,
+    ACCESS_TOKEN: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb2RlIjoiVkZSUVowIiwibnVtYmVyIjoxLCJpYXQiOjE3OTI0MzIxMDUsImV4cCI6MTc5MjQ0NjUwNX0.kxCWXJcbE0VRyIhh5cIF4z6IuFKCK4oCs1gEc5ACIGE'
 
 }
 
@@ -49,6 +53,10 @@ export const DESCRIPTION = {
     STATUS: 'Estado de la cancion en la lista',
     UUID: 'Indice único publico',
     NAME: 'Nombre',
-    PASSWORD: 'Contraseña'
+    PASSWORD: 'Contraseña',
+    MESSAGE: 'Mensaje',
+    DATA: 'Entidad de respuesta',
+    ACCESS_TOKEN: 'Token de acceso',
+    ROLE: 'El rol asignado'
 
 }

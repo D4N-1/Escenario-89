@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { UserService } from "../../modules/user/user.service";
 import { CreateUserDto } from "../../modules/user/dto/user.dto";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class UserSeederService implements OnModuleInit {
@@ -9,7 +10,8 @@ export class UserSeederService implements OnModuleInit {
 
     constructor(
 
-        private readonly userService: UserService
+        private readonly userService: UserService,
+        private readonly configService: ConfigService
 
     ) { }
 
@@ -25,8 +27,8 @@ export class UserSeederService implements OnModuleInit {
 
         const usersToCreate: CreateUserDto[] = [
             {
-                name: 'Administrador',
-                password: 'escenario98'
+                name: this.configService.getOrThrow<string>('ADMIN_NAME'),
+                password: this.configService.getOrThrow<string>('ADMIN_PASSWORD')
             }
         ]
 

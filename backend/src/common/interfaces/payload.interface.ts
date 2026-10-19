@@ -1,4 +1,4 @@
-import { UserRole } from "../../modules/user/entities/user.entity";
+import { UserRole } from "../../modules/user/user.constants";
 
 export interface UserRequest {
 
