@@ -33,11 +33,12 @@ export default class ErrorCode {
         }
     }
 
-    FORBIDDEN(text?: string) {
+    FORBIDDEN(text?: string, extra?: object) {
         return {
             statusCode: 403,
             error: 'Forbidden',
-            message: text || 'No tienes permiso suficiente para acceder a este metodo'
+            message: text || 'No tienes permiso suficiente para acceder a este metodo',
+            ...extra
         }
     }
 

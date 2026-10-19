@@ -8,6 +8,7 @@ import { AuthResCreateInterface } from "./interfaces/auth-resCreate.interface";
 import { TableRequest, UserRequest } from "../../common/interfaces/payload.interface";
 import { CreateTableSignDto } from "./dto/table-sign.dto";
 import { TableService } from "../table/table.service";
+import { TypeRequest } from "../../common/enums/typeRequest.enum";
 
 
 @Injectable()
@@ -33,6 +34,7 @@ export class AuthService {
             if (!match) throw new UnauthorizedException( AuthErrorCode.UNAUTHORIZED('Contraseña incorrecta') )
 
             const payload: UserRequest = {
+                type: TypeRequest.USER,
                 name: user.name,
                 role: user.role
             }
@@ -51,6 +53,7 @@ export class AuthService {
             const table = await this.tableService.findOne.code(code)
 
             const payload: TableRequest = {
+                type: TypeRequest.TABLE,
                 code: table.code,
                 number: table.number
             }

@@ -2,13 +2,14 @@ import { BadRequestException, Controller, Get, Param, Query } from "@nestjs/comm
 import { TableService } from "./table.service.js";
 import { GetAllQueryDto } from "../../common/dto/getAllQuery.dto.js";
 import { AllQueryPipe } from "../../pipes/allQuery.pipe.js";
-import { ApiBadRequestResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from "@nestjs/swagger";
+import { ApiBadRequestResponse, ApiBearerAuth, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from "@nestjs/swagger";
 import { TableErrorCode, TableExceptions, TableOk, TableSummary } from "./table.constants.js";
 import { TableEntity } from "./entities/table.entity.js";
 import { CodePipe } from "../../pipes/code.pipe.js";
+import { Private } from "../../decorators/private.decorator.js";
 
 
-
+@Private() @ApiBearerAuth()
 @Controller('table')
 export class TableController {
 

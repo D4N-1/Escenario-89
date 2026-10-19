@@ -11,18 +11,20 @@ import { UserModule } from './modules/user/user.module.js';
 import { QueueSocketModule } from './modules/queue-socket/queue-socket.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import * as Joi from 'joi'
+import { APP_GUARD } from '@nestjs/core';
+import AuthNGuard from './guards/auth-n.guard.js';
 
 @Module({
   imports: [
     DatabaseModule,
 
-    TableModule,
-    SongModule,
-    UserModule,
+    AuthModule,
     QueueModule,
     //QueueSocketModule,
-    AuthModule,
     SearchModule,
+    SongModule,
+    TableModule,
+    UserModule,
 
     ConfigModule.forRoot({
       isGlobal: true,
@@ -35,7 +37,14 @@ import * as Joi from 'joi'
     })
 
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [ AppController ],
+  providers: [
+    AppService,
+
+    {
+      provide: APP_GUARD,
+      useClass: AuthNGuard
+    }
+  ],
 })
 export class AppModule {}
