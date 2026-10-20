@@ -8,7 +8,6 @@ export class SearchController {
 
   @Get()
   search( @Query() query:any ) {
-    console.log(query?.video)
     return this.searchService.search(query?.video)
   }
 }

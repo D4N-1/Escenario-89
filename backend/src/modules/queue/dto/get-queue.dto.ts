@@ -16,7 +16,7 @@ export class GetAllQueueDto extends GetAllQueryDto {
     include?: string;
 
     @ApiProperty({
-        description: 'Traer todas las relaciones de la lista',
+        description: 'Traer todas las listas',
         example: true
     })
     @IsOptional()

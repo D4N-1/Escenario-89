@@ -6,7 +6,6 @@ import * as yt from "yt-search"
 export class SearchService {
 
   async search(query: string) {
-    console.log(yt)
 
     return yt.search(query)
   }

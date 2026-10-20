@@ -2,9 +2,9 @@ import { ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/com
 import { Reflector } from "@nestjs/core";
 import { AuthGuard } from "@nestjs/passport"
 import { AuthService } from "../modules/auth/auth.service";
-import { Public_key } from "../decorators/public.decorator";
 import { Private } from "../decorators/private.decorator";
 import { AuthErrorCode } from "../modules/auth/auth.constants";
+import { Public } from "../decorators/public.decorator";
 
 
 @Injectable()
@@ -21,12 +21,10 @@ export default class AuthNGuard extends AuthGuard('jwt') {
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         
-        const isPublic = this.reflector.getAllAndOverride(Public_key, [
+        const isPublic = this.reflector.getAllAndOverride(Public, [
             context.getHandler(),
             context.getClass()
         ])
-
-        console.log(`isPublic: ${isPublic}`)
 
         if (isPublic) return true
 
@@ -34,8 +32,6 @@ export default class AuthNGuard extends AuthGuard('jwt') {
             context.getHandler(),
             context.getClass()
         ])
-
-        console.log(isPrivate)
 
         if (!isPrivate) return true
         
@@ -53,7 +49,7 @@ export default class AuthNGuard extends AuthGuard('jwt') {
             console.log('Info:', info?.message)
             console.log('User:', user)
 
-            throw new UnauthorizedException( AuthErrorCode.UNAUTHORIZED('Token inválido o expirado') )
+            throw new UnauthorizedException( AuthErrorCode.UNAUTHORIZED(info?.message) )
         }
 
         return user;

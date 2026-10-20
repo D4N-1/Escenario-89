@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsString, Length } from "class-validator";
+import { IsOptional, IsString, IsUUID, Length } from "class-validator";
 import { DESCRIPTION, EXAMPLE } from "../../../common/constants/dto.constants";
 
 
@@ -14,5 +14,10 @@ export class CreateQueueDto {
     @IsString()
     @Length(6)
     tableCode: string;
+
+    @ApiProperty({ description: DESCRIPTION.UUID, example: EXAMPLE.UUID })
+    @IsUUID()
+    @IsOptional()
+    uuid?: string;
 
 }

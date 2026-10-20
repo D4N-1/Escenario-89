@@ -1,4 +1,4 @@
-import { Column, Entity, Generated, JoinColumn, ManyToOne } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 import { SongEntity } from "../../song/entities/song.entity.js";
 import { TableEntity } from "../../table/entities/table.entity.js";
 import { ApiProperty } from "@nestjs/swagger";
@@ -13,6 +13,11 @@ export enum SongStatus {
     CANCELLED = 'CANCELLED'
 }
 
+export enum UpdateSongStatus {
+    FINISHED = 'FINISHED',
+    CANCELLED = 'CANCELLED'
+}
+
 export const QueueRelations = [ 'song', 'table' ]
 @Entity('queue')
 export class QueueEntity extends BaseEntity {
@@ -20,16 +25,15 @@ export class QueueEntity extends BaseEntity {
 
     @ApiProperty({ description: DESCRIPTION.POSITION, example: EXAMPLE.POSITION })
     @Column({ type: 'int', nullable: true })
-    position: number;
+    position: number|null;
 
     @ApiProperty({ description: DESCRIPTION.UUID, example: EXAMPLE.UUID })
-    @Column({ type: 'uuid', length: 36 })
-    @Generated('uuid')
+    @Column({ unique: true, type: 'uuid', length: 36 })
     uuid: string;
 
     @ApiProperty({ description: DESCRIPTION.VALUE, example: EXAMPLE.VALUE })
     @Column({ type: 'int', nullable: true })
-    value: number;
+    value: number|null;
 
     @ApiProperty({ description: DESCRIPTION.FIXED, example: EXAMPLE.FIXED })
     @Column({ type: 'boolean', default: false })

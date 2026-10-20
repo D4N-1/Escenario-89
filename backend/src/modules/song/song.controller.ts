@@ -3,11 +3,13 @@ import { SongService } from "./song.service.js";
 import { AllQueryPipe } from "../../pipes/allQuery.pipe.js";
 import { GetAllQueryDto } from "../../common/dto/getAllQuery.dto.js";
 import { CreateSongDto } from "./dto/create-song.dto.js";
-import { ApiOkResponse, ApiOperation } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOkResponse, ApiOperation } from "@nestjs/swagger";
 import { SongOk, SongSummary } from "./song.constants.js";
 import { SongEntity } from "./entities/song.entity.js";
+import { Private } from "../../decorators/private.decorator.js";
 
 
+@Private() @ApiBearerAuth()
 @Controller('song')
 export class SongController {
 

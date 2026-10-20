@@ -13,6 +13,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import * as Joi from 'joi'
 import { APP_GUARD } from '@nestjs/core';
 import AuthNGuard from './guards/auth-n.guard.js';
+import AuthZGuard from './guards/auth-z.guard.js';
 
 @Module({
   imports: [
@@ -44,6 +45,10 @@ import AuthNGuard from './guards/auth-n.guard.js';
     {
       provide: APP_GUARD,
       useClass: AuthNGuard
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AuthZGuard
     }
   ],
 })

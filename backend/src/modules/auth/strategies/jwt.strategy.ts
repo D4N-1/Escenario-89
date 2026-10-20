@@ -44,13 +44,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
             case TypeRequest.TABLE:
 
-                console.log(payload.number)
+                console.log(payload)
                 await this.tableService.findOne.number(payload.number)
                 return payload
 
             case TypeRequest.USER:
 
-                console.log(payload.name)
+                console.log(payload)
                 await this.userService.findOne.name(payload.name)
                 return payload
 

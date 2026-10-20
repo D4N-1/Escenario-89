@@ -5,12 +5,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { QueueEntity } from './entities/queue.entity.js';
 import { SongModule } from '../song/song.module.js';
 import { TableModule } from '../table/table.module.js';
+import { DatabaseModule } from '../../database/database.module.js';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([QueueEntity]),
 
-    SongModule, TableModule
+    SongModule, TableModule, DatabaseModule
   ],
   controllers: [QueueController],
   providers: [QueueService],

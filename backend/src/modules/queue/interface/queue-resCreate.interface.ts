@@ -3,7 +3,8 @@ import { SongStatus } from "../entities/queue.entity";
 
 export interface QueueResCreateInterface extends ResCreateInterface {
 
-    position: number;
-    status: SongStatus
+    position: number|null;
+    status: SongStatus|null;
+    fixed: boolean
     
 }

@@ -11,7 +11,7 @@ export class GetAllQueryDto {
     @Type( () => Number)
     @IsOptional()
     @IsNumber()
-    @Min(1)
+    @Min(0)
     limit?: number;
 
     @ApiProperty({
