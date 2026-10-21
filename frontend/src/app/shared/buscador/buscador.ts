@@ -3,6 +3,7 @@ import { Icon } from '../icon/icon';
 import { AppState } from '../../core/app-state';
 import { YoutubeService } from '../../core/youtube.service';
 import { Video } from '../../core/models';
+import { PlayerService } from '../../core/player.service';
 
 /** Buscador de canciones estilo YouTube (lista de varios resultados) */
 @Component({
@@ -14,6 +15,7 @@ import { Video } from '../../core/models';
 export class Buscador {
   state = inject(AppState);
   yt = inject(YoutubeService);
+  player = inject(PlayerService);
 
   consulta = signal('');
   ultima = signal('');
@@ -42,7 +44,7 @@ export class Buscador {
   }
 
   agregar(v: Video) {
-    this.state.agregarACola(v); // desde el admin: mesa 0
+    this.state.agregarACola(v);
     this.cerrar();
     this.consulta.set('');
   }

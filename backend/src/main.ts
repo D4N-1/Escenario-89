@@ -11,6 +11,7 @@ async function bootstrap() {
   const configService = new ConfigService()
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.enableCors();
   const logger = new Logger('Main')
 
 

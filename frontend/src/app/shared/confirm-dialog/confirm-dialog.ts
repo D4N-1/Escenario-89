@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { Icon } from '../icon/icon';
 import { AppState } from '../../core/app-state';
 import { Video } from '../../core/models';
+import { PlayerService } from '../../core/player.service';
 
 /** Popup móvil "¿Pedir canción?" — se muestra encima de la vista actual. */
 @Component({
@@ -13,6 +14,7 @@ import { Video } from '../../core/models';
 })
 export class ConfirmDialog {
   state = inject(AppState);
+  player = inject(PlayerService);
   router = inject(Router);
 
   /** Canción elegida (null en la ruta /confirmar de ejemplo) */
@@ -23,6 +25,10 @@ export class ConfirmDialog {
     const v = this.video();
     if (v) {
       const posicion = this.state.agregarACola(v, this.state.mesa());
+      if (posicion === 0) {
+        const cancion = this.state.sonando();
+        if (cancion) this.player.cargarCancion(cancion, true);
+      }
       this.state.cancionSeleccionada.set(v);
       this.state.posicionEnCola.set(posicion);
       this.state.misCanciones.update(lista => [{ video: v, posicion }, ...lista]);

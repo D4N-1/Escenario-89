@@ -2,12 +2,16 @@
   <h2>Canciones en cola</h2>
 
   @if (state.sonando(); as s) {
-  <div class="row now">
+  <div class="row now" (click)="togglePlay()" title="Click para pausar/reanudar" style="cursor: pointer;">
     <div class="num">
-      <app-icon name="play" [size]="18" />
+      <app-icon [name]="state.reproduciendo() ? 'pause' : 'play'" [size]="18" />
       @if (s.mesa > 0) { <span class="mesa">#{{ s.mesa }}</span> }
     </div>
-    <div class="thumb now-thumb"></div>
+    <div class="thumb now-thumb">
+      @if (obtenerMiniatura(s); as img) {
+        <img [src]="img" [alt]="s.titulo" />
+      }
+    </div>
     <div class="info"><b>{{ s.titulo }}</b><small>{{ s.artista }}</small></div>
     <span class="dur">{{ s.duracion }}</span>
     <app-icon name="more-v" [size]="16" />
@@ -15,12 +19,18 @@
   }
 
   @for (it of items(); track it.id) {
-  <div class="row" [class.ad]="it.tipo === 'anuncio'">
+  <div class="row" [class.ad]="it.tipo === 'anuncio'" (click)="reproducirAhora(it, $index)" [title]="it.tipo === 'anuncio' ? '' : 'Click para reproducir ahora'" [style.cursor]="it.tipo === 'anuncio' ? 'default' : 'pointer'">
     <div class="num">
       <span class="n" [class.big]="it.tipo === 'anuncio'">{{ $index + 1 }}</span>
       @if (it.tipo !== 'anuncio' && it.mesa > 0) { <span class="mesa">#{{ it.mesa }}</span> }
     </div>
-    <div class="thumb" [class.ad-thumb]="it.tipo === 'anuncio'"></div>
+    <div class="thumb" [class.ad-thumb]="it.tipo === 'anuncio'">
+      @if (it.tipo !== 'anuncio' && obtenerMiniatura(it); as img) {
+        <img [src]="img" [alt]="it.titulo" />
+      } @else if (it.tipo === 'anuncio') {
+        <div class="ad-badge"><app-icon name="clapper" [size]="14" /></div>
+      }
+    </div>
     <div class="info">
       <b>{{ it.titulo }}@if (it.tipo === 'karaoke') { <span class="kara"> (Karaoke)</span> }</b>
       <small>{{ it.artista }}</small>

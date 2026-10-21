@@ -61,20 +61,43 @@
   <section class="main"><router-outlet /></section>
 
   <footer class="player">
-    <div class="bar"><i></i></div>
+    <div class="bar" (click)="onSeek($event)">
+      <div class="bar-fill" [style.width.%]="player.progreso()"></div>
+      <i [style.left.%]="player.progreso()"></i>
+    </div>
     <div class="np">
       @if (state.sonando(); as s) {
-        <b>{{ s.titulo }}</b><span>{{ s.artista }}</span>
+        @if (s.miniatura || (s.videoId ? 'https://i.ytimg.com/vi/' + s.videoId + '/mqdefault.jpg' : null); as img) {
+          <div class="np-thumb">
+            <img [src]="img" [alt]="s.titulo" />
+          </div>
+        }
+        <div class="np-meta">
+          <b>{{ s.titulo }}</b><span>{{ s.artista }} @if (s.mesa > 0) { · Mesa #{{ s.mesa }} }</span>
+        </div>
       } @else {
-        <b>Sin canción</b><span>La cola está vacía</span>
+        <div class="np-meta">
+          <b>Sin canción</b><span>La cola está vacía</span>
+        </div>
       }
     </div>
     <div class="ctrl">
-      <button type="button" class="ctrl-btn" title="Anterior"><app-icon name="prev" [size]="24" /></button>
-      <button type="button" class="play" title="Reproducir"><app-icon [name]="state.reproduciendo() ? 'pause' : 'play'" [size]="22" /></button>
-      <button type="button" class="ctrl-btn" title="Siguiente"><app-icon name="next" [size]="24" /></button>
+      <button type="button" class="ctrl-btn" title="Anterior (reiniciar)" (click)="player.prev()">
+        <app-icon name="prev" [size]="24" />
+      </button>
+      <button type="button" class="play" [title]="state.reproduciendo() ? 'Pausar' : 'Reproducir'" (click)="player.togglePlay()">
+        <app-icon [name]="state.reproduciendo() ? 'pause' : 'play'" [size]="22" />
+      </button>
+      <button type="button" class="ctrl-btn" title="Siguiente canción" (click)="player.next()">
+        <app-icon name="next" [size]="24" />
+      </button>
     </div>
-    <span class="time">{{ state.tiempoActual() }} / {{ state.sonando()?.duracion ?? '0:00' }}</span>
+    <div class="player-right">
+      <button type="button" class="mute-btn" (click)="player.toggleMute()" [title]="player.muteado() ? 'Activar sonido' : 'Silenciar'">
+        <app-icon [name]="player.muteado() ? 'volume-x' : 'volume-2'" [size]="18" />
+      </button>
+      <span class="time">{{ player.tiempoFormateado() }} / {{ state.sonando()?.duracion || player.duracionFormateada() }}</span>
+    </div>
   </footer>
 
   <div class="queue"><app-queue-panel [showAds]="!isPanel" /></div>

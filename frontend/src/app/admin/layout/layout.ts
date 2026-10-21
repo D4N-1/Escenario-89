@@ -3,11 +3,13 @@ import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { Icon } from '../../shared/icon/icon';
 import { QueuePanel } from '../../shared/queue-panel/queue-panel';
 import { AppState } from '../../core/app-state';
+import { PlayerService } from '../../core/player.service';
 
 @Component({ selector: 'app-layout', imports: [RouterOutlet, RouterLink, Icon, QueuePanel], templateUrl: './layout.html', styleUrl: './layout.css' })
 export class Layout {
   router = inject(Router);
   state = inject(AppState);
+  player = inject(PlayerService);
 
   currentState: 'abierto' | 'cerrando' | 'cerrado' = 'abierto';
   estadoMenuOpen = false;
@@ -65,5 +67,13 @@ export class Layout {
   selectHour(hour: string) {
     this.selectedHour = hour;
     this.hourMenuOpen = false;
+  }
+
+  onSeek(event: MouseEvent) {
+    const el = event.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const pct = Math.max(0, Math.min(100, (clickX / rect.width) * 100));
+    this.player.seekPorcentaje(pct);
   }
 }
