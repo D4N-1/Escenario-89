@@ -5,6 +5,8 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import { ConfigService } from '@nestjs/config';
+import { IoAdapter } from '@nestjs/platform-socket.io'
+import { CorsConfig } from './common/constants/cors.constants.js';
 
 async function bootstrap() {
 
@@ -24,6 +26,10 @@ async function bootstrap() {
 
   app.useGlobalInterceptors(new ClassSerializerInterceptor( app.get(Reflector) ) );
 
+
+  /// ADAPTERS ///
+
+  app.useWebSocketAdapter( new IoAdapter(app) )
 
   /// DOC ///
 
@@ -50,6 +56,8 @@ async function bootstrap() {
   SwaggerModule.setup('swagger', app, document, swaggerOptions)
 
   /// LISTEN ///
+
+  app.enableCors( CorsConfig )
 
   const port = configService.get<number>('NEST_PORT') ?? 3000
   await app.listen(port);

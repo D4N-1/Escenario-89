@@ -21,7 +21,7 @@ import AuthZGuard from './guards/auth-z.guard.js';
 
     AuthModule,
     QueueModule,
-    //QueueSocketModule,
+    QueueSocketModule,
     SearchModule,
     SongModule,
     TableModule,

@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from "@nestjs/common";
+import { ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { UserService } from "../../user/user.service";
@@ -44,18 +44,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
             case TypeRequest.TABLE:
 
-                console.log(payload)
                 await this.tableService.findOne.number(payload.number)
                 return payload
 
             case TypeRequest.USER:
 
-                console.log(payload)
                 await this.userService.findOne.name(payload.name)
                 return payload
 
             default:
-                throw new ForbiddenException( AuthErrorCode.FORBIDDEN('El token proporcionado es inválido', { error: 'payload.type es diferente a USER | TABLE' }) )
+                throw new UnauthorizedException( AuthErrorCode.UNAUTHORIZED('El token proporcionado es inválido', { error: 'payload.type es diferente a USER | TABLE' }) )
         }
     }
 
