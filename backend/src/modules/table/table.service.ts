@@ -1,11 +1,11 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { TableEntity } from "./entities/table.entity.js";
 import { Repository } from "typeorm";
 import { GetAllQueryDto } from "../../common/dto/getAllQuery.dto.js";
 import { ResAllInterface } from "../../common/interfaces/resAll.interface.js";
-import { CreateTableDto } from "./dto/create-table.dto.js";
 import { ResCreateInterface } from "../../common/interfaces/resCreate.interface.js";
+import { CreateTableDto } from "./dto/create-table.dto.js";
+import { TableEntity } from "./entities/table.entity.js";
 import { TableErrorCode } from "./table.constants.js";
 
 
@@ -66,8 +66,8 @@ export class TableService {
 
     async findAll(query?:GetAllQueryDto): Promise<ResAllInterface> {
 
-        const page = Math.max(1, Number(query?.page) );
-        const limit = Math.max(1, Number(query?.limit) );
+        const { limit = 10, page = 1 } = query || {};
+
         const skip = (page - 1) * limit;
 
         const [ data, total ] = await this.tableRepository.findAndCount({

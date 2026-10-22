@@ -1,10 +1,12 @@
-import { NestFactory, Reflector } from '@nestjs/core';
-import { AppModule } from './app.module.js';
 import { ClassSerializerInterceptor, Logger, ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { NestExpressApplication } from '@nestjs/platform-express';
-import { apiReference } from '@scalar/nestjs-api-reference';
 import { ConfigService } from '@nestjs/config';
+import { NestFactory, Reflector } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { IoAdapter } from '@nestjs/platform-socket.io';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { apiReference } from '@scalar/nestjs-api-reference';
+import { AppModule } from './app.module.js';
+import { CorsConfig } from './common/constants/cors.constants.js';
 
 async function bootstrap() {
 
@@ -26,10 +28,22 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ClassSerializerInterceptor( app.get(Reflector) ) );
 
 
+  /// ADAPTERS ///
+
+  app.useWebSocketAdapter( new IoAdapter(app) )
+
+
+
+  
   /// DOC ///
+
+  const port = configService.get<number>('NEST_PORT') ?? 3000
 
   const config = new DocumentBuilder()
     .setTitle('Escenario 89 - API')
+    .setBasePath('/api')
+    .addServer('https://escenario89.danidev.top/api', 'Servidor de produccion')
+    .addServer(`http://localhost:${port}`, 'Servidor de desarrollo')
     .addBearerAuth()
     .addCookieAuth()
     .setDescription('Documentacion sobre el uso del backend de la pagina oficial')
@@ -50,17 +64,20 @@ async function bootstrap() {
   );
   SwaggerModule.setup('swagger', app, document, swaggerOptions)
 
+
   /// LISTEN ///
 
-  const port = configService.get<number>('NEST_PORT') ?? 3000
-  await app.listen(port);
+  app.enableCors( CorsConfig )
 
   const hosts = [
     'http://127.0.0.1',
     'http://localhost'
   ]
 
+  await app.listen(port, '0.0.0.0');
+
   logger.debug(`Servicio ejecutandose en:\n${hosts.map(p => p + ':' + port).join('\n')}`)
+
 
 }
 

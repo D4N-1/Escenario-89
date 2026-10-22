@@ -25,11 +25,12 @@ export default class ErrorCode {
         }
     }
 
-    UNAUTHORIZED(text?: string) {
+    UNAUTHORIZED(text?: string, extra?: object) {
         return {
             statusCode: 401,
             error: 'Unauthorized',
             message: text || 'Credenciales invalidas, por favor, inicia sesión',
+            ...extra
         }
     }
 
