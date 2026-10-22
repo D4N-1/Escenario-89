@@ -56,6 +56,8 @@ export class YoutubeService {
       miniaturaTitulo: '',
       miniaturaSub: '',
       inicialesCanal: canal.slice(0, 2).toUpperCase(),
+      segundos: v.seconds,
+      vistasNumero: v.views ?? 0,
     };
   }
 

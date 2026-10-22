@@ -11,11 +11,6 @@
 .video { flex: 1; border-radius: 12px; min-height: 380px; position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); background: #000; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6); padding: 0; cursor: pointer; }
 .video-abierto { background: radial-gradient(circle at 70% 30%, #3e301d 0%, #1c1822 45%, #101014 100%); }
 
-.yt-wrapper { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; z-index: 1; background: #000; overflow: hidden; }
-.yt-wrapper ::ng-deep iframe,
-.yt-wrapper ::ng-deep #admin-yt-player,
-#admin-yt-player { position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; border: 0 !important; display: block !important; }
-
 /* Capturador de clics sobre el iframe */
 .stage-click-catcher { position: absolute; inset: 0; z-index: 2; }
 

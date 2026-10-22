@@ -22,9 +22,9 @@ export class SongEntity extends BaseEntity {
     @Column({ type: 'varchar' })
     title: string;
 
-    @ApiProperty({ description: DESCRIPTION.DESCRIPTION, example: EXAMPLE.DESCRIPTION })
-    @Column({ type: 'text' })
-    description: string;
+    @ApiProperty({ description: DESCRIPTION.DESCRIPTION, example: EXAMPLE.DESCRIPTION, required: false })
+    @Column({ type: 'text', nullable: true })
+    description?: string | null;
 
     @ApiProperty({ description: DESCRIPTION.TYPE, example: EXAMPLE.TYPE })
     @Column({ type: 'enum', enum: SongType, default: SongType.SINGLE })

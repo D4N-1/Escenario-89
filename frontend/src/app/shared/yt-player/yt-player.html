@@ -1,0 +1,14 @@
+@let c = caja();
+<div
+  id="admin-player-container"
+  class="caja"
+  [class.mini]="!c"
+  [class.oculto]="!state.sonando()"
+  [style.top.px]="c?.top"
+  [style.left.px]="c?.left"
+  [style.width.px]="c?.width"
+  [style.height.px]="c?.height"
+  [style.clip-path]="c?.clip"
+>
+  <div id="admin-yt-player"></div>
+</div>

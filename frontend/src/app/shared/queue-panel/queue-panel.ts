@@ -2,6 +2,7 @@ import { Component, computed, inject, input } from '@angular/core';
 import { Icon } from '../icon/icon';
 import { AppState } from '../../core/app-state';
 import { PlayerService } from '../../core/player.service';
+import { QueueService } from '../../core/queue.service';
 import { Cancion } from '../../core/models';
 
 @Component({
@@ -13,6 +14,7 @@ import { Cancion } from '../../core/models';
 export class QueuePanel {
   state = inject(AppState);
   player = inject(PlayerService);
+  queue = inject(QueueService);
   /** Muestra anuncios mezclados en la cola (vistas Anuncios / Audios) */
   showAds = input(false);
 
@@ -32,8 +34,12 @@ export class QueuePanel {
 
   reproducirAhora(cancion: Cancion, index: number) {
     if (cancion.tipo === 'anuncio') return;
+    const anterior = this.state.sonando();
     this.state.cola.update(lista => lista.filter((_, i) => i !== index));
     this.state.sonando.set(cancion);
+    if (cancion.uuid) {
+      this.queue.reproducirAhora(cancion.uuid, anterior?.uuid).catch(() => {});
+    }
   }
 
   togglePlay() {
@@ -46,4 +52,4 @@ export class QueuePanel {
     if (c.videoId) return `https://i.ytimg.com/vi/${c.videoId}/mqdefault.jpg`;
     return '';
   }
-}
+}

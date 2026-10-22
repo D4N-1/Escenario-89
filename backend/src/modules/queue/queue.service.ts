@@ -244,9 +244,24 @@ export class QueueService implements OnModuleInit {
 
             const isCancelledOrFinished = status === SongStatus.CANCELLED || status === SongStatus.FINISHED;
 
+            // Si se pasa una canción a posición 0 (reproducir ahora), la canción que estaba sonando se finaliza
+            if (position === 0) {
+                const playingSong = queueList.find(q => (q.status === SongStatus.PLAYING || q.position === 0) && q.uuid !== uuid);
+                if (playingSong) {
+                    playingSong.status = SongStatus.FINISHED;
+                    playingSong.position = null;
+                    playingSong.value = null;
+                    await manager.save(QueueEntity, playingSong);
+                    const idx = queueList.indexOf(playingSong);
+                    if (idx !== -1) queueList.splice(idx, 1);
+                }
+            }
+
+            const currentOldPos = queueList.findIndex(q => q.uuid === uuid);
+
             const updatedQueueList = this.modifyQueue(
                 queueList,
-                oldPosition,
+                currentOldPos !== -1 ? currentOldPos : oldPosition,
                 position,
                 status,
                 newQueue
@@ -264,7 +279,10 @@ export class QueueService implements OnModuleInit {
 
                 } else if (position !== undefined) newQueue.position = position;
                 
-            } else if (position !== undefined) newQueue.position = position;
+            } else if (position !== undefined) {
+                newQueue.position = position;
+                if (position === 0) newQueue.status = SongStatus.PLAYING;
+            }
             
 
             const editQueue = manager.create(QueueEntity, newQueue);

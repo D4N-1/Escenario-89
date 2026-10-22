@@ -82,6 +82,7 @@ export class SongService {
         if (song) throw new ConflictException( SongErrorCode.CONFLICT('Ya existe este id de canción') )
 
         newData.id = id;
+        newData.description = createSongDto.description ?? null;
 
         const newSong = this.songRepository.create(newData)
 

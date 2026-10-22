@@ -13,46 +13,43 @@
     </a>
   </div>
 
-  <div class="video video-abierto" [class.con-video]="!!state.sonando()?.videoId" (click)="onStageClick($event)">
-    <div class="yt-wrapper" id="admin-player-container">
-      <div id="admin-yt-player"></div>
-    </div>
-
+  <div class="video video-abierto" ytSlot [class.con-video]="!!state.sonando()?.videoId" (click)="onStageClick($event)">
+    <!-- El video lo muestra <app-yt-player> (en el layout) encima de este recuadro -->
     <!-- Capturador de clics en el video para alternar Reproducir/Pausar -->
     <div class="stage-click-catcher" title="Haz clic en el escenario para reproducir o pausar"></div>
 
     @if (!state.sonando()) {
-      <div class="empty-stage">
-        <div class="empty-icon"><app-icon name="clapper" [size]="48" /></div>
-        <p class="empty-title">Sin canción sonando</p>
-        <span class="empty-sub">Selecciona una canción en el buscador arriba para empezar la música</span>
-      </div>
+    <div class="empty-stage">
+      <div class="empty-icon"><app-icon name="clapper" [size]="48" /></div>
+      <p class="empty-title">Sin canción sonando</p>
+      <span class="empty-sub">Selecciona una canción en el buscador arriba para empezar la música</span>
+    </div>
     }
 
     <!-- Botón central grande cuando la canción está en pausa -->
     @if (state.sonando() && !state.reproduciendo() && !player.cargando()) {
-      <div class="stage-play-prompt">
-        <div class="stage-play-circle" title="Haz clic para reproducir">
-          <app-icon name="play" [size]="38" />
-        </div>
-        <span class="stage-play-label">Haz clic para reproducir</span>
+    <div class="stage-play-prompt">
+      <div class="stage-play-circle" title="Haz clic para reproducir">
+        <app-icon name="play" [size]="38" />
       </div>
+      <span class="stage-play-label">Haz clic para reproducir</span>
+    </div>
     }
 
     <!-- Indicador de carga / buffering -->
     @if (player.cargando()) {
-      <div class="stage-status-overlay">
-        <div class="stage-spinner"></div>
-        <span>Cargando video de YouTube...</span>
-      </div>
+    <div class="stage-status-overlay">
+      <div class="stage-spinner"></div>
+      <span>Cargando video de YouTube...</span>
+    </div>
     }
 
     <!-- Notificación de error si YouTube bloquea la reproducción embebida -->
     @if (player.error(); as err) {
-      <div class="stage-error-banner">
-        <app-icon name="alert" [size]="18" />
-        <span>{{ err }}</span>
-      </div>
+    <div class="stage-error-banner">
+      <app-icon name="alert" [size]="18" />
+      <span>{{ err }}</span>
+    </div>
     }
 
     <div class="stage-overlay">
@@ -61,9 +58,9 @@
       </span>
       <p class="status-msg">
         @if (state.sonando(); as s) {
-          {{ s.titulo }} · {{ s.artista }} @if (s.mesa > 0) { (Mesa #{{ s.mesa }}) }
+        {{ s.titulo }} · {{ s.artista }} @if (s.mesa > 0) { (Mesa #{{ s.mesa }}) }
         } @else {
-          Sin canción sonando · Esperando pedidos
+        Sin canción sonando · Esperando pedidos
         }
       </p>
     </div>

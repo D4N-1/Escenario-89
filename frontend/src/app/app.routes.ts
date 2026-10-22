@@ -13,6 +13,7 @@ import { Anuncios } from './admin/anuncios/anuncios';
 import { Audios } from './admin/audios/audios';
 import { Pantalla } from './pantalla/pantalla';
 import { Vistas } from './vistas/vistas';
+import { adminGuard } from './core/admin.guard';
 
 export const routes: Routes = [
 
@@ -28,6 +29,7 @@ export const routes: Routes = [
   {
     path: 'admin',
     component: Layout,
+    canActivate: [adminGuard],
     children: [
       { path: '', component: Panel },
       { path: 'cerrando', component: PanelCerrando },

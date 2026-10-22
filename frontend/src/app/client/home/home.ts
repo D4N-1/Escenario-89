@@ -6,6 +6,7 @@ import { VideoCard } from '../../shared/video-card/video-card';
 import { ConfirmDialog } from '../../shared/confirm-dialog/confirm-dialog';
 import { AppState } from '../../core/app-state';
 import { Video } from '../../core/models';
+import { SessionService } from '../../core/session.service';
 
 @Component({
   selector: 'app-home',
@@ -16,12 +17,18 @@ import { Video } from '../../core/models';
 export class Home {
   state = inject(AppState);
   router = inject(Router);
+  session = inject(SessionService);
   seleccion = signal<Video | null>(null);
+  errorMesa = signal('');
 
   constructor() {
-    // El QR de cada mesa abre /?mesa=5
-    const mesa = Number(inject(ActivatedRoute).snapshot.queryParamMap.get('mesa'));
-    if (mesa > 0) this.state.mesa.set(mesa);
+    // El QR de cada mesa abre /?mesa=CODIGO (el código de 6 caracteres de la mesa)
+    const mesa = inject(ActivatedRoute).snapshot.queryParamMap.get('mesa')?.trim();
+    if (mesa) {
+      this.session.entrarMesa(mesa).catch((e) => {
+        this.errorMesa.set(e instanceof Error ? e.message : 'No reconocemos esa mesa. Escanea de nuevo el QR.');
+      });
+    }
   }
 
   irABuscar(texto: string) {

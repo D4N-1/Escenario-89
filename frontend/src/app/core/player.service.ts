@@ -2,6 +2,7 @@ import { effect, inject, Injectable, signal } from '@angular/core';
 import { AppState } from './app-state';
 import { Cancion } from './models';
 import { YoutubeService } from './youtube.service';
+import { QueueService } from './queue.service';
 
 declare global {
   interface Window {
@@ -23,6 +24,7 @@ export interface PlayerBroadcastMessage {
 export class PlayerService {
   private state = inject(AppState);
   private yt = inject(YoutubeService);
+  private queue = inject(QueueService);
 
   private player: any = null;
   private currentElementId = 'admin-yt-player';
@@ -62,6 +64,7 @@ export class PlayerService {
         if (this.player && typeof this.player.stopVideo === 'function') {
           try { this.player.stopVideo(); } catch {}
         }
+        if (this.role === 'admin') this.broadcast({ type: 'CHANGE_SONG', song: null, playing: false });
         return;
       }
 
@@ -539,6 +542,19 @@ export class PlayerService {
 
   /** Pasa a la siguiente canción en la cola */
   next() {
+    // La cola vive en el backend: se marca la canción como terminada y el backend sube la siguiente.
+    const actual = this.state.sonando();
+    if (actual?.uuid) {
+      if (this.role === 'admin') {
+        this.detenerTicker();
+        this.queue.finalizar(actual.uuid).catch((e) => {
+          this.error.set(e instanceof Error ? e.message : 'No se pudo pasar a la siguiente canción.');
+        });
+      }
+      return;
+    }
+
+    // Sin backend (datos de ejemplo): se maneja la cola local
     const lista = this.state.cola();
     if (lista.length > 0) {
       const [siguiente, ...resto] = lista;
@@ -615,5 +631,7 @@ export class PlayerService {
       this.player = null;
     }
     this.listo.set(false);
+    this.currentVideoId = '';
+    this.loadingVideoId = '';
   }
 }
