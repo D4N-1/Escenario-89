@@ -1,13 +1,13 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { SongEntity } from "./entities/song.entity.js";
 import { Repository } from "typeorm";
 import { GetAllQueryDto } from "../../common/dto/getAllQuery.dto.js";
 import { ResAllInterface } from "../../common/interfaces/resAll.interface.js";
-import { CreateSongDto } from "./dto/create-song.dto.js";
 import { ResCreateInterface } from "../../common/interfaces/resCreate.interface.js";
-import { UpdateSongDto } from "./dto/update-song.dto.js";
 import { ResUpdateInterface } from "../../common/interfaces/resUpdate.interface.js";
+import { CreateSongDto } from "./dto/create-song.dto.js";
+import { UpdateSongDto } from "./dto/update-song.dto.js";
+import { SongEntity } from "./entities/song.entity.js";
 import { SongErrorCode } from "./song.constants.js";
 
 
@@ -91,7 +91,6 @@ export class SongService {
         }
     }
 
-
     async update(updateSongDto: UpdateSongDto): Promise<ResUpdateInterface> {
         
         const { id } = updateSongDto;
@@ -114,6 +113,15 @@ export class SongService {
             data: await this.songRepository.save(editSong)
         }
 
+    }
+
+    async insertBulk(songs: CreateSongDto[]) {
+
+        await this.songRepository.upsert(songs, {
+            conflictPaths: ['id'],
+            skipUpdateIfNoValuesChanged: true,
+        });
+        
     }
 
 }
