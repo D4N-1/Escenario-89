@@ -1,10 +1,10 @@
 import { ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { AuthGuard } from "@nestjs/passport"
-import { AuthService } from "../modules/auth/auth.service";
+import { AuthGuard } from "@nestjs/passport";
 import { Private } from "../decorators/private.decorator";
-import { AuthErrorCode } from "../modules/auth/auth.constants";
 import { Public } from "../decorators/public.decorator";
+import { AuthErrorCode } from "../modules/auth/auth.constants";
+import { AuthService } from "../modules/auth/auth.service";
 
 
 @Injectable()
@@ -44,10 +44,6 @@ export default class AuthNGuard extends AuthGuard('jwt') {
         
         if(err || !user) {
             
-            console.log('ERROR')
-            console.log('Error:', err)
-            console.log('Info:', info?.message)
-            console.log('User:', user)
 
             throw new UnauthorizedException( AuthErrorCode.UNAUTHORIZED(info?.message) )
         }

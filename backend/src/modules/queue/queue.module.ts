@@ -4,6 +4,7 @@ import { DatabaseModule } from '../../database/database.module.js';
 import { QueueSocketModule } from '../queue-socket/queue-socket.module.js';
 import { SongModule } from '../song/song.module.js';
 import { TableModule } from '../table/table.module.js';
+import { UserModule } from '../user/user.module.js';
 import { QueueEntity } from './entities/queue.entity.js';
 import { QueueController } from './queue.controller.js';
 import { QueueService } from './queue.service.js';
@@ -12,7 +13,7 @@ import { QueueService } from './queue.service.js';
   imports: [
     TypeOrmModule.forFeature([QueueEntity]),
 
-    SongModule, TableModule, DatabaseModule, QueueSocketModule
+    SongModule, TableModule, DatabaseModule, QueueSocketModule, UserModule
   ],
   controllers: [QueueController],
   providers: [QueueService],
