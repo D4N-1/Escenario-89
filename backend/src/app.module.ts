@@ -9,6 +9,7 @@ import AuthNGuard from './guards/auth-n.guard.js';
 import AuthZGuard from './guards/auth-z.guard.js';
 import { LoggerMiddleware } from './middlewares/logger.middleware.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { IntermissionModule } from './modules/intermission/intermission.module.js';
 import { QueueSocketModule } from './modules/queue-socket/queue-socket.module.js';
 import { QueueModule } from './modules/queue/queue.module.js';
 import { SearchModule } from './modules/search/search.module.js';
@@ -36,7 +37,9 @@ import { UserModule } from './modules/user/user.module.js';
         ADMIN_PASSWORD: Joi.string().required().min(8),
         JWT_SECRET: Joi.string().required().min(4)
       })
-    })
+    }),
+
+    IntermissionModule
 
   ],
   controllers: [ AppController ],

@@ -1,6 +1,7 @@
 export enum Events {
 
     GENERAL = 'general',
-    QUEUE_UPDATE = 'queue.update'
+    QUEUE = 'queue',
+    INTERMISSION = 'intermission'
     
 }

@@ -64,20 +64,20 @@ export class QueueSocketGateway implements OnGatewayInit, OnGatewayConnection, O
 
     if (request?.type === 'USER') {
 
-      client.join(Rooms + request.role)
+      client.join(Rooms.USER_ROLE + request.role)
       client.emit(Events.GENERAL, { message: 'Bienvenido administrador', room: `user:${request.role}`, events: AllSocketEvents } as General );
 
       const queue = await this.queueSocketService.getQueue();
-      client.emit(Events.QUEUE_UPDATE, { message: 'Actualización de lista', data: queue } as QueueUpdate)
+      client.emit(Events.QUEUE, { message: 'Actualización de lista', data: queue } as QueueUpdate)
 
 
     } else if (request?.type === 'TABLE') {
 
-      client.join(Rooms + request.code)
+      client.join(Rooms.TABLE_CODE + request.code)
       client.emit(Events.GENERAL, { message: 'Bienvenido a la mesa', room: `table:${request.code}`, events: AllSocketEvents } as General );
 
       const queue = await this.queueSocketService.getQueueForTable(request.code);
-      client.emit(Events.QUEUE_UPDATE, { message: 'Actualización de lista', data: queue } as QueueUpdate)
+      client.emit(Events.QUEUE, { message: 'Actualización de lista', data: queue } as QueueUpdate)
       
 
     }

@@ -5,6 +5,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
+import { join } from 'node:path';
 import { AppModule } from './app.module.js';
 import { CorsConfig } from './common/constants/cors.constants.js';
 
@@ -26,12 +27,16 @@ async function bootstrap() {
 
   app.useGlobalInterceptors(new ClassSerializerInterceptor( app.get(Reflector) ) );
 
+  const publicPath = join(process.cwd(), 'uploads')
+  console.log(publicPath)
+  app.useStaticAssets(publicPath, {
+    prefix: '/uploads',
+  });
+  
 
   /// ADAPTERS ///
 
   app.useWebSocketAdapter( new IoAdapter(app) )
-
-
 
   
   /// DOC ///
@@ -40,7 +45,6 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Escenario 89 - API')
-    .setBasePath('/api')
     .addServer('https://escenario89.danidev.top/api', 'Servidor de produccion')
     .addServer(`http://localhost:${port}`, 'Servidor de desarrollo')
     .addBearerAuth()

@@ -14,7 +14,7 @@ export enum SongStatus {
     CANCELLED = 'CANCELLED'
 }
 
-export const QueueRelations = [ 'song', 'table' ]
+export const QueueRelations = [ 'song', 'table', 'user' ]
 @Entity('queue')
 export class QueueEntity extends BaseEntity {
 

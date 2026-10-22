@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import { TypeRequest } from '../../common/enums/typeRequest.enum.js';
 import { ResAllInterface } from '../../common/interfaces/resAll.interface.js';
 import { AnyRequest } from '../../common/types/payload.type.js';
+import { IntermissionService } from '../intermission/intermission.service.js';
 import { QueueSocketService } from '../queue-socket/queue-socket.service.js';
 import { SongService } from '../song/song.service.js';
 import { TableEntity } from '../table/entities/table.entity.js';
@@ -33,7 +34,8 @@ export class QueueService implements OnModuleInit {
         private readonly songService: SongService,
         private readonly tableService: TableService,
         private readonly userService: UserService,
-        private readonly queueSocketService: QueueSocketService
+        private readonly queueSocketService: QueueSocketService,
+        private readonly intermissionService: IntermissionService
 
     ) { }
 
@@ -307,6 +309,14 @@ export class QueueService implements OnModuleInit {
                 relations: { table: true, song: true }
             })
             );
+
+            if (editQueue.status === SongStatus.FINISHED) {
+                const intermissions = this.intermissionService.processSongFinished()
+
+                console.log(intermissions)
+
+                if (intermissions.length > 0) this.queueSocketService.updateIntermission(intermissions)
+            }
             
             return {
                 message: 'Canción editada de la lista',
