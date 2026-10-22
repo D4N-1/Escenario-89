@@ -1,22 +1,23 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { QueueEntity, QueueRelations, SongStatus, UpdateSongStatus } from './entities/queue.entity.js';
-import { Repository } from 'typeorm';
+import { randomUUID } from 'node:crypto';
 import type { DataSource, FindOptionsRelations } from 'typeorm';
+import { Repository } from 'typeorm';
+import { TypeRequest } from '../../common/enums/typeRequest.enum.js';
 import { ResAllInterface } from '../../common/interfaces/resAll.interface.js';
-import { CreateQueueDto } from './dto/create-queue.dto.js';
-import { QueueResCreateInterface } from './interface/queue-resCreate.interface.js';
+import { AnyRequest } from '../../common/types/payload.type.js';
+import { QueueSocketService } from '../queue-socket/queue-socket.service.js';
 import { SongService } from '../song/song.service.js';
 import { TableService } from '../table/table.service.js';
+import { CreateQueueDto } from './dto/create-queue.dto.js';
 import { GetAllQueueDto } from './dto/get-queue.dto.js';
-import { randomUUID } from 'node:crypto';
 import { UpdateQueueDto } from './dto/update-queue.dto.js';
+import { QueueEntity, QueueRelations, SongStatus } from './entities/queue.entity.js';
+import { QueueResCreateInterface } from './interface/queue-resCreate.interface.js';
 import { QueueErrorCode } from './queue.constants.js';
-import { AnyRequest } from '../../common/types/payload.type.js';
-import { TypeRequest } from '../../common/enums/typeRequest.enum.js';
 
 @Injectable()
-export class QueueService {
+export class QueueService implements OnModuleInit {
 
     constructor(
 
@@ -28,9 +29,27 @@ export class QueueService {
 
         private readonly songService: SongService,
         private readonly tableService: TableService,
+        private readonly queueSocketService: QueueSocketService
 
     ) { }
 
+
+    async onModuleInit() {
+        
+        const initialQueue: QueueEntity[] = await this.queueRepository.find({
+            where:
+                [
+                    { status: SongStatus.PLAYING },
+                    { status: SongStatus.WAITING }
+                ],
+            order: { position: 'ASC' },
+            relations: { table: true, song: true }
+        }
+        )
+
+        this.queueSocketService.setQueue(initialQueue)
+
+    }
 
     findOne = {
     
@@ -142,7 +161,10 @@ export class QueueService {
         let table;
 
         if (user.type === TypeRequest.TABLE) table = await this.tableService.findOne.number(user.number)
-        else table = await this.tableService.findOne.code(tableCode)
+        else {
+            if (!tableCode) throw new NotFoundException( QueueErrorCode.NOT_FOUND('No se ha especificado un codigo de mesa') )
+            table = await this.tableService.findOne.code(tableCode)
+        }
 
         return await this.dataSource.transaction( async(manager) => {
 
@@ -178,12 +200,25 @@ export class QueueService {
 
             Queue.splice(position, 0, newQueue)
 
+            const savedQueue = await manager.save(QueueEntity, Queue)
+
+            this.queueSocketService.updateQueue(await manager.find(QueueEntity, {
+                where: [
+                    { status: SongStatus.PLAYING },
+                    { status: SongStatus.WAITING }
+                ],
+                order: { position: 'ASC' },
+                relations: { table: true, song: true }
+            })
+            );
+
+
             return {
                 message: `Cancion añadida a la lista`,
                 position,
                 status: newQueue.status,
                 fixed: newQueue.fixed,
-                data: await manager.save(QueueEntity, Queue)
+                data: savedQueue
             }
 
         })
@@ -203,7 +238,8 @@ export class QueueService {
                     { status: SongStatus.PLAYING },
                     { status: SongStatus.WAITING }
                 ],
-                order: { position: 'ASC' }
+                order: { position: 'ASC' },
+                relations: { table: true, song: true }
             });
 
             const isCancelledOrFinished = status === SongStatus.CANCELLED || status === SongStatus.FINISHED;
@@ -236,6 +272,16 @@ export class QueueService {
 
             const savedQueue = await manager.save(QueueEntity, updatedQueueList);
 
+            this.queueSocketService.updateQueue(await manager.find(QueueEntity, {
+                where: [
+                    { status: SongStatus.PLAYING },
+                    { status: SongStatus.WAITING }
+                ],
+                order: { position: 'ASC' },
+                relations: { table: true, song: true }
+            })
+            );
+            
             return {
                 message: 'Canción editada de la lista',
                 position: editQueue.position,

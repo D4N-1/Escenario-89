@@ -1,10 +1,14 @@
-import { WebSocketGateway, OnGatewayConnection, OnGatewayDisconnect, WebSocketServer, OnGatewayInit } from '@nestjs/websockets';
-import { QueueSocketService } from './queue-socket.service';
+import { ConnectedSocket, OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
 import { CorsSocketConfig } from '../../common/constants/cors.constants';
-import { Socket, Server } from 'socket.io'
-import { QueueErrorCode } from '../queue/queue.constants';
-import { UnauthorizedException } from '@nestjs/common';
+import { wait } from '../../common/functions/wait.function';
 import { AuthService } from '../auth/auth.service';
+import { Events } from './enums/event.enum';
+import { Rooms } from './enums/room.enum';
+import { General } from './interfaces/general.interface';
+import { QueueUpdate } from './interfaces/queue-update.interface';
+import { AllSocketEvents } from './queue-socket.constants';
+import { QueueSocketService } from './queue-socket.service';
 
 
 @WebSocketGateway(CorsSocketConfig)
@@ -23,39 +27,76 @@ export class QueueSocketGateway implements OnGatewayInit, OnGatewayConnection, O
 
   afterInit(server: Server) {
 
+    this.queueSocketService.setServer(server);
+
     server.use( async(client: Socket, next) => {
 
       try {
 
-        console.log(`Client connected: ${client.id}`)
-        console.log(client?.handshake)
+        client.data.user = await this.queueSocketService.handshake(client);
+        next();
 
-        const token = client?.handshake?.headers?.cookie ||
-          client?.handshake?.auth?.cookie;
+      } catch (error: any) {
 
+        this.queueSocketService.logger.error(`Client disconnected: ${client.id} - Unauthorized`)
 
-        if (!token) return next( new UnauthorizedException( QueueErrorCode.UNAUTHORIZED('No se proporcionó un token de accesso') ) )
+        const errorPayload = error.response || error.message ||
+          JSON.stringify({
+            code: 'UNKNOWN_ERROR',
+            message: 'Error de autenticación de socket desconocido'
+          }, null, 2)
 
-        client.data.use = await this.authService.
-
-      } catch (error) {
-
+        next( new Error(errorPayload) )
+        
       }
 
     })
 
   }
 
-  handleConnection(client: Socket, ...args: any[]) {
-    console.log(`Client connected: ${client}`)
+  async handleConnection(client: Socket, ...args: any[]) {
+
+    let request = this.queueSocketService.getSocketUser(client);
+
+    await wait(1_000);
+    client.emit(Events.GENERAL, { message: 'Asignando...' } as General );
+    await wait(3_000);
+
+    if (request?.type === 'USER') {
+
+      client.join(Rooms + request.role)
+      client.emit(Events.GENERAL, { message: 'Bienvenido administrador', room: `user:${request.role}`, events: AllSocketEvents } as General );
+
+      const queue = await this.queueSocketService.getQueue();
+      client.emit(Events.QUEUE_UPDATE, { message: 'Actualización de lista', data: queue } as QueueUpdate)
+
+
+    } else if (request?.type === 'TABLE') {
+
+      client.join(Rooms + request.code)
+      client.emit(Events.GENERAL, { message: 'Bienvenido a la mesa', room: `table:${request.code}`, events: AllSocketEvents } as General );
+
+      const queue = await this.queueSocketService.getQueueForTable(request.code);
+      client.emit(Events.QUEUE_UPDATE, { message: 'Actualización de lista', data: queue } as QueueUpdate)
+      
+
+    }
+
   }
 
   handleDisconnect(client: Socket, reason?: string) {
-    console.log(`Client disconnected: ${client}`)
+    console.log('Client disconnected: ', client.id, client.data.user)
   }
 
 
+  @SubscribeMessage(Events.GENERAL)
+  handleStart(@ConnectedSocket() client: Socket) {
+
+      client.emit(Events.GENERAL, { message: 'Actualización de lista', room: client.rooms, events: AllSocketEvents } as General)
 
 
+  }
+
+  
 
 }

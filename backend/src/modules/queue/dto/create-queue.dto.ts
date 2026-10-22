@@ -12,8 +12,9 @@ export class CreateQueueDto {
 
     @ApiProperty({ description: DESCRIPTION.CODE, example: EXAMPLE.CODE })
     @IsString()
+    @IsOptional()
     @Length(6)
-    tableCode: string;
+    tableCode?: string;
 
     @ApiProperty({ description: DESCRIPTION.UUID, example: EXAMPLE.UUID })
     @IsUUID()

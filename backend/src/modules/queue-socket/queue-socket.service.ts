@@ -1,26 +1,114 @@
-import { Injectable } from '@nestjs/common';
-import { CreateQueueSocketDto } from './dto/create-queue-socket.dto';
-import { UpdateQueueSocketDto } from './dto/update-queue-socket.dto';
+import { Injectable, Logger } from '@nestjs/common';
+import { WsException } from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import type { TableRequest, UserRequest } from '../../common/interfaces/payload.interface';
+import { AnyRequest } from '../../common/types/payload.type';
+import { AuthService } from '../auth/auth.service';
+import { QueueEntity } from '../queue/entities/queue.entity';
+import { UserRole } from '../user/user.constants';
 
 @Injectable()
 export class QueueSocketService {
-  create(createQueueSocketDto: CreateQueueSocketDto) {
-    return 'This action adds a new queueSocket';
+
+  private server: Server;
+  private queue: QueueEntity[] = [];
+
+  setServer(server: Server) {
+    this.server = server;
   }
 
-  findAll() {
-    return `This action returns all queueSocket`;
+  setQueue(queue: QueueEntity[]) {
+    this.queue = queue;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} queueSocket`;
+  constructor(
+
+    private readonly authService: AuthService,
+    
+  ) { }
+
+  readonly logger = new Logger(QueueSocketService.name)
+
+
+  handshake(client: Socket): Promise<AnyRequest> {
+
+    this.logger.debug(`Client connected: ${client.id}`)
+
+    const token = client?.handshake?.headers?.cookie ||
+      client?.handshake?.auth?.cookie ||
+      client?.handshake?.headers?.authorization ||
+      client?.handshake?.auth?.authorization;
+
+
+    if (!token) throw new WsException( JSON.stringify({
+      code: 'UNAUTHORIZED',
+      message: 'No se proporcionó un token de accesso'
+    }, null, 2) )
+
+    try {
+
+      return this.authService.verifyToken(token)
+
+    } catch (error) {
+      this.logger.error(`Client disconnected: ${client.id} - Unauthorized`)
+      throw new WsException( JSON.stringify({
+        code: 'INVALID_TOKEN',
+        message: 'Token inválido'
+      }, null, 2) )
+    }
+
   }
 
-  update(id: number, updateQueueSocketDto: UpdateQueueSocketDto) {
-    return `This action updates a #${id} queueSocket`;
+  getSocketUser(client: Socket): UserRequest | TableRequest | null {
+
+    switch (client.data.user?.type) {
+
+      case 'USER':
+        return client.data.user as UserRequest
+
+      case 'TABLE':
+        return client.data.user as TableRequest
+
+      default:
+        return null
+    }
+    
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} queueSocket`;
+  async updateQueue(Queue: QueueEntity[]) {
+
+    this.setQueue(Queue);
+
+    this.server.to(`user:${UserRole.ADMIN}`).emit('queue.update', Queue);
+
+    const rooms = this.server.sockets.adapter.rooms;
+
+    for (const [roomName, roomSockets] of rooms.entries()) {
+
+      if (roomName.startsWith('table:') && roomSockets.size > 0) {
+
+        const tableCode = roomName.split(':')[1];
+
+        const queueTable = Queue.filter(q => q?.table?.code === tableCode);
+
+        this.server.to(roomName).emit('queue.update', queueTable);
+
+      }
+    }
   }
+
+
+  async getQueueForTable(tableCode: string): Promise<QueueEntity[]> {
+
+    const queueTable = this.queue.filter(q => q?.table?.code === tableCode);
+    return queueTable;
+    
+  }
+
+  async getQueue(): Promise<QueueEntity[]> {
+    return this.queue
+  }
+
+
+
 }
