@@ -28,8 +28,7 @@
     "url": "https://github.com/D4N-1/Escenario-89"
   },
   "devDependencies": {
+    "artillery": "^2.0.34",
     "supertest": "^7.3.1"
-  },
-  "dependencies": {
   }
 }

@@ -8,6 +8,7 @@ import { ResAllInterface } from '../../common/interfaces/resAll.interface.js';
 import { AnyRequest } from '../../common/types/payload.type.js';
 import { IntermissionService } from '../intermission/intermission.service.js';
 import { QueueSocketService } from '../queue-socket/queue-socket.service.js';
+import { SongEntity } from '../song/entities/song.entity.js';
 import { SongService } from '../song/song.service.js';
 import { TableEntity } from '../table/entities/table.entity.js';
 import { TableService } from '../table/table.service.js';
@@ -164,6 +165,8 @@ export class QueueService implements OnModuleInit {
 
         const song = await this.songService.findOne.id(songId)
 
+        if (!song) throw new NotFoundException( QueueErrorCode.NOT_FOUND('No esta registrada esa cancion') )
+
         let table: TableEntity|null
         let user: UserEntity|null;
 
@@ -182,7 +185,8 @@ export class QueueService implements OnModuleInit {
                     { status: SongStatus.WAITING }
                 ],
                 order: { position: 'ASC' },
-                relations: { table: true }
+                relations: { table: true },
+                lock: { mode: 'pessimistic_write' }
             })
 
             newData.song = song;
@@ -229,16 +233,18 @@ export class QueueService implements OnModuleInit {
             }
 
 
-                const newQueue = await manager.find(QueueEntity, {
-                    where: [
-                        { status: SongStatus.PLAYING },
-                        { status: SongStatus.WAITING }
-                    ],
-                    order: { position: 'ASC' },
-                    relations: { table: true, song: true }
-                })
+            const newQueue = await manager.find(QueueEntity, {
+                where: [
+                    { status: SongStatus.PLAYING },
+                    { status: SongStatus.WAITING }
+                ],
+                order: { position: 'ASC' },
+                relations: { table: true, song: true }
+            })
+            this.queueSocketService.updateQueue(newQueue);
 
-                this.queueSocketService.updateQueue(newQueue);
+            song.count = song.count++
+            await manager.save(SongEntity, song)
 
 
             return {

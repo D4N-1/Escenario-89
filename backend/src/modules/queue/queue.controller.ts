@@ -4,7 +4,6 @@ import type { AnyRequest } from '../../common/types/payload.type.js';
 import { Admin } from '../../decorators/admin.decorator.js';
 import { Private } from '../../decorators/private.decorator.js';
 import { GetUser } from '../../decorators/user.decorator.js';
-import { AllQueryPipe } from '../../pipes/allQuery.pipe.js';
 import { CreateQueueDto } from './dto/create-queue.dto.js';
 import { GetAllQueueDto } from './dto/get-queue.dto.js';
 import { UpdateQueueDto } from './dto/update-queue.dto.js';
@@ -22,7 +21,7 @@ export class QueueController {
     @ApiOperation({ summary: QueueSummary.ALL() })
     @ApiOkResponse({ description: QueueOk.ALL(), type: [QueueEntity] })
     @Get()
-    async getAll(@Query(AllQueryPipe) query: GetAllQueueDto) {
+    async getAll(@Query() query: GetAllQueueDto) {
       return this.queueService.findAll(query)
     }
 
