@@ -10,9 +10,13 @@ import ffmpegInstaller from 'ffmpeg-static';
 import ffmpeg from 'fluent-ffmpeg';
 import * as fs from 'node:fs/promises';
 import { EXAMPLE } from '../../common/constants/dto.constants';
+import { GetAllQueryDto } from '../../common/dto/getAllQuery.dto';
+import { ResAllInterface } from '../../common/interfaces/resAll.interface';
 import { ResCreateInterface } from '../../common/interfaces/resCreate.interface';
 import { ResUpdateInterface } from '../../common/interfaces/resUpdate.interface';
+import { PlayIntermissionDto } from './dto/play-intermission.dto';
 import { UpdateIntermissionDto } from './dto/update-intermission.dto';
+import { IntermissionErrorCode } from './intermission.constant';
 
 if (ffmpegInstaller) ffmpeg.setFfmpegPath(ffmpegInstaller);
 
@@ -25,6 +29,7 @@ export type IntermissionInMemory = IntermissionEntity & { current: number }
 export class IntermissionService {
 
   private counters: Map<string, IntermissionInMemory> = new Map();
+  private next: Map<string, IntermissionEntity> = new Map();
 
   constructor(
 
@@ -66,7 +71,31 @@ export class IntermissionService {
     }
   }
 
+  async findAll(query?:GetAllQueryDto): Promise<ResAllInterface> {
 
+    const { limit = 10, page = 1 } = query || {};
+
+    const skip = (page - 1) * limit;
+
+    const [ data, total ] = await this.intermissionRepository.findAndCount({
+        skip,
+        take: limit,
+        order: { index: 'ASC' }
+    })
+
+    return {
+        data,
+        meta: {
+            total,
+            count: data.length,
+            perPage: limit,
+            totalPages: Math.ceil(total / limit),
+            currentPage: page
+        }
+    }
+        
+  }
+  
   /**
    * Se ejecuta cada vez que una canción finaliza.
    * Aumenta el contador interno para salir una pausa publicitaria
@@ -85,7 +114,14 @@ export class IntermissionService {
         
         intermission.current = 0;
       }
+
     }
+
+    for (const [uuid, intermission] of this.next.entries() ) {
+      triggeredIntermission.push(intermission)
+    }
+
+    this.next.clear();
 
 
     return triggeredIntermission;
@@ -111,9 +147,10 @@ export class IntermissionService {
     }
   }
 
-
   async create(createDto: CreateIntermissionDto, file: any): Promise<ResCreateInterface> {
-    const { uuid } = createDto;
+    const { uuid=null } = createDto;
+
+    if (!file) throw new BadRequestException( IntermissionErrorCode.BAD_REQUEST('BODY', 'No se proporcionó el archivo de video', { required: { file: 'Binary' } }) )
 
     const intermission = uuid ? await this.findOrNull.uuid(uuid) : null;
     if (intermission) {
@@ -193,6 +230,18 @@ export class IntermissionService {
         data: await this.intermissionRepository.save(editIntermission)
     }
   
+  }
+
+  async playOne(playIntermission: PlayIntermissionDto) {
+
+    const { uuid } = playIntermission;
+    const intermission = await this.findOne.uuid(uuid)
+
+    this.next.set(uuid, intermission)
+
+    return {
+      message: 'Anuncio listado para la siguiente pausa'
+    }
   }
 
   findOne = {

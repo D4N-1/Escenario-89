@@ -39,5 +39,6 @@ export class CreateIntermissionDto {
   @IsOptional()
   @Type(() => Number)
   everySongs?: number|null;
+  
 
 }

@@ -17,11 +17,12 @@ export default class ErrorCode {
 
     ) {}
 
-    BAD_REQUEST(where: HEADERS, text?: string) {
+    BAD_REQUEST(where: HEADERS, text?: string, extra?: object) {
         return { 
             statusCode: 400,
             error: 'Bad Request',
-            message: text || BAD_REQUEST[where]
+            message: text || BAD_REQUEST[where],
+            ...extra
         }
     }
 
