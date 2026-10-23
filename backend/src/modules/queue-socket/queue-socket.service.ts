@@ -94,7 +94,7 @@ export class QueueSocketService {
 
         const tableCode = roomName.split(':')[1];
 
-        const queueTable = Queue.filter(q => q?.table?.code === tableCode);
+        const queueTable = Queue.filter(q => q?.table?.code === tableCode || q?.status === 'PLAYING');
 
         this.server.to(roomName).emit(Events.QUEUE, queueTable);
 
@@ -105,7 +105,7 @@ export class QueueSocketService {
 
   async getQueueForTable(tableCode: string): Promise<QueueEntity[]> {
 
-    const queueTable = this.queue.filter(q => q?.table?.code === tableCode);
+    const queueTable = this.queue.filter(q => q?.table?.code === tableCode || q?.status === 'PLAYING');
     return queueTable;
     
   }

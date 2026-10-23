@@ -1,15 +1,53 @@
 <div class="backdrop" (click)="cerrar.emit()">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-titulo" (click)="$event.stopPropagation()">
-    <app-icon name="add-circle" [size]="56" class="plus" />
-    <h3 id="dlg-titulo">{{ video()?.titulo ?? 'Canción' }}</h3>
-    <p class="autor">{{ video()?.canal ?? 'Autor' }}</p>
-    <p class="ask">¿Pedir canción?</p>
-    @if (error()) {
-      <p role="alert" style="color: var(--c-red-light); font-size: 13px; margin: 0 0 12px;">{{ error() }}</p>
+    @if (video(); as v) {
+      <div class="dialog-thumb">
+        @if (v.miniatura) {
+          <img [src]="v.miniatura" [alt]="v.titulo" loading="lazy">
+        } @else {
+          <div class="thumb-fallback"><app-icon name="music" [size]="28" /></div>
+        }
+        <span class="dialog-duration">{{ v.duracion }}</span>
+        @if (v.tipo === 'karaoke') {
+          <span class="dialog-tag">Karaoke</span>
+        }
+      </div>
+      <h3 id="dlg-titulo">{{ v.titulo }}</h3>
+      <p class="autor">{{ v.canal }}</p>
+    } @else {
+      <div class="dialog-icon-top">
+        <app-icon name="add-circle" [size]="48" />
+      </div>
+      <h3 id="dlg-titulo">¿Pedir canción?</h3>
     }
-    <div class="actions">
-      <button type="button" class="no" (click)="cerrar.emit()" [disabled]="enviando()" aria-label="Cancelar"><app-icon name="close" /></button>
-      <button type="button" class="yes" (click)="confirmar()" [disabled]="enviando()" aria-label="Pedir canción"><app-icon name="check" /></button>
+
+    <div class="ask-box">
+      <span class="ask-text">¿Confirmar pedido para tu mesa?</span>
+      @if (state.mesa() > 0) {
+        <span class="mesa-pill">Mesa {{ state.mesa() }}</span>
+      }
     </div>
+
+    @if (error()) {
+      <p role="alert" class="dialog-error">{{ error() }}</p>
+    }
+
+    @if (enviando()) {
+      <div class="dialog-sending">
+        <div class="spinner-mini" aria-hidden="true"></div>
+        <span>Enviando pedido a la cabina…</span>
+      </div>
+    } @else {
+      <div class="actions">
+        <button type="button" class="btn-cancelar" (click)="cerrar.emit()" aria-label="Cancelar">
+          <app-icon name="close" [size]="18" />
+          <span>Cancelar</span>
+        </button>
+        <button type="button" class="btn-confirmar" (click)="confirmar()" aria-label="Pedir canción">
+          <app-icon name="check" [size]="18" />
+          <span>Pedir canción</span>
+        </button>
+      </div>
+    }
   </div>
-</div>
+</div>

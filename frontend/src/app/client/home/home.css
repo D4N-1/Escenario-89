@@ -1,101 +1,344 @@
 :host {
     display: block;
     min-height: 100dvh;
-    background: #000;
+    width: 100%;
+    overflow-x: hidden;
+    background: #09090b;
 }
 
 .screen {
-    max-width: 430px;
+    width: 100%;
+    max-width: 480px;
     margin: 0 auto;
     min-height: 100dvh;
-    padding: 0 14px calc(28px + env(safe-area-inset-bottom));
-    background: #000;
+    padding: 0 16px calc(32px + env(safe-area-inset-bottom));
+    background: radial-gradient(circle at 50% 0%, #15151a 0%, #09090b 70%);
+    box-sizing: border-box;
+    overflow-x: clip;
+    position: relative;
 }
 
-@media (min-width: 480px) {
+@media (min-width: 520px) {
     .screen {
-        border-inline: 1px solid #2a2208;
+        border-inline: 1px solid rgba(212, 170, 67, 0.25);
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
     }
 }
 
-/* Buscador fijo arriba al hacer scroll */
-.buscar {
+/* =========================================================
+   1. Buscador siempre visible arriba (Sticky)
+========================================================= */
+.buscar-section {
     position: sticky;
-    top: 0;
-    z-index: 5;
-    background: #000;
-    padding: 12px 0 10px;
+    top: calc(48px + env(safe-area-inset-top));
+    z-index: 30;
+    background: rgba(9, 9, 11, 0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 8px 16px 10px;
+    margin: 0 -16px 12px;
+    width: calc(100% + 32px);
+    box-sizing: border-box;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pill-input {
+    background: #18181d;
+    border: 1px solid rgba(212, 170, 67, 0.35);
+    border-radius: 16px;
+    padding-left: 14px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s ease;
+}
+
+.pill-input:focus-within {
+    border-color: var(--c-gold);
+    box-shadow: 0 0 16px rgba(242, 206, 100, 0.25);
+    background: #1e1e24;
 }
 
 .pill-input input {
-    font-size: 16px;
-    padding: 12px 16px;
+    font-size: 15px;
+    padding: 12px 4px 12px 0;
+    color: #fff;
+    font-style: normal;
 }
 
-/* 16px evita el zoom automático de iOS */
-.pill-input .pill-btn {
-    width: 52px;
+.pill-input input::placeholder {
+    color: var(--c-subtext);
+}
+
+.clear-btn {
+    background: transparent;
+    border: 0;
+    color: var(--c-subtext);
+    padding: 8px;
     display: grid;
     place-items: center;
+    cursor: pointer;
 }
 
-/* Búsqueda por voz */
-.voz {
+.clear-btn:active {
+    color: #fff;
+}
+
+.pill-input .pill-btn {
+    width: 48px;
+    height: 46px;
+    border-radius: 0 15px 15px 0;
+    background: transparent;
+    color: var(--c-gold);
+    display: grid;
+    place-items: center;
+    transition: background 0.15s ease;
+}
+
+.pill-input .pill-btn:active {
+    background: rgba(212, 170, 67, 0.15);
+}
+
+/* Botón de voz */
+.voz-btn {
+    width: 100%;
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-top: 2px;
-    padding: 10px 14px;
-    background: var(--c-section);
-    border: 1px solid #2a2a2a;
-    border-radius: 14px;
+    gap: 10px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
     color: var(--c-text2);
-    font-size: 14px;
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.mic {
-    width: 40px;
-    height: 40px;
+.voz-btn:active, .voz-btn:hover {
+    background: rgba(212, 170, 67, 0.08);
+    border-color: rgba(212, 170, 67, 0.3);
+    color: #fff;
+}
+
+.voz-btn.escuchando {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: #ef4444;
+    color: #fca5a5;
+    animation: pulse 1.2s infinite ease-in-out;
+}
+
+.mic-circle {
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     border: 1px solid var(--c-gold-border);
-    background: var(--c-icon);
+    background: rgba(212, 170, 67, 0.12);
     color: var(--c-gold);
     display: grid;
     place-items: center;
     flex: none;
+    transition: transform 0.2s ease;
 }
 
-h2 {
-    text-align: center;
-    font-size: 18px;
-    margin: 24px 0 6px;
+.voz-btn:active .mic-circle {
+    transform: scale(0.95);
+}
+
+.voz-btn.escuchando .mic-circle {
+    background: #ef4444;
+    color: #fff;
+    border-color: #ef4444;
+}
+
+/* =========================================================
+   2. Tarjeta EN VIVO (En la mitad, sin mostrar mesa)
+========================================================= */
+.en-vivo-card {
+    margin: 16px 0 18px;
+    background: linear-gradient(135deg, rgba(20, 20, 25, 0.95), rgba(15, 15, 18, 0.98));
+    border: 1px solid rgba(212, 170, 67, 0.35);
+    border-radius: 18px;
+    padding: 12px 14px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.en-vivo-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.live-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #ef4444;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 999px;
+    letter-spacing: 0.5px;
+}
+
+.live-pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 8px #ef4444;
+    animation: live-blink 1.4s infinite ease-in-out;
+}
+
+@keyframes live-blink {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.75); }
+}
+
+.live-label {
+    font-size: 11.5px;
+    color: var(--c-gold);
     font-weight: 600;
+    letter-spacing: 0.3px;
 }
 
-.sub {
-    text-align: center;
+.en-vivo-body {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.en-vivo-cover {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #1a1a22;
+    border: 1px solid rgba(212, 170, 67, 0.3);
+    display: grid;
+    place-items: center;
+    flex: none;
+    color: var(--c-gold);
+}
+
+.en-vivo-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.en-vivo-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.en-vivo-title {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+}
+
+.en-vivo-artist {
+    display: block;
+    font-size: 11.5px;
     color: var(--c-text2);
-    font-size: 12px;
-    margin: 0 0 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
 }
 
-.vacio {
-    text-align: center;
-    color: var(--c-subtext);
-    font-size: 13px;
-    padding: 20px 12px;
+/* Ecualizador animado */
+.sound-wave {
+    display: flex;
+    align-items: flex-end;
+    gap: 2.5px;
+    height: 18px;
+    flex: none;
+    padding: 0 4px;
+}
+
+.sound-wave span {
+    width: 3px;
+    background: var(--c-gold);
+    border-radius: 2px;
+    animation: bounce 1.2s infinite ease-in-out;
+}
+
+.sound-wave span:nth-child(1) { height: 40%; animation-delay: 0.1s; }
+.sound-wave span:nth-child(2) { height: 90%; animation-delay: 0.3s; }
+.sound-wave span:nth-child(3) { height: 60%; animation-delay: 0.2s; }
+
+@keyframes bounce {
+    0%, 100% { transform: scaleY(0.4); }
+    50% { transform: scaleY(1); }
+}
+
+/* =========================================================
+   3. Mis Canciones Pedidas (Carrusel)
+========================================================= */
+.mis-canciones-section {
+    margin-top: 20px;
+}
+
+.seccion-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.seccion-titulo {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f5f5f7;
     margin: 0;
+    letter-spacing: -0.2px;
 }
 
-/* Carrusel "Mis canciones" */
+.sub-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--c-gold);
+    background: rgba(212, 170, 67, 0.12);
+    border: 1px solid rgba(212, 170, 67, 0.35);
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+/* =========================================================
+   4. Canciones Más Escuchadas (Abajo de mis canciones)
+========================================================= */
+.mas-escuchadas-section {
+    margin-top: 28px;
+    padding-bottom: 24px;
+}
+
 .hscroll {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
-    margin: 0 -14px;
-    padding: 4px 14px 8px;
+    -ms-overflow-style: none;
+    margin: 0 -16px;
+    padding: 4px 16px 12px;
+    max-width: calc(100% + 32px);
+    box-sizing: border-box;
 }
 
 .hscroll::-webkit-scrollbar {
@@ -103,49 +346,229 @@ h2 {
 }
 
 .mini {
-    flex: none;
-    width: min(62vw, 230px);
+    flex: 0 0 200px;
+    width: 200px;
+    max-width: 65vw;
     scroll-snap-align: start;
+    box-sizing: border-box;
 }
 
-.lista {
-    display: grid;
-    gap: 14px;
-    margin-top: 6px;
-}
-
-/* Vista "Añadido a la cola" */
-.ok {
-    margin: 20px 0;
-    padding: 22px 14px;
+/* Estado vacío de Mis Canciones */
+.vacio-card {
+    background: #141418;
+    border: 1px dashed rgba(212, 170, 67, 0.35);
+    border-radius: 20px;
+    padding: 26px 18px;
     text-align: center;
-    background: #202020;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.vacio-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(212, 170, 67, 0.1);
+    color: var(--c-gold);
+    display: grid;
+    place-items: center;
+    margin-bottom: 4px;
+    border: 1px solid rgba(212, 170, 67, 0.25);
+}
+
+.vacio-card h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.vacio-card p {
+    margin: 0 0 8px;
+    font-size: 12.5px;
+    color: var(--c-text2);
+    line-height: 1.4;
+    max-width: 280px;
+}
+
+.vacio-btn {
+    font-size: 12.5px;
+    padding: 8px 16px;
+    border-radius: 999px;
+}
+
+/* =========================================================
+   Lista de Resultados / Búsqueda
+========================================================= */
+.lista {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 10px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.buscar-sticky {
+    position: sticky;
+    top: calc(48px + env(safe-area-inset-top));
+    z-index: 30;
+    background: rgba(9, 9, 11, 0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 8px 16px 10px;
+    margin: 0 -16px 14px;
+    width: calc(100% + 32px);
+    box-sizing: border-box;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.filtros-tabs {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    background: #18181c;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--c-text2);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tab-btn.activo {
+    background: var(--c-gold);
+    color: #121008;
+    border-color: var(--c-gold);
+    font-weight: 700;
+}
+
+.chips-scroll {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.chip-btn {
+    background: #18181c;
+    border: 1px solid rgba(212, 170, 67, 0.3);
+    color: var(--c-gold);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.chip-btn:active {
+    background: var(--c-gold);
+    color: #121008;
+}
+
+.estado-mensaje {
+    text-align: center;
+    padding: 40px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.spinner-gold {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(212, 170, 67, 0.2);
+    border-top-color: var(--c-gold);
+    border-radius: 50%;
+    animation: giro 0.8s linear infinite;
+}
+
+@keyframes giro {
+    to { transform: rotate(360deg); }
+}
+
+/* =========================================================
+   Vista "Añadido a la cola" (/agregado)
+========================================================= */
+.ok {
+    margin: 24px 0;
+    padding: 26px 18px;
+    text-align: center;
+    background: linear-gradient(145deg, #18181d, #121215);
     border: 1px solid var(--c-gold-border);
-    border-radius: 18px;
+    border-radius: 22px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.ok-icon-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(212, 170, 67, 0.15);
+    border: 1.5px solid var(--c-gold-border);
+    color: var(--c-gold);
+    display: grid;
+    place-items: center;
+    margin: 0 auto 14px;
+    box-shadow: 0 0 20px rgba(242, 206, 100, 0.25);
 }
 
 .ok h3 {
-    margin: 8px 0;
-    font-size: 22px;
-    font-weight: 600;
+    margin: 0 0 6px;
+    font-size: 21px;
+    font-weight: 700;
+    color: #fff;
 }
 
 .ok p {
     color: var(--c-text2);
     margin: 0;
-    font-size: 15px;
-    line-height: 1.4;
+    font-size: 14.5px;
+    line-height: 1.45;
 }
 
 .ok b {
     color: var(--c-gold);
 }
 
-.btn-gold.otra {
+.added-actions {
     display: flex;
-    width: 100%;
-    margin-top: 18px;
-    min-height: 52px;
-    font-size: 16px;
-    border-radius: 14px;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
 }
+
+.btn-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    font-size: 14.5px;
+    font-weight: 600;
+    border-radius: 14px;
+    background: #18181d;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--c-text2);
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.btn-secondary:active {
+    background: #22222a;
+    color: #fff;
+}

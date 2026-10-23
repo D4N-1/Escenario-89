@@ -43,10 +43,27 @@ export interface Anuncio {
 
 export interface AudioItem {
   id: number;
+  uuid?: string;
   titulo: string;
   detalle: string;
   duracion: string;
   sonando: boolean;
+  url?: string;
+}
+
+export interface IntermissionItem {
+  id?: number;
+  uuid: string;
+  title: string;
+  description?: string;
+  image: string;
+  url: string;
+  active: boolean;
+  startTime: string;
+  endTime: string;
+  everySongs?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /** Canción que el cliente ya pidió y su posición en la cola */

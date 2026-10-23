@@ -172,10 +172,16 @@ export class IntermissionService {
     const fileNameWithoutExt = path.parse(file.filename).name;
     const thumbnailFilename = `thumb-${fileNameWithoutExt}.jpg`;
 
-    await this.generateThumbnail(newVideoPath, targetDir, thumbnailFilename);
+    let imageUrl = '';
+    try {
+      await this.generateThumbnail(newVideoPath, targetDir, thumbnailFilename);
+      imageUrl = `/uploads/intermissions/${finalUuid}/${thumbnailFilename}`;
+    } catch {
+      // Formato sin pista de video (ej. audio) o fallo de extracción
+      imageUrl = '';
+    }
 
     const videoUrl = `/uploads/intermissions/${finalUuid}/${file.filename}`;
-    const imageUrl = `/uploads/intermissions/${finalUuid}/${thumbnailFilename}`;
 
     const newIntermission = this.intermissionRepository.create({
       ...createDto,
@@ -190,6 +196,20 @@ export class IntermissionService {
     return {
       message: 'Pausa publicitaria creada con exito',
       data: newIntermission,
+    };
+  }
+
+  async remove(uuid: string): Promise<{ message: string }> {
+    const intermission = await this.findOne.uuid(uuid);
+    this.counters.delete(uuid);
+    this.next.delete(uuid);
+
+    const targetDir = path.join('./uploads/intermissions', uuid);
+    await fs.rm(targetDir, { recursive: true, force: true }).catch(() => {});
+
+    await this.intermissionRepository.remove(intermission);
+    return {
+      message: 'Pausa publicitaria eliminada con éxito'
     };
   }
 

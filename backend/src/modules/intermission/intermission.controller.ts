@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Patch, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import * as fs from 'fs';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { GetAllQueryDto } from '../../common/dto/getAllQuery.dto';
@@ -30,7 +31,13 @@ export class IntermissionController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './uploads/intermissions',
+        destination: (req, file, callback) => {
+          const uploadPath = './uploads/intermissions';
+          if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+          }
+          callback(null, uploadPath);
+        },
         filename: (req, file, callback) => {
           const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
           callback(null, `video-${uniqueSuffix}${extname(file.originalname)}`);
@@ -46,8 +53,6 @@ export class IntermissionController {
     @UploadedFile() file: any,
     @Body() createIntermissionDto: CreateIntermissionDto
   ) {
-
-    console.log
     return this.intermissionService.create(createIntermissionDto, file);
   }
 
@@ -65,5 +70,13 @@ export class IntermissionController {
   @Post('play')
   async playOne(@Body() playIntermission: PlayIntermissionDto) {
     return this.intermissionService.playOne(playIntermission)
+  }
+
+  @ApiOperation({ summary: 'Elimina un anuncio' })
+  @ApiOkResponse({ description: 'Anuncio eliminado con éxito' })
+  @ApiNotFoundResponse({ description: 'No existe ese anuncio' })
+  @Delete(':uuid')
+  async deleteOne(@Param('uuid') uuid: string) {
+    return this.intermissionService.remove(uuid);
   }
 }

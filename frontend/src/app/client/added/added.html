@@ -1,17 +1,32 @@
 <main class="screen">
-  <app-client-header atras="/buscar" />
+  <app-client-header atras="/" />
 
   <section class="ok" aria-live="polite">
-    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e8c96a" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5"/></svg>
-    <h3>Añadido a la cola</h3>
+    <div class="ok-icon-circle">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+    </div>
+    <h3>¡Canción añadida a la cola!</h3>
     @if (state.posicionEnCola() === 0) {
-      <p>Tu canción <b>suena ahora</b>.</p>
+      <p>¡Excelente! Tu canción <b>suena ahora mismo</b> en el bar.</p>
     } @else {
-      <p>Tu canción está en la<br>posición <b>{{ state.posicionEnCola() }}º</b> de la lista</p>
+      <p>Tu canción está registrada en el<br>turno <b>#{{ state.posicionEnCola() }}</b> de la lista de espera.</p>
     }
   </section>
 
-  <app-video-card [video]="state.cancionSeleccionada()" [inactiva]="true" />
+  @if (state.cancionSeleccionada(); as v) {
+    <app-video-card [video]="v" [inactiva]="true" />
+  }
 
-  <a class="btn-gold otra" routerLink="/">Pedir otra canción</a>
-</main>
+  <div class="added-actions">
+    <a class="btn-gold" routerLink="/buscar">
+      <app-icon name="search" [size]="18" />
+      Pedir otra canción
+    </a>
+    <a class="btn-secondary" routerLink="/">
+      <app-icon name="home" [size]="18" />
+      Ver mi mesa y pedidos
+    </a>
+  </div>
+</main>

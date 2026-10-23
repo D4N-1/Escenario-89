@@ -23,27 +23,14 @@ export class QueuePanel {
   sobre = signal<string | null>(null);
   error = signal('');
 
-  items = computed(() => {
-    const lista = [...this.state.cola()];
-    if (this.showAds()) {
-      const activos = this.state.anuncios().filter(a => a.estado === 'En cola');
-      activos.forEach((a, i) => {
-        lista.splice(i === 0 ? Math.min(4, lista.length) : lista.length, 0, {
-          id: 1000 + a.id, titulo: a.titulo, artista: 'Anuncio',
-          duracion: a.duracion, mesa: 0, tipo: 'anuncio',
-        });
-      });
-    }
-    return lista;
-  });
+  items = computed(() => this.state.cola());
 
   reproducirAhora(cancion: Cancion, index: number) {
     if (cancion.tipo === 'anuncio') return;
-    const anterior = this.state.sonando();
     this.state.cola.update(lista => lista.filter((_, i) => i !== index));
     this.state.sonando.set(cancion);
     if (cancion.uuid) {
-      this.queue.reproducirAhora(cancion.uuid, anterior?.uuid).catch(() => {});
+      this.queue.reproducirAhora(cancion.uuid).catch(() => {});
     }
   }
 
@@ -58,9 +45,6 @@ export class QueuePanel {
     return '';
   }
 
-  // ---------------------------------------------------------- orden de la cola
-
-  /** Lugar de la canción dentro de la lista de espera real (sin anuncios). -1 si no es del backend. */
   indice(c: Cancion): number {
     return c.uuid ? this.state.cola().findIndex(x => x.uuid === c.uuid) : -1;
   }

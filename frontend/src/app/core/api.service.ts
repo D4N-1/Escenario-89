@@ -16,7 +16,7 @@ export class ApiService {
   private session = inject(SessionService);
   private router = inject(Router);
 
-  async pedir<T = any>(rol: Rol, metodo: 'GET' | 'POST' | 'PATCH', url: string, cuerpo?: unknown): Promise<T> {
+  async pedir<T = any>(rol: Rol, metodo: 'GET' | 'POST' | 'PATCH' | 'DELETE', url: string, cuerpo?: unknown): Promise<T> {
     return this.enviar<T>(rol, metodo, url, cuerpo, true);
   }
 
@@ -27,15 +27,20 @@ export class ApiService {
       throw new ErrorApi(401, rol === 'admin' ? 'Inicia sesión como administrador.' : 'Escanea el QR de tu mesa para pedir canciones.');
     }
 
+    const isFormData = typeof FormData !== 'undefined' && cuerpo instanceof FormData;
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+    };
+    if (cuerpo !== undefined && !isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
+
     let r: Response;
     try {
       r = await fetch(url, {
         method: metodo,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          ...(cuerpo !== undefined ? { 'Content-Type': 'application/json' } : {}),
-        },
-        body: cuerpo !== undefined ? JSON.stringify(cuerpo) : undefined,
+        headers,
+        body: cuerpo !== undefined ? (isFormData ? cuerpo : JSON.stringify(cuerpo)) : undefined,
       });
     } catch {
       throw new ErrorApi(0, 'No se pudo conectar con el servidor. ¿Está corriendo el backend?');
@@ -50,7 +55,13 @@ export class ApiService {
         try {
           await this.session.entrarMesa(this.session.codigoMesa()!);
           return this.enviar<T>(rol, metodo, url, cuerpo, false);
-        } catch { /* cae al error de abajo */ }
+        } catch {
+          this.session.salirMesa();
+          this.router.navigate(['/sin-mesa']);
+        }
+      } else if (rol === 'mesa') {
+        this.session.salirMesa();
+        this.router.navigate(['/sin-mesa']);
       }
     }
 

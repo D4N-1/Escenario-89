@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiService, Rol } from './api.service';
 import { AppState } from './app-state';
+import { SocketService } from './socket.service';
 import { Cancion, MiCancion, Video } from './models';
 
 /** Un elemento de la cola tal como lo devuelve el backend: GET /queue?include=song,table */
@@ -30,23 +31,20 @@ function aSegundos(duracion: string): number {
     return duracion.split(':').reduce((total, parte) => total * 60 + Number(parte), 0) || 0;
 }
 
-/** La cola de canciones vive en el backend; aquí se lee, se agrega y se avanza. */
+/** La cola de canciones vive en el backend; aquí se lee, se agrega y se avanza en tiempo real. */
 @Injectable({ providedIn: 'root' })
 export class QueueService {
     private api = inject(ApiService);
     private state = inject(AppState);
+    private socket = inject(SocketService);
 
-    private temporizador: ReturnType<typeof setInterval> | undefined;
     private actualizando = false;
-    private temporizadorMesa: ReturnType<typeof setInterval> | undefined;
+    private unsubscribeSocketAdmin?: () => void;
+
     private actualizandoMesa = false;
+    private unsubscribeSocketMesa?: () => void;
 
-    // ---------------------------------------------------------------- agregar
-
-    /** Guarda la canción (si no existía) y la pone en la cola. rol 'mesa' = cliente, 'admin' = panel. */
     async agregar(video: Video, rol: Rol): Promise<ResultadoAgregar> {
-        // 1) La canción debe existir en la base de datos. Si ya existía (la búsqueda también la guarda) o
-        //    este intento falla, se sigue: el paso 2 avisa con su propio error si de verdad no existe.
         try {
             await this.api.pedir(rol, 'POST', '/song', {
                 id: video.id,
@@ -60,116 +58,129 @@ export class QueueService {
                 author: video.canal || 'Desconocido',
                 description: '',
             });
-        } catch { /* ya existía o se guardó al buscar */ }
+        } catch {}
 
-        // 2) Entra a la cola. La mesa sale del token del cliente; el admin entra sin mesa (aparece como "Admin").
-        //    El uuid evita duplicados si el cliente toca dos veces.
         const r = await this.api.pedir<{ position: number; status: string }>(rol, 'POST', '/queue', {
             songId: video.id,
             uuid: nuevoUuid(),
         });
 
-        if (rol === 'admin') await this.refrescar();
         return { posicion: r.position, estado: r.status };
     }
 
-    // ------------------------------------------------------------ leer la cola
-
-    /** Trae la cola del backend y actualiza state.sonando / state.cola (solo si algo cambió). */
+    
     async refrescar(): Promise<void> {
         if (this.actualizando) return;
         this.actualizando = true;
         try {
             const r = await this.api.pedir<{ data: ColaItem[] }>('admin', 'GET', '/queue?include=song,table&limit=0');
-            const lista = (r.data ?? []).filter(q => q.song);
-            const enCurso = lista.find(q => q.status === 'PLAYING');
-            const espera = lista
-                .filter(q => q !== enCurso && q.status === 'WAITING')
-                .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-
-            // Si sigue siendo la misma canción no se toca, para no reiniciar el video
-            if ((enCurso?.uuid ?? null) !== (this.state.sonando()?.uuid ?? null)) {
-                this.state.sonando.set(enCurso ? this.aCancion(enCurso) : null);
-            }
-
-            const actual = this.state.cola();
-            const igual = espera.length === actual.length && espera.every((q, i) => q.uuid === actual[i].uuid);
-            if (!igual) this.state.cola.set(espera.map(q => this.aCancion(q)));
+            this.procesarColaAdmin(r.data ?? []);
         } catch {
-            // Sin conexión por un momento: se conserva lo que ya se ve y se reintenta en el siguiente ciclo
         } finally {
             this.actualizando = false;
         }
     }
 
-    iniciarPolling(cadaMs = 10000) {
+    iniciarPolling() {
         this.detenerPolling();
         this.refrescar();
-        this.temporizador = setInterval(() => this.refrescar(), cadaMs);
+
+        this.socket.conectar('admin');
+        this.unsubscribeSocketAdmin = this.socket.onQueue((items) => {
+            this.procesarColaAdmin(items);
+        });
     }
 
     detenerPolling() {
-        clearInterval(this.temporizador);
-        this.temporizador = undefined;
+        if (this.unsubscribeSocketAdmin) {
+            this.unsubscribeSocketAdmin();
+            this.unsubscribeSocketAdmin = undefined;
+        }
     }
 
-    // ------------------------------------------------------- cliente (mesa)
+    private procesarColaAdmin(rawItems: any[]) {
+        const lista = (rawItems ?? []).filter(q => q && q.song);
+        if (!lista.length && !this.state.cola().length && !this.state.sonando()) return;
 
-    /** Trae la cola y deja en state.misCanciones las canciones de esta mesa con su posición (0 = suena ahora). */
+        const enCurso = lista.find(q => q.status === 'PLAYING');
+        const espera = lista
+            .filter(q => q !== enCurso && q.status === 'WAITING')
+            .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+
+        if ((enCurso?.uuid ?? null) !== (this.state.sonando()?.uuid ?? null)) {
+            this.state.sonando.set(enCurso ? this.aCancion(enCurso) : null);
+        }
+
+        const actual = this.state.cola();
+        const igual = espera.length === actual.length && espera.every((q, i) => q.uuid === actual[i].uuid);
+        if (!igual) this.state.cola.set(espera.map(q => this.aCancion(q)));
+    }
+
+
     async refrescarMisCanciones(): Promise<void> {
         if (this.actualizandoMesa) return;
         this.actualizandoMesa = true;
         try {
             const r = await this.api.pedir<{ data: ColaItem[] }>('mesa', 'GET', '/queue?include=song,table&limit=0');
-            const mesa = this.state.mesa();
-            const mias = (r.data ?? [])
-                .filter(q => q.song && q.table?.number === mesa && (q.status === 'PLAYING' || q.status === 'WAITING'))
-                .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-                .map((q): MiCancion => ({ video: this.aVideo(q), posicion: q.position ?? 0 }));
-
-            const clave = (l: MiCancion[]) => l.map(m => `${m.video.id}:${m.posicion}`).join('|');
-            if (clave(mias) !== clave(this.state.misCanciones())) this.state.misCanciones.set(mias);
+            this.procesarColaMesa(r.data ?? []);
         } catch {
-            // Sin conexión por un momento: se conserva lo que ya se ve y se reintenta en el siguiente ciclo
         } finally {
             this.actualizandoMesa = false;
         }
     }
 
-    iniciarPollingMesa(cadaMs = 5000) {
+    private procesarColaMesa(rawItems: any[]) {
+        const items = (rawItems ?? []).filter(q => q && q.song);
+        const mesa = this.state.mesa();
+        const mias = items
+            .filter(q => (!q.table || q.table?.number === mesa) && (q.status === 'PLAYING' || q.status === 'WAITING'))
+            .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+            .map((q): MiCancion => ({ video: this.aVideo(q), posicion: q.position ?? 0 }));
+
+        const clave = (l: MiCancion[]) => l.map(m => `${m.video.id}:${m.posicion}`).join('|');
+        if (clave(mias) !== clave(this.state.misCanciones())) {
+            this.state.misCanciones.set(mias);
+        }
+
+       
+        const enCurso = items.find(q => q.status === 'PLAYING');
+        if (enCurso) {
+            const cancionActual = this.aCancion(enCurso);
+            if (this.state.sonando()?.uuid !== cancionActual.uuid) {
+                this.state.sonando.set(cancionActual);
+            }
+        } else if (items.length > 0 && !items.some(q => q.status === 'PLAYING')) {
+            if (this.state.sonando() !== null) this.state.sonando.set(null);
+        }
+    }
+
+    iniciarPollingMesa() {
         this.detenerPollingMesa();
         this.refrescarMisCanciones();
-        this.temporizadorMesa = setInterval(() => this.refrescarMisCanciones(), cadaMs);
+
+        this.socket.conectar('mesa');
+        this.unsubscribeSocketMesa = this.socket.onQueue((items) => {
+            this.procesarColaMesa(items);
+        });
     }
 
     detenerPollingMesa() {
-        clearInterval(this.temporizadorMesa);
-        this.temporizadorMesa = undefined;
+        if (this.unsubscribeSocketMesa) {
+            this.unsubscribeSocketMesa();
+            this.unsubscribeSocketMesa = undefined;
+        }
     }
 
-    // ------------------------------------------------------------ administrar
-
-    /** Marca la canción como terminada; el backend sube la siguiente a "sonando". */
+    
     async finalizar(uuid: string): Promise<void> {
         await this.api.pedir('admin', 'PATCH', '/queue', { uuid, status: 'FINISHED' });
-        await this.refrescar();
     }
 
-    /** Pasa una canción de la espera al primer lugar ("reproducir ahora"). */
-    async reproducirAhora(uuid: string, uuidAnterior?: string): Promise<void> {
-        if (uuidAnterior && uuidAnterior !== uuid) {
-            try {
-                await this.api.pedir('admin', 'PATCH', '/queue', { uuid: uuidAnterior, status: 'FINISHED' });
-            } catch { }
-        }
-        await this.api.pedir('admin', 'PATCH', '/queue', { uuid, position: 0, status: 'PLAYING' });
-        await this.refrescar();
+   
+    async reproducirAhora(uuid: string): Promise<void> {
+        await this.api.pedir('admin', 'PATCH', '/queue', { uuid, position: 0 });
     }
 
-    /**
-     * Cambia el orden de una canción en espera. `indiceDestino` es el lugar dentro de la lista de espera
-     * (0 = primera de la lista, justo después de la que suena). Se ve al instante y el backend lo confirma.
-     */
     async mover(uuid: string, indiceDestino: number): Promise<void> {
         const lista = [...this.state.cola()];
         const desde = lista.findIndex(c => c.uuid === uuid);
@@ -180,32 +191,60 @@ export class QueueService {
         lista.splice(hasta, 0, movida);
         this.state.cola.set(lista);
 
-        // En el backend la que suena es la posición 0, por eso la lista de espera empieza en 1
         const posicion = hasta + (this.state.sonando() ? 1 : 0);
-        try {
-            await this.api.pedir('admin', 'PATCH', '/queue', { uuid, position: posicion });
-        } finally {
-            await this.refrescarCuandoPueda();
-        }
+        await this.api.pedir('admin', 'PATCH', '/queue', { uuid, position: posicion });
     }
-
-    /** Quita una canción en espera de la cola. */
     async quitar(uuid: string): Promise<void> {
         this.state.cola.update(lista => lista.filter(c => c.uuid !== uuid));
+        await this.api.pedir('admin', 'PATCH', '/queue', { uuid, status: 'CANCELLED' });
+    }
+
+    async cargarMasEscuchadas(): Promise<Video[]> {
         try {
-            await this.api.pedir('admin', 'PATCH', '/queue', { uuid, status: 'CANCELLED' });
-        } finally {
-            await this.refrescarCuandoPueda();
+           
+            const r = await this.api.pedir<{ data: any[] }>('mesa', 'GET', '/song/popular');
+            let lista = r?.data ?? [];
+
+            if (!lista.length) {
+                const rAll = await this.api.pedir<{ data: any[] }>('mesa', 'GET', '/song?limit=15');
+                lista = rAll?.data ?? [];
+            }
+
+            const formateadas = lista.map(s => this.songEntityAVideo(s));
+            this.state.populares.set(formateadas);
+            return formateadas;
+        } catch {
+            return [];
         }
     }
 
-    /** Si justo hay una consulta en curso (puede traer datos viejos), espera a que termine y vuelve a consultar. */
-    private async refrescarCuandoPueda(): Promise<void> {
-        while (this.actualizando) await new Promise(r => setTimeout(r, 50));
-        await this.refrescar();
+    private songEntityAVideo(s: any): Video {
+        const canal = (s.author ?? 'Artista').replace(/\s+and\s+\d+\s+more$/i, '').trim();
+        const views = Number(s.views) || 0;
+        let vistas = '';
+        if (views >= 1000000) vistas = (views / 1000000).toFixed(1).replace('.0', '') + ' M';
+        else if (views >= 1000) vistas = Math.round(views / 1000) + ' k';
+        else if (views > 0) vistas = String(views);
+
+        return {
+            id: s.id,
+            titulo: s.title,
+            canal,
+            vistas,
+            antiguedad: s.ago ?? '',
+            duracion: s.timestamp || '0:00',
+            tipo: (s.type === 'KARAOKE' || /karaoke/i.test(s.title)) ? 'karaoke' : 'sencillo',
+            miniatura: s.image || (s.id ? `https://i.ytimg.com/vi/${s.id}/mqdefault.jpg` : undefined),
+            miniaturaTitulo: '',
+            miniaturaSub: '',
+            inicialesCanal: canal.slice(0, 2).toUpperCase() || 'YT',
+            segundos: s.seconds,
+            vistasNumero: views,
+        };
     }
 
-    // --------------------------------------------------------------- internos
+    
+
 
     private aCancion(q: ColaItem): Cancion {
         const s = q.song!;

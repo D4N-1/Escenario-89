@@ -2,26 +2,68 @@
   <span class="crumb">Panel principal › Anuncios</span>
   <span class="clock">{{ state.hora() }}</span>
 </div>
+
+@if (toast()) {
+  <div class="toast-banner">
+    <app-icon name="check" [size]="16" />
+    <span>{{ toast() }}</span>
+  </div>
+}
+
 <div class="page">
   <div class="title">
     <div>
       <h1>Anuncios</h1>
-      <p>Promociones, eventos y mensajes para las pantallas del local.</p>
+      <p>Promociones, eventos y mensajes para las pantallas y pausas del local.</p>
     </div>
-    <a class="btn-gold" routerLink="/admin/anuncios/nuevo"><app-icon name="add" [size]="16" /> Crear anuncio</a>
+    <a class="btn-gold" routerLink="/admin/anuncios/nuevo">
+      <app-icon name="add" [size]="16" /> Crear anuncio
+    </a>
   </div>
 
   <div class="card">
     <div class="tabs">
-      <b>Todos <sup>{{ state.anuncios().length }}</sup></b>
-      <span>En cola <sup>{{ enCola }}</sup></span>
-      <span>Programados <sup>{{ programados }}</sup></span>
+      <button type="button" class="tab-btn" [class.active]="tabActiva() === 'todos'" (click)="tabActiva.set('todos')">
+        Todos <sup>{{ total() }}</sup>
+      </button>
+      <button type="button" class="tab-btn" [class.active]="tabActiva() === 'activos'" (click)="tabActiva.set('activos')">
+        Activos <sup>{{ activos() }}</sup>
+      </button>
+      <button type="button" class="tab-btn" [class.active]="tabActiva() === 'programados'" (click)="tabActiva.set('programados')">
+        Programados <sup>{{ programados() }}</sup>
+      </button>
+      <button type="button" class="tab-btn" [class.active]="tabActiva() === 'inactivos'" (click)="tabActiva.set('inactivos')">
+        Inactivos <sup>{{ inactivos() }}</sup>
+      </button>
     </div>
+
     <div class="tools">
-      <div class="search"><app-icon name="search" [size]="16" /> <input placeholder="Buscar anuncio..."></div>
-      <button class="filter"><app-icon name="filter" [size]="16" /> Todos los tipos <app-icon name="chevron"
-          [size]="14" /></button>
+      <div class="search">
+        <app-icon name="search" [size]="16" />
+        <input
+          [ngModel]="busqueda()"
+          (ngModelChange)="busqueda.set($event)"
+          placeholder="Buscar anuncio por título o descripción..."
+        />
+        @if (busqueda()) {
+          <button type="button" class="clear-btn" (click)="busqueda.set('')">
+            <app-icon name="close" [size]="14" />
+          </button>
+        }
+      </div>
+      <button type="button" class="filter" (click)="intermissions.cargar()" [disabled]="intermissions.cargando()">
+        <app-icon name="swap" [size]="14" />
+        <span>{{ intermissions.cargando() ? 'Cargando...' : 'Actualizar' }}</span>
+      </button>
     </div>
+
+    @if (intermissions.error()) {
+      <div class="error-box">
+        <app-icon name="close" [size]="16" />
+        <span>{{ intermissions.error() }}</span>
+      </div>
+    }
+
     <table>
       <thead>
         <tr>
@@ -32,49 +74,245 @@
         </tr>
       </thead>
       <tbody>
-        @for (a of state.anuncios(); track a.id) {
-        <tr>
-          <td>
-            <div class="who">
-              <div class="img"></div>
-              <div><b>{{ a.titulo }}</b><small>{{ a.detalle }}</small></div>
-            </div>
-          </td>
-          <td><span class="chip" [class]="'chip ' + chip(a.estado)">● {{ a.estado }}</span></td>
-          <td><b class="p">{{ a.programacion }}</b><small>{{ a.duracion }}</small></td>
-          <td class="r"><app-icon name="edit" [size]="16" /> <app-icon name="more-h" [size]="16" /></td>
-        </tr>
+        @for (a of items(); track a.uuid) {
+          <tr>
+            <td>
+              <div class="who">
+                @if (a.image) {
+                  <img [src]="a.image" alt="" class="img-thumb" />
+                } @else if (intermissions.esAudio(a)) {
+                  <div class="img icon-thumb">
+                    <app-icon name="mic" [size]="18" />
+                  </div>
+                } @else {
+                  <div class="img icon-thumb">
+                    <app-icon name="clapper" [size]="18" />
+                  </div>
+                }
+                <div class="who-text">
+                  <b>{{ a.title }}</b>
+                  <small>{{ a.description || (intermissions.esAudio(a) ? 'Audio promocional' : 'Video intermedio') }}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              @if (!a.active) {
+                <span class="chip off cursor-pointer" (click)="alternarEstado(a)" title="Clic para activar">
+                  ● Inactivo
+                </span>
+              } @else if (a.everySongs) {
+                <span class="chip warn cursor-pointer" (click)="alternarEstado(a)" title="Clic para pausar">
+                  ● Programado
+                </span>
+              } @else {
+                <span class="chip ok cursor-pointer" (click)="alternarEstado(a)" title="Clic para pausar">
+                  ● En cola
+                </span>
+              }
+            </td>
+            <td>
+              <b class="p">{{ a.startTime.substring(0, 5) }} - {{ a.endTime.substring(0, 5) }}</b>
+              <small>{{ a.everySongs ? ('Cada ' + a.everySongs + ' canciones') : 'Horario comercial' }}</small>
+            </td>
+            <td class="r">
+              <button
+                type="button"
+                class="act-btn play-next"
+                title="Poner en la siguiente pausa de canciones"
+                (click)="reproducirEnSiguientePausa(a)"
+              >
+                <app-icon name="play" [size]="16" />
+              </button>
+              <button
+                type="button"
+                class="act-btn"
+                [title]="a.active ? 'Pausar emisión' : 'Activar emisión'"
+                (click)="alternarEstado(a)"
+              >
+                <app-icon [name]="a.active ? 'pause' : 'check'" [size]="15" />
+              </button>
+              <button
+                type="button"
+                class="act-btn danger"
+                title="Eliminar este anuncio"
+                (click)="eliminar(a)"
+              >
+                <app-icon name="delete" [size]="16" />
+              </button>
+            </td>
+          </tr>
         } @empty {
-        <tr>
-          <td colspan="4" class="vacio">Aún no hay anuncios.</td>
-        </tr>
+          <tr>
+            <td colspan="4" class="vacio">
+              @if (intermissions.cargando()) {
+                Cargando anuncios...
+              } @else {
+                No hay anuncios registrados en esta sección.
+              }
+            </td>
+          </tr>
         }
       </tbody>
     </table>
-    <div class="foot"><span>Mostrando {{ state.anuncios().length }} de {{ state.anuncios().length }}
-        anuncios</span><span>Última actualización: hoy, 17:20</span></div>
+
+    <div class="foot">
+      <span>Mostrando {{ items().length }} de {{ total() }} anuncios</span>
+      <span>Actualizado en tiempo real vía sockets</span>
+    </div>
   </div>
 
-  <div class="note"><app-icon name="clapper" [size]="16" />
-    <div><b>La música no se detiene</b><small>Los anuncios activos aparecen entre canciones, sin interrumpir la
-        reproducción.</small></div>
+  <div class="note">
+    <app-icon name="clapper" [size]="16" />
+    <div>
+      <b>La música no se detiene</b>
+      <small>Los anuncios activos se emiten de forma automática entre canciones según su horario y frecuencia configurada.</small>
+    </div>
   </div>
 </div>
 
-@if (modal) {
-<div class="backdrop">
-  <div class="modal">
-    <h2>Crear anuncio</h2>
-    <div class="grid">
-      <div class="field">Nombre del anuncio:</div>
-      <div class="field">Descripción:</div>
-      <div class="field wide">Seleccione el horario del anuncio:</div>
+@if (modal()) {
+  <div class="backdrop" (click)="cerrarModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>Crear anuncio</h2>
+
+      @if (formError()) {
+        <div class="modal-error">
+          <app-icon name="close" [size]="14" />
+          <span>{{ formError() }}</span>
+        </div>
+      }
+
+      <div class="grid">
+        <div class="field">
+          <label>Nombre del anuncio:</label>
+          <input
+            type="text"
+            class="modal-input"
+            [ngModel]="formTitle()"
+            (ngModelChange)="formTitle.set($event)"
+            placeholder="Ej. Promoción 2x1 en cócteles"
+            required
+          />
+        </div>
+
+        <div class="field">
+          <label>Descripción (opcional):</label>
+          <input
+            type="text"
+            class="modal-input"
+            [ngModel]="formDescription()"
+            (ngModelChange)="formDescription.set($event)"
+            placeholder="Ej. Válido durante la medianoche"
+          />
+        </div>
+
+        <div class="field wide">
+          <label>Horario de activación:</label>
+          <div class="hours-row">
+            <div class="hour-field">
+              <small>Hora de inicio</small>
+              <input
+                type="time"
+                class="modal-input"
+                [ngModel]="formStartTime()"
+                (ngModelChange)="formStartTime.set($event)"
+                required
+              />
+            </div>
+            <div class="hour-field">
+              <small>Hora de cierre</small>
+              <input
+                type="time"
+                class="modal-input"
+                [ngModel]="formEndTime()"
+                (ngModelChange)="formEndTime.set($event)"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="check-label">
+            <input
+              type="checkbox"
+              [ngModel]="formConFrecuencia()"
+              (ngModelChange)="formConFrecuencia.set($event)"
+            />
+            <span>Emitir periódicamente por canciones</span>
+          </label>
+          @if (formConFrecuencia()) {
+            <div class="freq-input-wrap">
+              <span>Cada</span>
+              <input
+                type="number"
+                min="1"
+                max="50"
+                class="modal-input num"
+                [ngModel]="formEverySongs()"
+                (ngModelChange)="formEverySongs.set($event)"
+              />
+              <span>canciones</span>
+            </div>
+          }
+        </div>
+
+        <div class="field">
+          <label class="check-label">
+            <input
+              type="checkbox"
+              [ngModel]="formActive()"
+              (ngModelChange)="formActive.set($event)"
+            />
+            <span>Activar anuncio de inmediato</span>
+          </label>
+          <small class="field-hint">Si está marcado, entrará en la programación en cuanto se suba.</small>
+        </div>
+      </div>
+
+      <div class="upload-section">
+        <label class="dropzone">
+          <input
+            type="file"
+            class="file-input-hidden"
+            (change)="onFileChange($event)"
+            accept="video/*,audio/*,.mp4,.webm,.mov,.mp3,.wav,.ogg"
+          />
+          @if (selectedFile()) {
+            <div class="file-info">
+              <app-icon name="check" [size]="20" />
+              <div>
+                <b>{{ selectedFile()?.name }}</b>
+                <small>{{ ((selectedFile()?.size || 0) / (1024 * 1024)).toFixed(2) }} MB</small>
+              </div>
+              <span class="change-tag">Cambiar archivo</span>
+            </div>
+          } @else {
+            <div class="dropzone-empty">
+              <app-icon name="clapper" [size]="24" />
+              <b>Seleccionar video o audio</b>
+              <small>Haz clic para elegir un archivo MP4, WebM, MP3 o WAV desde tu dispositivo</small>
+            </div>
+          }
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="cerrarModal()">Cancelar</button>
+        <button
+          type="button"
+          class="btn-gold"
+          (click)="guardar()"
+          [disabled]="intermissions.guardando()"
+        >
+          <app-icon name="check" [size]="16" />
+          <span>{{ intermissions.guardando() ? 'Subiendo y guardando...' : 'Crear anuncio' }}</span>
+        </button>
+      </div>
+
+      <button type="button" class="close" (click)="cerrarModal()">
+        <app-icon name="close" [size]="18" />
+      </button>
     </div>
-    <div class="uploads">
-      <button class="btn-gold up"><b>Seleccionar video:</b><small>Seleccione el video desde su equipo.</small></button>
-      <button class="btn-gold up"><b>Seleccionar audio:</b><small>Seleccione el audio desde su equipo.</small></button>
-    </div>
-    <a class="close" routerLink="/admin/anuncios"><app-icon name="close" /></a>
   </div>
-</div>
 }

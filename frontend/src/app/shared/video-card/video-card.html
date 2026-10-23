@@ -2,24 +2,43 @@
     <div class="thumb" [class.thumb-karaoke]="!video().miniatura"
         [style.background]="video().miniatura ? null : video().fondo">
         @if (video().miniatura) {
-        <img [src]="video().miniatura" alt="" loading="lazy">
+        <img [src]="video().miniatura" [alt]="video().titulo" loading="lazy">
         } @else {
         <span class="txt">{{ video().miniaturaTitulo }}<small>{{ video().miniaturaSub }}</small></span>
         }
         <i class="time">{{ video().duracion }}</i>
+        @if (video().tipo === 'karaoke') {
+        <span class="badge-karaoke">Karaoke</span>
+        }
     </div>
 
     @if (compact()) {
-    <span class="t">{{ video().titulo }}</span>
-    @if (posicion() !== null) { <b class="pos">{{ posicion() === 0 ? 'Suena ahora' : 'Posición ' + posicion() + 'º'
-        }}</b> }
+    <div class="compact-info">
+        <span class="t">{{ video().titulo }}</span>
+        @if (posicion() !== null) {
+        <b class="pos" [class.pos-now]="posicion() === 0" [class.pos-wait]="posicion()! > 0">
+            <span class="pos-dot"></span>
+            {{ posicion() === 0 ? '¡Suena ahora!' : 'Turno #' + posicion() }}
+        </b>
+        }
+    </div>
     } @else {
     <div class="meta">
-        <span class="av">{{ video().inicialesCanal }}</span>
-        <div>
+        <span class="av">{{ video().inicialesCanal || 'YT' }}</span>
+        <div class="meta-info">
             <b>{{ video().titulo }}</b>
-            <small>{{ video().canal }} · {{ video().vistas }} vistas · {{ video().antiguedad }}</small>
+            <small>
+                {{ video().canal }}
+                @if (video().vistas) { <span class="dot-sep">·</span> {{ video().vistas }} vistas }
+                @if (video().antiguedad) { <span class="dot-sep">·</span> {{ video().antiguedad }} }
+            </small>
         </div>
+        @if (!inactiva()) {
+        <span class="pedir-btn" title="Pedir canción">
+            <app-icon name="add" [size]="18" />
+            <span class="pedir-text">Pedir</span>
+        </span>
+        }
     </div>
     }
-</button>
+</button>

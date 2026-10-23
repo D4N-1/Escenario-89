@@ -55,7 +55,7 @@
     <div class="acciones">
       <button type="button" title="Subir" aria-label="Subir" [disabled]="indice(it) === 0" (click)="subir(it, $event)">▲</button>
       <button type="button" title="Bajar" aria-label="Bajar" [disabled]="esUltima(it)" (click)="bajar(it, $event)">▼</button>
-      <button type="button" class="quitar" title="Quitar de la cola" aria-label="Quitar de la cola" (click)="quitar(it, $event)">✕</button>
+      <button type="button" class="quitar" title="Quitar de la cola" aria-label="Quitar de la cola" (click)="quitar(it, $event)"><app-icon name="close" [size]="14" /></button>
     </div>
     } @else {
     <app-icon name="more-v" [size]="16" />
