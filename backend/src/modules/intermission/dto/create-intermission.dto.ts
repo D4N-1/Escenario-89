@@ -26,11 +26,11 @@ export class CreateIntermissionDto {
   active?: boolean;
 
   @ApiProperty({ description: 'Hora de inicio en formato HH:mm', example: '22:00' })
-  @IsMilitaryTime({ message: 'El formato de hora de inicio debe ser HH:mm' })
+  @IsMilitaryTime({ message: 'El formato de hora de inicio del anuncio debe ser HH:mm' })
   startTime: string;
 
   @ApiProperty({ description: 'Hora de cierre en formato HH:mm', example: '03:00' })
-  @IsMilitaryTime({ message: 'El formato de hora de cierre debe ser HH:mm' })
+  @IsMilitaryTime({ message: 'El formato de hora de fin del anuncio debe ser HH:mm' })
   endTime: string;
 
   @ApiProperty({ description: 'Cada cuántas canciones se debe disparar', example: 5, default: null })

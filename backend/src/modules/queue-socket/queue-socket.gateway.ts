@@ -6,7 +6,7 @@ import { AuthService } from '../auth/auth.service';
 import { Events } from './enums/event.enum';
 import { Rooms } from './enums/room.enum';
 import { General } from './interfaces/general.interface';
-import { QueueUpdate } from './interfaces/queue-update.interface';
+import { QueueUpdate } from './interfaces/queue.interface';
 import { AllSocketEvents } from './queue-socket.constants';
 import { QueueSocketService } from './queue-socket.service';
 

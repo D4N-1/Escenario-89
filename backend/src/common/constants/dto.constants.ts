@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+import { BarStatus } from "../../modules/bar/enum/bar-status.enum"
 import { UserRole } from "../../modules/user/user.constants"
 
 export const EXAMPLE = {
@@ -30,7 +31,8 @@ export const EXAMPLE = {
         'SUVowIiwibnVtYmVyIjoxLCJpYXQiOjE3OTI0MzIxMDUsImV4cCI6MTc5M' +
         'jQ0NjUwNX0.kxCWXJcbE0VRyIhh5cIF4z6IuFKCK4oCs1gEc5ACIGE',
     HOUR: 'HH:mm',
-    ACTIVE: true
+    ACTIVE: true,
+    BAR_STATUS: BarStatus.CLOSING
 
 }
 
@@ -63,6 +65,7 @@ export const DESCRIPTION = {
     ACCESS_TOKEN: 'Token de acceso',
     ROLE: 'El rol asignado',
     HOUR: 'Hora',
-    ACTIVE: 'Si es activo'
+    ACTIVE: 'Si es activo',
+    BAR_STATUS: 'Estado del bar'
 
 }

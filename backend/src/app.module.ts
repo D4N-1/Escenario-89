@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import * as Joi from 'joi';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
@@ -9,6 +10,7 @@ import AuthNGuard from './guards/auth-n.guard.js';
 import AuthZGuard from './guards/auth-z.guard.js';
 import { LoggerMiddleware } from './middlewares/logger.middleware.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { BarModule } from './modules/bar/bar.module.js';
 import { IntermissionModule } from './modules/intermission/intermission.module.js';
 import { QueueSocketModule } from './modules/queue-socket/queue-socket.module.js';
 import { QueueModule } from './modules/queue/queue.module.js';
@@ -28,6 +30,8 @@ import { UserModule } from './modules/user/user.module.js';
     SongModule,
     TableModule,
     UserModule,
+    IntermissionModule,
+    BarModule,
 
     ConfigModule.forRoot({
       isGlobal: true,
@@ -39,7 +43,8 @@ import { UserModule } from './modules/user/user.module.js';
       })
     }),
 
-    IntermissionModule
+    ScheduleModule.forRoot(),
+
 
   ],
   controllers: [ AppController ],

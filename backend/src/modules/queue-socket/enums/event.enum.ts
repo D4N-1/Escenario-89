@@ -2,6 +2,7 @@ export enum Events {
 
     GENERAL = 'general',
     QUEUE = 'queue',
-    INTERMISSION = 'intermission'
+    INTERMISSION = 'intermission',
+    BAR = 'bar'
     
 }

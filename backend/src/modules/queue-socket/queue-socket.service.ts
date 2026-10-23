@@ -4,6 +4,7 @@ import { Server, Socket } from 'socket.io';
 import type { TableRequest, UserRequest } from '../../common/interfaces/payload.interface';
 import { AnyRequest } from '../../common/types/payload.type';
 import { AuthService } from '../auth/auth.service';
+import { BarEntity } from '../bar/entities/bar.entity';
 import { IntermissionEntity } from '../intermission/entities/intermission.entity';
 import { QueueEntity } from '../queue/entities/queue.entity';
 import { UserRole } from '../user/user.constants';
@@ -115,8 +116,15 @@ export class QueueSocketService {
 
   async updateIntermission(Intermissions: IntermissionEntity[]) {
 
-    this.server.to(Rooms.USER_ROLE + UserRole.ADMIN).emit('intermission', { message: 'Nueva pausa publicitaria', data: Intermissions } as Intermission);
+    this.server.to(Rooms.USER_ROLE + UserRole.ADMIN).emit(Events.INTERMISSION, { message: 'Nueva pausa publicitaria', data: Intermissions } as Intermission);
 
+  }
+
+  async updateBar(bar: BarEntity) {
+    
+    console.log('ACTUALIZACIÓN DEL BAR')
+    this.server.emit(Events.BAR, bar)
+    
   }
 
 

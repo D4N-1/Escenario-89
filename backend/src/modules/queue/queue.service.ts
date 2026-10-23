@@ -243,7 +243,7 @@ export class QueueService implements OnModuleInit {
             })
             this.queueSocketService.updateQueue(newQueue);
 
-            song.count = song.count++
+            song.count += 1
             await manager.save(SongEntity, song)
 
 
