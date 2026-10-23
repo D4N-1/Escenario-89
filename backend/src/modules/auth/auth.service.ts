@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { UserService } from "../user/user.service";
 import { JwtService } from "@nestjs/jwt";
 import { CreateUserSignDto } from "./dto/user-sign.dto";
@@ -9,6 +9,7 @@ import { TableRequest, UserRequest } from "../../common/interfaces/payload.inter
 import { CreateTableSignDto } from "./dto/table-sign.dto";
 import { TableService } from "../table/table.service";
 import { TypeRequest } from "../../common/enums/typeRequest.enum";
+import { AnyRequest } from "../../common/types/payload.type";
 
 
 @Injectable()
@@ -65,6 +66,30 @@ export class AuthService {
             }
         }
 
+    }
+
+    async verifyToken(token: string): Promise<AnyRequest> {
+
+        if ( token.startsWith('Bearer') ) token = token.replace('Bearer ', '').trim();
+
+        const payload: AnyRequest = await this.jwtService.verify(token)
+
+        switch(payload.type) {
+
+            case TypeRequest.TABLE:
+
+                await this.tableService.findOne.number(payload.number)
+                return payload
+
+            case TypeRequest.USER:
+
+                await this.userService.findOne.name(payload.name)
+                return payload
+
+            default:
+                throw new UnauthorizedException( AuthErrorCode.UNAUTHORIZED('El token proporcionado es inválido', { error: 'payload.type es diferente a USER | TABLE' }) )
+                
+        }
     }
 
 }

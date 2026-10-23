@@ -1,9 +1,14 @@
 <div class="wrap">
-  <form class="box" (submit)="$event.preventDefault()">
+  <form class="box" (submit)="$event.preventDefault(); entrar(usuario.value, clave.value)">
     <img src="logo.png" alt="Escenario 89">
     <h1 class="brand">Escenario 89</h1>
-    <label>Codigo</label>
-    <input type="password" placeholder="Ingresa tu codigo">
-    <a class="btn-gold" routerLink="/admin">Iniciar sesión</a>
+    <label for="usuario">Usuario</label>
+    <input #usuario id="usuario" type="text" autocomplete="username" placeholder="Ingresa tu usuario">
+    <label for="clave">Contraseña</label>
+    <input #clave id="clave" type="password" autocomplete="current-password" placeholder="Ingresa tu contraseña">
+    @if (error()) {
+      <p role="alert" style="color: var(--c-red-light); font-size: 13px; margin: 0 0 14px; text-align: center;">{{ error() }}</p>
+    }
+    <button class="btn-gold" type="submit" [disabled]="enviando()">{{ enviando() ? 'Entrando…' : 'Iniciar sesión' }}</button>
   </form>
 </div>

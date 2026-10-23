@@ -1,22 +1,28 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { QueueEntity, QueueRelations, SongStatus, UpdateSongStatus } from './entities/queue.entity.js';
-import { Repository } from 'typeorm';
-import type { DataSource, FindOptionsRelations } from 'typeorm';
-import { ResAllInterface } from '../../common/interfaces/resAll.interface.js';
-import { CreateQueueDto } from './dto/create-queue.dto.js';
-import { QueueResCreateInterface } from './interface/queue-resCreate.interface.js';
-import { SongService } from '../song/song.service.js';
-import { TableService } from '../table/table.service.js';
-import { GetAllQueueDto } from './dto/get-queue.dto.js';
 import { randomUUID } from 'node:crypto';
-import { UpdateQueueDto } from './dto/update-queue.dto.js';
-import { QueueErrorCode } from './queue.constants.js';
-import { AnyRequest } from '../../common/types/payload.type.js';
+import type { DataSource, FindOptionsRelations } from 'typeorm';
+import { Repository } from 'typeorm';
 import { TypeRequest } from '../../common/enums/typeRequest.enum.js';
+import { ResAllInterface } from '../../common/interfaces/resAll.interface.js';
+import { AnyRequest } from '../../common/types/payload.type.js';
+import { IntermissionService } from '../intermission/intermission.service.js';
+import { QueueSocketService } from '../queue-socket/queue-socket.service.js';
+import { SongEntity } from '../song/entities/song.entity.js';
+import { SongService } from '../song/song.service.js';
+import { TableEntity } from '../table/entities/table.entity.js';
+import { TableService } from '../table/table.service.js';
+import { UserEntity } from '../user/entities/user.entity.js';
+import { UserService } from '../user/user.service.js';
+import { CreateQueueDto } from './dto/create-queue.dto.js';
+import { GetAllQueueDto } from './dto/get-queue.dto.js';
+import { UpdateQueueDto } from './dto/update-queue.dto.js';
+import { QueueEntity, QueueRelations, SongStatus } from './entities/queue.entity.js';
+import { QueueResCreateInterface } from './interface/queue-resCreate.interface.js';
+import { QueueErrorCode } from './queue.constants.js';
 
 @Injectable()
-export class QueueService {
+export class QueueService implements OnModuleInit {
 
     constructor(
 
@@ -28,9 +34,29 @@ export class QueueService {
 
         private readonly songService: SongService,
         private readonly tableService: TableService,
+        private readonly userService: UserService,
+        private readonly queueSocketService: QueueSocketService,
+        private readonly intermissionService: IntermissionService
 
     ) { }
 
+
+    async onModuleInit() {
+        
+        const initialQueue: QueueEntity[] = await this.queueRepository.find({
+            where:
+                [
+                    { status: SongStatus.PLAYING },
+                    { status: SongStatus.WAITING }
+                ],
+            order: { position: 'ASC' },
+            relations: { table: true, song: true }
+        }
+        )
+
+        this.queueSocketService.setQueue(initialQueue)
+
+    }
 
     findOne = {
     
@@ -122,7 +148,7 @@ export class QueueService {
         
     }
 
-    async create(createQueueDto: CreateQueueDto, user: AnyRequest): Promise<QueueResCreateInterface> {
+    async create(createQueueDto: CreateQueueDto, anyRequest: AnyRequest): Promise<QueueResCreateInterface> {
 
         const { songId, tableCode, uuid } = createQueueDto;
 
@@ -139,10 +165,17 @@ export class QueueService {
 
         const song = await this.songService.findOne.id(songId)
 
-        let table;
+        if (!song) throw new NotFoundException( QueueErrorCode.NOT_FOUND('No esta registrada esa cancion') )
 
-        if (user.type === TypeRequest.TABLE) table = await this.tableService.findOne.number(user.number)
-        else table = await this.tableService.findOne.code(tableCode)
+        let table: TableEntity|null
+        let user: UserEntity|null;
+
+        if (anyRequest.type === TypeRequest.TABLE) table = await this.tableService.findOne.number(anyRequest.number)
+            else if (anyRequest.type === TypeRequest.USER) user = await this.userService.findOne.name(anyRequest.name)
+                else {
+                    if (!tableCode) throw new NotFoundException( QueueErrorCode.NOT_FOUND('No se ha especificado un codigo de mesa') )
+                    table = await this.tableService.findOne.code(tableCode)
+                }
 
         return await this.dataSource.transaction( async(manager) => {
 
@@ -152,38 +185,74 @@ export class QueueService {
                     { status: SongStatus.WAITING }
                 ],
                 order: { position: 'ASC' },
-                relations: { table: true }
+                relations: { table: true },
+                lock: { mode: 'pessimistic_write' }
             })
 
             newData.song = song;
             newData.table = table;
+            newData.user = user;
             newData.uuid = uuid || randomUUID();
+            newData.fixed = false;
 
 
-            const waitingSongs = Queue.filter( (q) => q.table?.code === table.code )
+            if (table) {
 
-            const value = waitingSongs.length
-            newData.value = value
+                const waitingSongs = Queue.filter( (q) => q.table?.code === table.code )
 
-            const prev = Queue.findLastIndex( (q) => q.value === value)
-            const position = prev === -1 ? Queue.length
-                : prev + 1
+                const value = waitingSongs.length
+                newData.value = value
 
-            newData.position = position
-            newData.status = newData.position == 0 ? SongStatus.PLAYING : SongStatus.WAITING
+                const prev = Queue.findLastIndex( (q) => q.value === value)
+                const position = prev === -1 ? Queue.length
+                    : prev + 1
 
-            Queue.forEach( (q) => q.position! >= position ? q.position!++ : null )
+                newData.position = position
+                newData.status = newData.position == 0 ? SongStatus.PLAYING : SongStatus.WAITING
 
-            const newQueue = this.queueRepository.create(newData)
+                Queue.forEach( (q) => q.position! >= position ? q.position!++ : null )
 
-            Queue.splice(position, 0, newQueue)
+                const newQueue = this.queueRepository.create(newData)
+
+                Queue.splice(position, 0, newQueue)
+
+                await manager.save(QueueEntity, Queue)
+
+
+
+            } else {
+
+                newData.position = Queue.length
+                newData.status = newData.position == 0 ? SongStatus.PLAYING : SongStatus.WAITING
+
+
+                const newQueue = this.queueRepository.create(newData)
+
+                await manager.save(QueueEntity, newQueue)
+
+            }
+
+
+            const newQueue = await manager.find(QueueEntity, {
+                where: [
+                    { status: SongStatus.PLAYING },
+                    { status: SongStatus.WAITING }
+                ],
+                order: { position: 'ASC' },
+                relations: { table: true, song: true }
+            })
+            this.queueSocketService.updateQueue(newQueue);
+
+            song.count = song.count++
+            await manager.save(SongEntity, song)
+
 
             return {
                 message: `Cancion añadida a la lista`,
-                position,
-                status: newQueue.status,
-                fixed: newQueue.fixed,
-                data: await manager.save(QueueEntity, Queue)
+                position: newData.position,
+                status: newData.status,
+                fixed: newData.fixed,
+                data: newQueue
             }
 
         })
@@ -203,14 +272,30 @@ export class QueueService {
                     { status: SongStatus.PLAYING },
                     { status: SongStatus.WAITING }
                 ],
-                order: { position: 'ASC' }
+                order: { position: 'ASC' },
+                relations: { table: true, song: true }
             });
 
             const isCancelledOrFinished = status === SongStatus.CANCELLED || status === SongStatus.FINISHED;
 
+            // Si se pasa una canción a posición 0 (reproducir ahora), la canción que estaba sonando se finaliza
+            if (position === 0) {
+                const playingSong = queueList.find(q => (q.status === SongStatus.PLAYING || q.position === 0) && q.uuid !== uuid);
+                if (playingSong) {
+                    playingSong.status = SongStatus.FINISHED;
+                    playingSong.position = null;
+                    playingSong.value = null;
+                    await manager.save(QueueEntity, playingSong);
+                    const idx = queueList.indexOf(playingSong);
+                    if (idx !== -1) queueList.splice(idx, 1);
+                }
+            }
+
+            const currentOldPos = queueList.findIndex(q => q.uuid === uuid);
+
             const updatedQueueList = this.modifyQueue(
                 queueList,
-                oldPosition,
+                currentOldPos !== -1 ? currentOldPos : oldPosition,
                 position,
                 status,
                 newQueue
@@ -228,7 +313,10 @@ export class QueueService {
 
                 } else if (position !== undefined) newQueue.position = position;
                 
-            } else if (position !== undefined) newQueue.position = position;
+            } else if (position !== undefined) {
+                newQueue.position = position;
+                if (position === 0) newQueue.status = SongStatus.PLAYING;
+            }
             
 
             const editQueue = manager.create(QueueEntity, newQueue);
@@ -236,6 +324,24 @@ export class QueueService {
 
             const savedQueue = await manager.save(QueueEntity, updatedQueueList);
 
+            this.queueSocketService.updateQueue(await manager.find(QueueEntity, {
+                where: [
+                    { status: SongStatus.PLAYING },
+                    { status: SongStatus.WAITING }
+                ],
+                order: { position: 'ASC' },
+                relations: { table: true, song: true }
+            })
+            );
+
+            if (editQueue.status === SongStatus.FINISHED) {
+                const intermissions = this.intermissionService.processSongFinished()
+
+                console.log(intermissions)
+
+                if (intermissions.length > 0) this.queueSocketService.updateIntermission(intermissions)
+            }
+            
             return {
                 message: 'Canción editada de la lista',
                 position: editQueue.position,

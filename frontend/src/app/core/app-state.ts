@@ -46,6 +46,7 @@ export class AppState {
       mesa,
       tipo: video.tipo,
       videoId: video.id,
+      miniatura: video.miniatura || (video.id ? `https://i.ytimg.com/vi/${video.id}/mqdefault.jpg` : undefined),
     };
     if (!this.sonando()) {
       this.sonando.set(nueva);

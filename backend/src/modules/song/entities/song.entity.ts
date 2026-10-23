@@ -1,11 +1,10 @@
-import { Exclude } from "class-transformer";
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-import { QueueEntity } from "../../queue/entities/queue.entity.js";
-import { ApiHideProperty, ApiProperty } from "@nestjs/swagger";
+import { ApiProperty } from "@nestjs/swagger";
+import { Column, Entity, OneToMany } from "typeorm";
 import { DESCRIPTION, EXAMPLE } from "../../../common/constants/dto.constants.js";
 import { BaseEntity } from "../../../common/entities/base.entity.js";
+import { QueueEntity } from "../../queue/entities/queue.entity.js";
 
-enum SongType {
+export enum SongType {
     SINGLE = 'SINGLE',
     KARAOKE = 'KARAOKE'
 }
@@ -22,9 +21,9 @@ export class SongEntity extends BaseEntity {
     @Column({ type: 'varchar' })
     title: string;
 
-    @ApiProperty({ description: DESCRIPTION.DESCRIPTION, example: EXAMPLE.DESCRIPTION })
-    @Column({ type: 'text' })
-    description: string;
+    @ApiProperty({ description: DESCRIPTION.DESCRIPTION, example: EXAMPLE.DESCRIPTION, required: false })
+    @Column({ type: 'text', nullable: true })
+    description?: string | null;
 
     @ApiProperty({ description: DESCRIPTION.TYPE, example: EXAMPLE.TYPE })
     @Column({ type: 'enum', enum: SongType, default: SongType.SINGLE })
@@ -59,7 +58,7 @@ export class SongEntity extends BaseEntity {
     author: string;
 
     @ApiProperty({ description: DESCRIPTION.COUNT, example: EXAMPLE.COUNT })
-    @Column({ type: 'int', default: 1 })
+    @Column({ type: 'int', default: 0 })
     count: number;
 
     /// Relations

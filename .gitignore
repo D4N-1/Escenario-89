@@ -44,8 +44,8 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 
-# Uploads
-**/uploads/*
+# uploads
+**/uploads
 
 # Keys
 **/config.ts

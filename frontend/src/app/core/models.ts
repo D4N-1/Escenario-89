@@ -10,6 +10,8 @@ export interface Cancion {
   mesa: number;                // 0 = no viene de una mesa (anuncio)
   tipo: TipoPista | 'anuncio';
   videoId?: string;            // para reproducirla en el iframe de YouTube
+  uuid?: string;               // identificador del elemento en la cola del backend
+  miniatura?: string;          // imagen de portada / miniatura de YouTube
 }
 
 /** Resultado de búsqueda de YouTube */
@@ -26,6 +28,8 @@ export interface Video {
   miniaturaSub: string;
   fondo?: string;
   inicialesCanal: string;
+  segundos?: number;           // duración en segundos (para guardarla en el backend)
+  vistasNumero?: number;       // vistas sin formatear (para guardarlas en el backend)
 }
 
 export interface Anuncio {

@@ -6,7 +6,6 @@ import { AuthErrorCode } from "../modules/auth/auth.constants";
 import { UserRole } from "../modules/user/user.constants";
 
 
-
 @Injectable()
 export default class AuthZGuard implements CanActivate {
 
@@ -27,8 +26,6 @@ export default class AuthZGuard implements CanActivate {
 
         const request = context.switchToHttp().getRequest()
         const user: UserRequest = request.user;
-
-        console.log(user)
 
         if (!user.role) throw new BadRequestException( AuthErrorCode.BAD_REQUEST('ANY', 'No tienes un rol asignado para validar tu permiso') )
 

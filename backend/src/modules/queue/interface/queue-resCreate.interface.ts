@@ -5,6 +5,6 @@ export interface QueueResCreateInterface extends ResCreateInterface {
 
     position: number|null;
     status: SongStatus|null;
-    fixed: boolean
+    fixed: boolean|null
     
 }

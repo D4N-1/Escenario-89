@@ -13,12 +13,18 @@ import { Anuncios } from './admin/anuncios/anuncios';
 import { Audios } from './admin/audios/audios';
 import { Pantalla } from './pantalla/pantalla';
 import { Vistas } from './vistas/vistas';
+import { adminGuard } from './core/admin.guard';
+import { mesaGuard } from './core/mesa.guard';
+import { Mesa } from './client/mesa/mesa';
 
 export const routes: Routes = [
 
-  { path: '', component: Home },
-  { path: 'buscar', component: Results },
-  { path: 'agregado', component: Added },
+  // Cliente: entra escaneando el QR de su mesa (dominio/mesa/CODIGO)
+  { path: 'mesa/:codigo', component: Mesa },
+  { path: 'sin-mesa', component: Mesa },
+  { path: '', component: Home, canActivate: [mesaGuard] },
+  { path: 'buscar', component: Results, canActivate: [mesaGuard] },
+  { path: 'agregado', component: Added, canActivate: [mesaGuard] },
   { path: 'confirmar', component: ConfirmDialog },
 
   { path: 'pantalla', component: Pantalla },
@@ -28,6 +34,7 @@ export const routes: Routes = [
   {
     path: 'admin',
     component: Layout,
+    canActivate: [adminGuard],
     children: [
       { path: '', component: Panel },
       { path: 'cerrando', component: PanelCerrando },

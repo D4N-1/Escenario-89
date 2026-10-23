@@ -26,7 +26,11 @@ export const EXAMPLE = {
     PASSWORD: 'juan_password',
     MESSAGE: 'Exito',
     ROLE: UserRole,
-    ACCESS_TOKEN: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb2RlIjoiVkZSUVowIiwibnVtYmVyIjoxLCJpYXQiOjE3OTI0MzIxMDUsImV4cCI6MTc5MjQ0NjUwNX0.kxCWXJcbE0VRyIhh5cIF4z6IuFKCK4oCs1gEc5ACIGE'
+    ACCESS_TOKEN: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb2RlIjoiVkZ' +
+        'SUVowIiwibnVtYmVyIjoxLCJpYXQiOjE3OTI0MzIxMDUsImV4cCI6MTc5M' +
+        'jQ0NjUwNX0.kxCWXJcbE0VRyIhh5cIF4z6IuFKCK4oCs1gEc5ACIGE',
+    HOUR: 'HH:mm',
+    ACTIVE: true
 
 }
 
@@ -57,6 +61,8 @@ export const DESCRIPTION = {
     MESSAGE: 'Mensaje',
     DATA: 'Entidad de respuesta',
     ACCESS_TOKEN: 'Token de acceso',
-    ROLE: 'El rol asignado'
+    ROLE: 'El rol asignado',
+    HOUR: 'Hora',
+    ACTIVE: 'Si es activo'
 
 }

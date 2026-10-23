@@ -1,13 +1,18 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { Icon } from '../../shared/icon/icon';
 import { QueuePanel } from '../../shared/queue-panel/queue-panel';
 import { AppState } from '../../core/app-state';
+import { PlayerService } from '../../core/player.service';
+import { QueueService } from '../../core/queue.service';
+import { YtPlayer } from '../../shared/yt-player/yt-player';
 
-@Component({ selector: 'app-layout', imports: [RouterOutlet, RouterLink, Icon, QueuePanel], templateUrl: './layout.html', styleUrl: './layout.css' })
-export class Layout {
+@Component({ selector: 'app-layout', imports: [RouterOutlet, RouterLink, Icon, QueuePanel, YtPlayer], templateUrl: './layout.html', styleUrl: './layout.css' })
+export class Layout implements OnInit, OnDestroy {
   router = inject(Router);
   state = inject(AppState);
+  player = inject(PlayerService);
+  queue = inject(QueueService);
 
   currentState: 'abierto' | 'cerrando' | 'cerrado' = 'abierto';
   estadoMenuOpen = false;
@@ -15,6 +20,16 @@ export class Layout {
   selectedHour = '3:00 am';
   hourMenuOpen = false;
   hoursList = ['12:00 am', '1:00 am', '2:00 am', '3:00 am', '4:00 am', '5:00 am', '6:00 am'];
+
+  ngOnInit() {
+    // La cola vive en el backend: se consulta cada pocos segundos mientras el admin está abierto
+    this.queue.iniciarPolling();
+  }
+
+  ngOnDestroy() {
+    this.queue.detenerPolling();
+    this.player.destruir();
+  }
 
   get path() { return this.router.url.split('?')[0]; }
   get isPanel() { return this.path === '/admin' || this.path === '/admin/cerrando' || this.path === '/admin/cerrado'; }
@@ -65,5 +80,13 @@ export class Layout {
   selectHour(hour: string) {
     this.selectedHour = hour;
     this.hourMenuOpen = false;
+  }
+
+  onSeek(event: MouseEvent) {
+    const el = event.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const pct = Math.max(0, Math.min(100, (clickX / rect.width) * 100));
+    this.player.seekPorcentaje(pct);
   }
 }

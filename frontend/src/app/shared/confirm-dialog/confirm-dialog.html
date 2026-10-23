@@ -4,9 +4,12 @@
     <h3 id="dlg-titulo">{{ video()?.titulo ?? 'Canción' }}</h3>
     <p class="autor">{{ video()?.canal ?? 'Autor' }}</p>
     <p class="ask">¿Pedir canción?</p>
+    @if (error()) {
+      <p role="alert" style="color: var(--c-red-light); font-size: 13px; margin: 0 0 12px;">{{ error() }}</p>
+    }
     <div class="actions">
-      <button type="button" class="no" (click)="cerrar.emit()" aria-label="Cancelar"><app-icon name="close" /></button>
-      <button type="button" class="yes" (click)="confirmar()" aria-label="Pedir canción"><app-icon name="check" /></button>
+      <button type="button" class="no" (click)="cerrar.emit()" [disabled]="enviando()" aria-label="Cancelar"><app-icon name="close" /></button>
+      <button type="button" class="yes" (click)="confirmar()" [disabled]="enviando()" aria-label="Pedir canción"><app-icon name="check" /></button>
     </div>
   </div>
 </div>

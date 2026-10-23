@@ -4,6 +4,13 @@
     "./frontend",
     "./backend"
   ],
+  "scripts": {
+    "dev": "npm run dev -w frontend",
+    "dev:frontend": "npm run dev -w frontend",
+    "dev:backend": "npm run start:dev -w backend",
+    "start:frontend": "npm run start -w frontend",
+    "start:backend": "npm run start:dev -w backend"
+  },
   "prettier": {
     "printWidth": 100,
     "singleQuote": true,
@@ -21,9 +28,7 @@
     "url": "https://github.com/D4N-1/Escenario-89"
   },
   "devDependencies": {
+    "artillery": "^2.0.34",
     "supertest": "^7.3.1"
-  },
-  "dependencies": {
-    "joi": "^18.3.0"
   }
 }

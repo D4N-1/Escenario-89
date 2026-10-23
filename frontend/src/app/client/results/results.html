@@ -3,16 +3,22 @@
 
   <div class="buscar">
     <div class="pill-input">
-      <input [value]="state.busqueda()" enterkeyhint="search" autocomplete="off">
-      <button type="button" class="pill-btn" aria-label="Buscar por voz"><app-icon name="mic" /></button>
+      <input #q [value]="state.busqueda()" enterkeyhint="search" autocomplete="off" (keydown.enter)="buscar(q.value)">
+      <button type="button" class="pill-btn" aria-label="Buscar" (click)="buscar(q.value)"><app-icon name="search" /></button>
     </div>
   </div>
 
   <section class="lista">
-    @for (v of state.resultados(); track v.id) {
-      <app-video-card [video]="v" (click)="seleccion.set(v)" />
-    } @empty {
-      <p class="vacio">No encontramos canciones con ese nombre. Prueba con el título y el artista.</p>
+    @if (cargando()) {
+      <p class="vacio">Buscando canciones…</p>
+    } @else if (error()) {
+      <p class="vacio">{{ error() }}</p>
+    } @else {
+      @for (v of resultados(); track v.id) {
+        <app-video-card [video]="v" (click)="seleccion.set(v)" />
+      } @empty {
+        <p class="vacio">No encontramos canciones con ese nombre. Prueba con el título y el artista.</p>
+      }
     }
   </section>
 </main>

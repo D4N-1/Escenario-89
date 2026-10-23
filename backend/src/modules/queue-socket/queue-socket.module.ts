@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
-import { QueueSocketService } from './queue-socket.service';
+import { AuthModule } from '../auth/auth.module';
 import { QueueSocketGateway } from './queue-socket.gateway';
+import { QueueSocketService } from './queue-socket.service';
 
 @Module({
-  providers: [QueueSocketGateway, QueueSocketService],
+  imports: [ AuthModule ],
+  providers: [ QueueSocketGateway, QueueSocketService ],
+  exports: [ QueueSocketService ]
 })
 export class QueueSocketModule {}

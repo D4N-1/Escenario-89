@@ -82,6 +82,7 @@ export class SongService {
         if (song) throw new ConflictException( SongErrorCode.CONFLICT('Ya existe este id de canción') )
 
         newData.id = id;
+        newData.description = createSongDto.description ?? null;
 
         const newSong = this.songRepository.create(newData)
 
@@ -90,7 +91,6 @@ export class SongService {
             data: await this.songRepository.save(newSong)
         }
     }
-
 
     async update(updateSongDto: UpdateSongDto): Promise<ResUpdateInterface> {
         
@@ -114,6 +114,21 @@ export class SongService {
             data: await this.songRepository.save(editSong)
         }
 
+    }
+
+    async insertBulk(songs: CreateSongDto[]) {
+        if (!songs || songs.length === 0) return;
+
+        try {
+            const songEntities = this.songRepository.create(songs);
+
+            await this.songRepository.upsert(songEntities, {
+                conflictPaths: ['id'],
+                skipUpdateIfNoValuesChanged: true,
+            });
+        } catch (error: any) {
+            console.error('Error en insertBulk:', error.message);
+        }
     }
 
     async getMostCount(): Promise<ResCreateInterface> {

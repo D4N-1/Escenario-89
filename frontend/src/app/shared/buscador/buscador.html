@@ -11,9 +11,6 @@
       <button type="button" title="Cerrar" (click)="cerrar()"><app-icon name="close" [size]="16" /></button>
     </div>
 
-    @if (!yt.usaApiReal) {
-      <p class="aviso">Modo demostración: resultados de prueba (falta la API key de YouTube).</p>
-    }
 
     @if (cargando()) {
       <p class="msg">Buscando…</p>

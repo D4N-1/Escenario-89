@@ -48,7 +48,7 @@ export class CreateSongDto {
     @IsString()
     author: string;
 
-    @ApiProperty({ description: DESCRIPTION.COUNT, example: EXAMPLE.COUNT })
+    @ApiProperty({ description: DESCRIPTION.COUNT, example: EXAMPLE.COUNT, default: 0 })
     @IsNumber()
     @IsOptional()
     count?: number;

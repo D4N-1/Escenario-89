@@ -3,6 +3,7 @@ import { Icon } from '../icon/icon';
 import { AppState } from '../../core/app-state';
 import { YoutubeService } from '../../core/youtube.service';
 import { Video } from '../../core/models';
+import { QueueService } from '../../core/queue.service';
 
 /** Buscador de canciones estilo YouTube (lista de varios resultados) */
 @Component({
@@ -14,6 +15,7 @@ import { Video } from '../../core/models';
 export class Buscador {
   state = inject(AppState);
   yt = inject(YoutubeService);
+  queue = inject(QueueService);
 
   consulta = signal('');
   ultima = signal('');
@@ -41,10 +43,16 @@ export class Buscador {
     }
   }
 
-  agregar(v: Video) {
-    this.state.agregarACola(v); // desde el admin: mesa 0
-    this.cerrar();
-    this.consulta.set('');
+  /** El admin agrega la canción a la cola del backend */
+  async agregar(v: Video) {
+    try {
+      await this.queue.agregar(v, 'admin');
+      this.cerrar();
+      this.consulta.set('');
+    } catch (e) {
+      this.resultados.set([]);
+      this.error.set(e instanceof Error ? e.message : 'No se pudo agregar la canción.');
+    }
   }
 
   @HostListener('document:keydown.escape')

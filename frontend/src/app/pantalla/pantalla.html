@@ -1,4 +1,45 @@
 <div class="tv">
-  <div class="corner"><img src="logo.png" alt=""><span class="brand">Escenario 89</span></div>
-  <!-- Aquí irá el reproductor de video a pantalla completa -->
+  <div id="tv-player-container" class="tv-player">
+    <div id="tv-yt-player"></div>
+  </div>
+
+  <div class="corner">
+    <img src="logo.png" alt="Escenario 89">
+    <span class="brand">Escenario 89</span>
+  </div>
+
+  @if (!state.sonando()) {
+    <div class="tv-ambient">
+      <div class="tv-ambient-content">
+        <h1>Escenario 89</h1>
+        <p>Tu música, tu noche, tu escenario</p>
+        <div class="qr-notice">
+          <span>Escanea el código QR de tu mesa para pedir tu canción</span>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="tv-bottom-bar">
+      <div class="tv-song-info">
+        <span class="tv-tag" [class.karaoke]="state.sonando()?.tipo === 'karaoke'">
+          {{ state.sonando()?.tipo === 'karaoke' ? 'KARAOKE' : 'EN VIVO' }}
+        </span>
+        <b class="tv-title">{{ state.sonando()?.titulo }}</b>
+        <span class="tv-artist">{{ state.sonando()?.artista }}</span>
+        @if (state.sonando()?.mesa; as m) {
+          @if (m > 0) {
+            <span class="tv-mesa">Mesa #{{ m }}</span>
+          }
+        }
+      </div>
+
+      @if (state.cola().length > 0) {
+        <div class="tv-next-info">
+          <small>Siguiente canción:</small>
+          <span>{{ state.cola()[0].titulo }} @if (state.cola()[0].mesa > 0) { (Mesa #{{ state.cola()[0].mesa }}) }</span>
+        </div>
+      }
+    </div>
+  }
 </div>
+
