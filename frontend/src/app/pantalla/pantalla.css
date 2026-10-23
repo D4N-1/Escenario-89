@@ -1,96 +1,75 @@
-.tv { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #000; display: flex; flex-direction: column; }
-.tv-player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-.tv-player ::ng-deep iframe { width: 100%; height: 100%; border: 0; display: block; }
-.corner { position: absolute; top: 24px; left: 28px; z-index: 10; display: flex; align-items: center; gap: 12px; background: rgba(10, 10, 14, 0.7); backdrop-filter: blur(12px); padding: 8px 18px; border-radius: 999px; border: 1px solid rgba(212, 170, 67, 0.35); box-shadow: 0 4px 24px rgba(0,0,0,0.7); }
-.corner img { width: 34px; height: 34px; object-fit: contain; }
-.corner .brand { color: var(--c-gold); font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
-
-/* Autoplay Overlay */
-.autoplay-overlay {
-  position: absolute;
-  top: 24px;
-  right: 28px;
-  z-index: 100;
-  cursor: pointer;
-  animation: pulseIn 0.3s ease-out;
+:host {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: #000;
+  overflow: hidden;
 }
 
-@keyframes pulseIn {
-  from { opacity: 0; transform: translateY(-10px) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.autoplay-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: rgba(20, 18, 14, 0.92);
-  backdrop-filter: blur(16px);
-  padding: 10px 18px;
-  border-radius: 999px;
-  border: 1px solid var(--c-gold);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), 0 0 20px rgba(212, 170, 67, 0.3);
-  transition: transform 0.2s, background 0.2s;
-}
-
-.autoplay-card:hover {
-  transform: scale(1.02);
-  background: rgba(30, 26, 18, 0.98);
-}
-
-.autoplay-icon {
-  color: var(--c-gold);
+.tv {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: none;
+  user-select: none;
 }
 
-.autoplay-info {
-  display: flex;
-  flex-direction: column;
+/* El contenedor principal de la TV recorta estrictamente cualquier elemento perimetral */
+.tv-player {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+  z-index: 1;
+  pointer-events: none;
 }
 
-.autoplay-info b {
-  color: #fff;
-  font-size: 13px;
-  letter-spacing: 0.3px;
+/*
+  Escalado y recorte del iframe de YouTube (scale 1.18 centrado):
+  - Recorta el encabezado superior: oculta avatar, título del video, canal, botón compartir y ver más tarde.
+  - Recorta la barra inferior: oculta logo de YouTube, "Más videos" y botón de compartir.
+  - Deja el video completamente limpio de branding y títulos en pantalla completa.
+*/
+.tv-player ::ng-deep iframe,
+.tv-player ::ng-deep #tv-yt-player {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100vw;
+  height: 100vh;
+  transform: translate(-50%, -50%) scale(1.18);
+  transform-origin: center center;
+  border: 0;
+  display: block;
+  pointer-events: none;
 }
 
-.autoplay-info p {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 11px;
-  margin: 0;
+.tv-player.oculto {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
-.autoplay-btn {
-  background: linear-gradient(135deg, #d4aa43, #a67c1e);
-  color: #000;
-  border: none;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 8px 16px;
-  border-radius: 999px;
-  cursor: pointer;
-  margin-left: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: opacity 0.15s;
+/* Escudo protector invisible que absorbe cualquier evento de ratón e impide la interfaz de YouTube */
+.tv-shield {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 10;
+  background: transparent;
+  cursor: none;
 }
 
-.autoplay-btn:hover {
-  opacity: 0.9;
-}
 
-.tv-ambient { position: absolute; inset: 0; z-index: 2; background: radial-gradient(circle at 50% 40%, #2b1f13 0%, #16131c 50%, #0a0a0c 100%); display: flex; align-items: center; justify-content: center; text-align: center; }
-.tv-ambient-content h1 { font-size: 64px; font-weight: 900; color: var(--c-gold); margin: 0 0 12px 0; letter-spacing: 2px; text-shadow: 0 0 40px rgba(212, 170, 67, 0.4); }
-.tv-ambient-content p { font-size: 24px; color: rgba(255, 255, 255, 0.8); margin: 0 0 32px 0; }
-.qr-notice { display: inline-block; background: rgba(212, 170, 67, 0.15); border: 1px solid var(--c-gold-border); padding: 14px 28px; border-radius: 999px; color: #fff; font-size: 18px; font-weight: 600; box-shadow: 0 0 30px rgba(212, 170, 67, 0.2); }
-.tv-bottom-bar { position: absolute; bottom: 28px; left: 28px; right: 28px; z-index: 10; display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; }
-.tv-song-info { background: rgba(10, 10, 14, 0.8); backdrop-filter: blur(16px); padding: 14px 24px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.12); display: flex; align-items: center; gap: 16px; box-shadow: 0 8px 36px rgba(0,0,0,0.7); }
-.tv-tag { font-size: 11px; font-weight: 800; letter-spacing: 1px; padding: 4px 10px; border-radius: 6px; background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); }
-.tv-tag.karaoke { background: rgba(239, 68, 68, 0.25); color: #f87171; border-color: rgba(248, 113, 113, 0.35); }
-.tv-title { font-size: 20px; color: #fff; }
-.tv-artist { font-size: 16px; color: rgba(255, 255, 255, 0.7); }
-.tv-mesa { background: rgba(242, 206, 100, 0.15); color: var(--c-gold); border: 1px solid var(--c-gold-border); font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 6px; }
-.tv-next-info { background: rgba(10, 10, 14, 0.8); backdrop-filter: blur(16px); padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.12); display: flex; flex-direction: column; text-align: right; gap: 4px; box-shadow: 0 8px 36px rgba(0,0,0,0.7); }
-.tv-next-info small { color: var(--c-gold); font-size: 11px; font-weight: 700; text-transform: uppercase; }
-.tv-next-info span { color: #fff; font-size: 14px; font-weight: 500; }
+
+
