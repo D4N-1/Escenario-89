@@ -1,9 +1,10 @@
-import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
-import { SongEntity } from "../../song/entities/song.entity.js";
-import { TableEntity } from "../../table/entities/table.entity.js";
 import { ApiProperty } from "@nestjs/swagger";
+import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 import { DESCRIPTION, EXAMPLE } from "../../../common/constants/dto.constants.js";
 import { BaseEntity } from "../../../common/entities/base.entity.js";
+import { SongEntity } from "../../song/entities/song.entity.js";
+import { TableEntity } from "../../table/entities/table.entity.js";
+import { UserEntity } from "../../user/entities/user.entity.js";
 
 
 export enum SongStatus {
@@ -13,12 +14,7 @@ export enum SongStatus {
     CANCELLED = 'CANCELLED'
 }
 
-export enum UpdateSongStatus {
-    FINISHED = 'FINISHED',
-    CANCELLED = 'CANCELLED'
-}
-
-export const QueueRelations = [ 'song', 'table' ]
+export const QueueRelations = [ 'song', 'table', 'user' ]
 @Entity('queue')
 export class QueueEntity extends BaseEntity {
 
@@ -39,16 +35,10 @@ export class QueueEntity extends BaseEntity {
     @Column({ type: 'boolean', default: false })
     fixed: boolean;
 
-    @ApiProperty({ description: 'Entidad cancion', type: () => SongEntity })
-    @ManyToOne( () => SongEntity, (song) => song.queues, {
-        onUpdate: 'CASCADE'
-    })
-    @JoinColumn({ name: 'song' })
-    song: SongEntity;
-
     @ApiProperty({ description: DESCRIPTION.STATUS, example: EXAMPLE.STATUS })
     @Column({ type: 'enum', enum: SongStatus, default: SongStatus.WAITING })
     status: SongStatus
+
 
     @ApiProperty({ description: 'Entidad mesa', type: () => TableEntity })
     @ManyToOne( () => TableEntity, (table) => table.queues, {
@@ -56,7 +46,22 @@ export class QueueEntity extends BaseEntity {
         nullable: true
     })
     @JoinColumn({ name: 'table' })
-    table?: TableEntity;
+    table?: TableEntity|null;
+
+    @ApiProperty({ description: 'Entidad usuario', type: () => UserEntity })
+    @ManyToOne( () => UserEntity, (user) => user.queues, {
+        onUpdate: 'CASCADE',
+        nullable: true
+    })
+    @JoinColumn({ name: 'user' })
+    user?: UserEntity|null;
+
+    @ApiProperty({ description: 'Entidad cancion', type: () => SongEntity })
+    @ManyToOne( () => SongEntity, (song) => song.queues, {
+        onUpdate: 'CASCADE'
+    })
+    @JoinColumn({ name: 'song' })
+    song: SongEntity;
 
     
 }

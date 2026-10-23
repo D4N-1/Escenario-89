@@ -1,12 +1,12 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
-import { UserService } from "../../user/user.service";
-import { TableService } from "../../table/table.service";
-import { ExtractJwt, Strategy } from "passport-jwt"
 import { Request } from "express";
-import { AnyRequest } from "../../../common/types/payload.type";
+import { ExtractJwt, Strategy } from "passport-jwt";
 import { TypeRequest } from "../../../common/enums/typeRequest.enum";
+import { AnyRequest } from "../../../common/types/payload.type";
+import { TableService } from "../../table/table.service";
+import { UserService } from "../../user/user.service";
 import { AuthErrorCode } from "../auth.constants";
 
 
@@ -38,7 +38,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     async validate(payload: AnyRequest) {
         
-        console.log(`strategy`)
         
         switch(payload.type) {
 

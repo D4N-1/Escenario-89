@@ -1,10 +1,9 @@
-import { ApiProperty } from "@nestjs/swagger"
-import { AuthResCreateInterface } from "../interfaces/auth-resCreate.interface"
-import { DESCRIPTION, EXAMPLE } from "../../../common/constants/dto.constants"
-import { UserEntity } from "../../user/entities/user.entity";
-import { TableRequest, UserRequest } from "../../../common/interfaces/payload.interface";
-import { UserRole } from "../../user/user.constants";
+import { ApiProperty } from "@nestjs/swagger";
+import { DESCRIPTION, EXAMPLE } from "../../../common/constants/dto.constants";
 import { TypeRequest } from "../../../common/enums/typeRequest.enum";
+import { TableRequest } from "../../../common/interfaces/payload.interface";
+import { UserEntity } from "../../user/entities/user.entity";
+import { AuthResCreateInterface } from "../interfaces/auth-resCreate.interface";
 
 export class AuthResCreate implements AuthResCreateInterface {
 

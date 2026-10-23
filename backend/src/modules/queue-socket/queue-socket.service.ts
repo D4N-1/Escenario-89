@@ -4,8 +4,12 @@ import { Server, Socket } from 'socket.io';
 import type { TableRequest, UserRequest } from '../../common/interfaces/payload.interface';
 import { AnyRequest } from '../../common/types/payload.type';
 import { AuthService } from '../auth/auth.service';
+import { IntermissionEntity } from '../intermission/entities/intermission.entity';
 import { QueueEntity } from '../queue/entities/queue.entity';
 import { UserRole } from '../user/user.constants';
+import { Events } from './enums/event.enum';
+import { Rooms } from './enums/room.enum';
+import { Intermission } from './interfaces/intermission.interface';
 
 @Injectable()
 export class QueueSocketService {
@@ -79,7 +83,7 @@ export class QueueSocketService {
 
     this.setQueue(Queue);
 
-    this.server.to(`user:${UserRole.ADMIN}`).emit('queue.update', Queue);
+    this.server.to(Rooms.USER_ROLE + UserRole.ADMIN).emit(Events.QUEUE, Queue);
 
     const rooms = this.server.sockets.adapter.rooms;
 
@@ -91,7 +95,7 @@ export class QueueSocketService {
 
         const queueTable = Queue.filter(q => q?.table?.code === tableCode);
 
-        this.server.to(roomName).emit('queue.update', queueTable);
+        this.server.to(roomName).emit(Events.QUEUE, queueTable);
 
       }
     }
@@ -107,6 +111,12 @@ export class QueueSocketService {
 
   async getQueue(): Promise<QueueEntity[]> {
     return this.queue
+  }
+
+  async updateIntermission(Intermissions: IntermissionEntity[]) {
+
+    this.server.to(Rooms.USER_ROLE + UserRole.ADMIN).emit('intermission', { message: 'Nueva pausa publicitaria', data: Intermissions } as Intermission);
+
   }
 
 
