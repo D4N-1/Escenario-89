@@ -32,8 +32,4 @@ export const AUDIOS: AudioItem[] = [
   { id: 3, titulo: 'Tu canción, tu escenario', detalle: 'Mensaje · Pide desde tu mesa', duracion: '3 s', sonando: false },
 ];
 
-export const VIDEOS: Video[] = [
-  { id: 'v1', titulo: 'Willie Colon - El Gran Varon (Versión Karaoke)', canal: 'PARTY TYME KARAOKE EN ESPAÑOL', vistas: '636 k', antiguedad: 'hace 1 a', duracion: '3:42', tipo: 'karaoke', miniaturaTitulo: 'EL GRAN VARON', miniaturaSub: 'Willie Colon', inicialesCanal: 'CR' },
-  { id: 'v2', titulo: 'Karaokanta - Willie Colón - El gran varón', canal: 'Estudio Norte', vistas: '5.1 M', antiguedad: 'hace 13 a', duracion: '4:51', tipo: 'karaoke', miniaturaTitulo: 'EL GRÁN VARÓN', miniaturaSub: 'Willie Colón', fondo: 'linear-gradient(#c8641a,#e8a020)', inicialesCanal: 'EN' },
-  { id: 'v3', titulo: 'Hotline Bling - Billie Eilish (Español/Inglés)', canal: 'Cover Latino', vistas: '1.2 M', antiguedad: 'hace 2 a', duracion: '3:10', tipo: 'sencillo', miniaturaTitulo: 'HOTLINE BLING', miniaturaSub: 'Billie Eilish', fondo: 'linear-gradient(#444,#222)', inicialesCanal: 'CL' },
-];
+export const VIDEOS: Video[] = [];

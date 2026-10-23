@@ -24,13 +24,11 @@ export class AppState {
 
   // ---- Cliente (móvil) ----
   mesa = signal(0);                                   // viene del QR: /?mesa=5
-  busqueda = signal('El gran varon');
-  resultados = signal<Video[]>(VIDEOS.slice(0, 2));   // se reemplaza con la búsqueda de YouTube
-  populares = signal<Video[]>(VIDEOS);
-  misCanciones = signal<MiCancion[]>(
-    USAR_MOCK ? [{ video: VIDEOS[0], posicion: 1 }, { video: VIDEOS[2], posicion: 5 }] : [],
-  );
-  cancionSeleccionada = signal<Video>(VIDEOS[0]);
+  busqueda = signal('');
+  resultados = signal<Video[]>([]);                   // se llena con la búsqueda de YouTube
+  populares = signal<Video[]>([]);
+  misCanciones = signal<MiCancion[]>([]);
+  cancionSeleccionada = signal<Video | null>(null);
   posicionEnCola = signal(1);
 
   /**

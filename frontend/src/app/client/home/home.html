@@ -1,37 +1,100 @@
 <main class="screen">
   <app-client-header></app-client-header>
 
-  <div class="buscar">
+  <!-- 1. Buscador siempre visible arriba -->
+  <section class="buscar-section">
     <div class="pill-input">
-      <input #q placeholder="Busca tu canción favorita" enterkeyhint="search" autocomplete="off" (keydown.enter)="irABuscar(q.value)">
+      <input #q placeholder="Busca canción, artista o karaoke..." enterkeyhint="search" autocomplete="off" (keydown.enter)="irABuscar(q.value)">
+      @if (q.value) {
+        <button type="button" class="clear-btn" (click)="q.value = ''" aria-label="Limpiar"><app-icon name="close" [size]="16" /></button>
+      }
       <button type="button" class="pill-btn" aria-label="Buscar" (click)="irABuscar(q.value)"><app-icon name="search" /></button>
     </div>
-    <a class="voz" routerLink="/buscar">
-      <span class="mic"><app-icon name="mic" [size]="22" /></span>
-      <span>Toca para buscar por voz</span>
-    </a>
-  </div>
 
-  <h2>Mis canciones</h2>
-  @if (state.misCanciones().length) {
-    <div class="hscroll">
-      @for (m of state.misCanciones(); track $index) {
-        <div class="mini"><app-video-card [video]="m.video" [compact]="true" [posicion]="m.posicion" (click)="seleccion.set(m.video)" /></div>
-      }
-    </div>
-  } @else {
-    <p class="vacio">Todavía no has pedido canciones. Busca la primera.</p>
+    <button type="button" class="voz-btn" [class.escuchando]="escuchandoVoz()" (click)="buscarPorVoz()">
+      <span class="mic-circle"><app-icon name="mic" [size]="18" /></span>
+      <span>{{ escuchandoVoz() ? 'Escuchando... di el nombre de la canción' : 'Toca para pedir por voz' }}</span>
+    </button>
+  </section>
+
+  <!-- 2. Tarjeta EN VIVO en la mitad (muestra solo qué canción se está reproduciendo, sin indicar la mesa) -->
+  @if (state.sonando(); as ahora) {
+    <section class="en-vivo-card" aria-label="Canción sonando ahora">
+      <div class="en-vivo-head">
+        <span class="live-pill">
+          <span class="live-pulse"></span>
+          EN VIVO
+        </span>
+        <span class="live-label">Sonando en el local</span>
+      </div>
+      <div class="en-vivo-body">
+        <div class="en-vivo-cover">
+          @if (ahora.miniatura) {
+            <img [src]="ahora.miniatura" [alt]="ahora.titulo" loading="lazy">
+          } @else {
+            <app-icon name="music" [size]="22" />
+          }
+        </div>
+        <div class="en-vivo-info">
+          <b class="en-vivo-title">{{ ahora.titulo }}</b>
+          <span class="en-vivo-artist">{{ ahora.artista }}</span>
+        </div>
+        <div class="sound-wave" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </section>
   }
 
-  <h2>Canciones más buscadas</h2>
-  <p class="sub">Los sencillos más amados de los clientes</p>
-  <section class="lista">
-    @for (v of state.populares(); track v.id) {
-      <app-video-card [video]="v" (click)="seleccion.set(v)" />
+  <!-- 3. Mis canciones (Cola de la mesa) -->
+  <section class="mis-canciones-section">
+    <div class="seccion-head">
+      <h3 class="seccion-titulo">Mis canciones pedidas</h3>
+      @if (state.misCanciones().length) {
+        <span class="count-badge">{{ state.misCanciones().length }}</span>
+      }
+    </div>
+
+    @if (state.misCanciones().length) {
+      <div class="hscroll">
+        @for (m of state.misCanciones(); track $index) {
+          <div class="mini">
+            <app-video-card [video]="m.video" [compact]="true" [posicion]="m.posicion" (click)="seleccion.set(m.video)" />
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="vacio-card">
+        <div class="vacio-icon">
+          <app-icon name="music" [size]="28" />
+        </div>
+        <h4>Tu mesa aún no ha pedido canciones</h4>
+        <p>Busca arriba un tema o karaoke y sé el próximo en sonar.</p>
+        <button type="button" class="btn-gold vacio-btn" (click)="irABuscar('karaoke')">
+          <app-icon name="sparkles" [size]="16" />
+          Pedir un karaoke
+        </button>
+      </div>
     }
   </section>
+
+  <!-- 4. Canciones más escuchadas en la base de datos (tabla song), sin mostrar qué mesa pidió -->
+  @if (state.populares().length) {
+    <section class="mas-escuchadas-section">
+      <div class="seccion-head">
+        <h3 class="seccion-titulo">Canciones más escuchadas</h3>
+        <span class="sub-badge">Del bar</span>
+      </div>
+      <div class="lista">
+        @for (v of state.populares(); track v.id) {
+          <app-video-card [video]="v" (click)="seleccion.set(v)" />
+        }
+      </div>
+    </section>
+  }
 </main>
+
 
 @if (seleccion(); as v) {
   <app-confirm-dialog [video]="v" (cerrar)="seleccion.set(null)" />
-}
+}

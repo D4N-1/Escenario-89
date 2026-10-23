@@ -3,16 +3,38 @@
 
   <section class="caja" aria-live="polite">
     @if (!codigo) {
+      <div class="qr-icon-card">
+        <app-icon name="qrcode" [size]="52" />
+      </div>
       <h2>Escanea el QR de tu mesa</h2>
-      <p>Para pedir canciones necesitas escanear el código QR que está en tu mesa con la cámara del celular.</p>
+      <p class="desc">Para pedir música o karaoke, necesitas escanear el código QR colocado en tu mesa.</p>
+
+      <div class="pasos-card">
+        <div class="paso-item">
+          <span class="paso-num">1</span>
+          <span>Apunta la cámara de tu celular al código QR de la mesa.</span>
+        </div>
+        <div class="paso-item">
+          <span class="paso-num">2</span>
+          <span>Abre el enlace que aparece en pantalla.</span>
+        </div>
+        <div class="paso-item">
+          <span class="paso-num">3</span>
+          <span>¡Busca y pide tus temas favoritos para animar el local!</span>
+        </div>
+      </div>
     } @else if (cargando()) {
-      <div class="spinner" aria-hidden="true"></div>
-      <h2>Entrando a tu mesa…</h2>
+      <div class="spinner-gold" aria-hidden="true"></div>
+      <h2>Conectando con tu mesa…</h2>
+      <p class="desc">Validando código y sincronizando la cola del bar.</p>
     } @else {
-      <h2>No pudimos entrar a tu mesa</h2>
-      <p role="alert">{{ error() }}</p>
+      <div class="qr-icon-card error-card">
+        <app-icon name="close" [size]="36" />
+      </div>
+      <h2>No pudimos conectar con tu mesa</h2>
+      <p role="alert" class="error-text">{{ error() }}</p>
       <button type="button" class="btn-gold" (click)="entrar()">Intentar de nuevo</button>
-      <p class="ayuda">Si sigue fallando, escanea otra vez el QR o avísale al mesero.</p>
+      <p class="ayuda">Si el problema continúa, escanea nuevamente el código QR o pídele ayuda al mesero.</p>
     }
   </section>
-</main>
+</main>

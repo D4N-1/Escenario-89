@@ -1,9 +1,11 @@
 import { Component, input } from '@angular/core';
 import { Video } from '../../core/models';
+import { Icon } from '../icon/icon';
 
 /** Tarjeta de video estilo YouTube. `compact` = versión pequeña para el carrusel "Mis canciones". */
 @Component({
   selector: 'app-video-card',
+  imports: [Icon],
   templateUrl: './video-card.html',
   styleUrl: './video-card.css',
 })

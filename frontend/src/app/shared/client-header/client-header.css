@@ -1,54 +1,126 @@
 :host {
     display: block;
-    margin: 0 -14px;
+    margin: 0 -16px;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    width: calc(100% + 32px);
+    box-sizing: border-box;
 }
 
 .head {
-    position: relative;
-    text-align: center;
-    padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
-    border-bottom: 2px solid var(--c-gold-border);
+    display: grid;
+    grid-template-columns: 74px 1fr auto;
+    align-items: center;
+    padding: calc(6px + env(safe-area-inset-top)) 14px 6px;
+    background: rgba(9, 9, 11, 0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(212, 170, 67, 0.28);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    min-height: 48px;
+    box-sizing: border-box;
 }
 
-.logo {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    object-fit: cover;
-    display: block;
-    margin: 0 auto;
-}
-
-h1 {
-    margin: 4px 0 0;
-    font-size: 22px;
-    font-weight: 400;
-    line-height: 1.1;
+.head-left {
+    display: flex;
+    align-items: center;
+    min-height: 36px;
 }
 
 .nav {
-    position: absolute;
-    left: 4px;
-    top: calc(6px + env(safe-area-inset-top));
     display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
-.nav a {
-    width: 44px;
-    height: 44px;
+.nav-btn {
+    width: 34px;
+    height: 34px;
     display: grid;
     place-items: center;
     color: var(--c-gold);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(212, 170, 67, 0.2);
+    transition: all 0.15s ease;
 }
 
-.mesa {
-    position: absolute;
-    right: 14px;
-    top: calc(16px + env(safe-area-inset-top));
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--c-gold);
-    border: 1px solid var(--c-gold-dark);
-    border-radius: 999px;
-    padding: 4px 10px;
+.nav-btn:active {
+    background: rgba(242, 206, 100, 0.15);
+    transform: scale(0.95);
 }
+
+.brand-box {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    border: 1.5px solid var(--c-gold-border);
+    box-shadow: 0 0 8px rgba(242, 206, 100, 0.25);
+    flex: none;
+}
+
+h1 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 10px rgba(242, 206, 100, 0.3);
+    white-space: nowrap;
+}
+
+.head-right {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.mesa-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--c-gold);
+    background: rgba(212, 170, 67, 0.12);
+    border: 1px solid var(--c-gold-border);
+    border-radius: 999px;
+    padding: 5px 10px;
+    box-shadow: 0 0 8px rgba(242, 206, 100, 0.15);
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.mesa-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--c-green-light);
+    box-shadow: 0 0 6px var(--c-green-light);
+    display: inline-block;
+    animation: pulse 2s infinite ease-in-out;
+}
+
+.mesa-badge.libre {
+    color: var(--c-text2);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 10px;
+    padding: 5px 8px;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}

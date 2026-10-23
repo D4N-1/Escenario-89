@@ -1,23 +1,57 @@
 <main class="screen">
   <app-client-header atras="/" />
 
-  <div class="buscar">
+  <div class="buscar-sticky">
     <div class="pill-input">
-      <input #q [value]="state.busqueda()" enterkeyhint="search" autocomplete="off" (keydown.enter)="buscar(q.value)">
+      <input #q [value]="state.busqueda()" placeholder="Busca canción, artista o karaoke..." enterkeyhint="search" autocomplete="off" (keydown.enter)="buscar(q.value)">
+      @if (q.value) {
+        <button type="button" class="clear-btn" (click)="q.value = ''; state.busqueda.set('')" aria-label="Limpiar"><app-icon name="close" [size]="16" /></button>
+      }
       <button type="button" class="pill-btn" aria-label="Buscar" (click)="buscar(q.value)"><app-icon name="search" /></button>
+    </div>
+
+    <div class="filtros-tabs">
+      <button type="button" class="tab-btn" [class.activo]="filtro() === 'todos'" (click)="setFiltro('todos')">
+        Todos los resultados
+      </button>
+      <button type="button" class="tab-btn" [class.activo]="filtro() === 'karaoke'" (click)="setFiltro('karaoke')">
+        🎤 Solo Karaoke
+      </button>
     </div>
   </div>
 
   <section class="lista">
     @if (cargando()) {
-      <p class="vacio">Buscando canciones…</p>
+      <div class="estado-mensaje">
+        <div class="spinner-gold" aria-hidden="true"></div>
+        <p style="color: var(--c-gold); font-weight: 600; margin: 0;">Buscando en YouTube…</p>
+      </div>
     } @else if (error()) {
-      <p class="vacio">{{ error() }}</p>
+      <div class="estado-mensaje">
+        <p style="color: var(--c-red-light); margin: 0 0 10px;">{{ error() }}</p>
+        <button type="button" class="btn-gold" (click)="buscar(state.busqueda())">Intentar de nuevo</button>
+      </div>
+    } @else if (!busquedaRealizada() && !resultados().length) {
+      <div class="estado-mensaje">
+        <app-icon name="search" [size]="36" style="color: var(--c-gold); opacity: 0.6;" />
+        <h3 style="margin: 6px 0 2px; font-size: 16px;">Escribe una canción o artista</h3>
+        <p style="color: var(--c-text2); font-size: 13px; margin: 0 0 14px; max-width: 280px; text-align: center;">Busca cualquier tema disponible en YouTube para agregarlo a la cola del bar.</p>
+        <div class="chips-scroll" style="width: 100%; justify-content: center;">
+          <button type="button" class="chip-btn" (click)="q.value = 'Salsa'; buscarRapido('Salsa')">💃 Salsa</button>
+          <button type="button" class="chip-btn" (click)="q.value = 'Karaoke'; buscarRapido('Karaoke')">🎤 Karaoke</button>
+          <button type="button" class="chip-btn" (click)="q.value = 'Rock en español'; buscarRapido('Rock en español')">🎸 Rock</button>
+          <button type="button" class="chip-btn" (click)="q.value = 'Bachata'; buscarRapido('Bachata')">🎺 Bachata</button>
+        </div>
+      </div>
     } @else {
-      @for (v of resultados(); track v.id) {
+      @for (v of resultadosFiltrados(); track v.id) {
         <app-video-card [video]="v" (click)="seleccion.set(v)" />
       } @empty {
-        <p class="vacio">No encontramos canciones con ese nombre. Prueba con el título y el artista.</p>
+        <div class="estado-mensaje">
+          <app-icon name="close" [size]="32" style="color: var(--c-subtext);" />
+          <h4 style="margin: 6px 0 2px; font-size: 15px;">No se encontraron canciones</h4>
+          <p style="color: var(--c-text2); font-size: 13px; margin: 0;">Intenta verificando el nombre del artista o buscando con otras palabras.</p>
+        </div>
       }
     }
   </section>
@@ -25,4 +59,4 @@
 
 @if (seleccion(); as v) {
   <app-confirm-dialog [video]="v" (cerrar)="seleccion.set(null)" />
-}
+}

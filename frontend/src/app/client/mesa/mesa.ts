@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ClientHeader } from '../../shared/client-header/client-header';
+import { Icon } from '../../shared/icon/icon';
 import { AppState } from '../../core/app-state';
 import { SessionService } from '../../core/session.service';
 
@@ -11,7 +12,7 @@ import { SessionService } from '../../core/session.service';
  */
 @Component({
     selector: 'app-mesa',
-    imports: [ClientHeader],
+    imports: [ClientHeader, Icon],
     templateUrl: './mesa.html',
     styleUrl: './mesa.css',
 })

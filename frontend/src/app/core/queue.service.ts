@@ -122,13 +122,25 @@ export class QueueService {
         try {
             const r = await this.api.pedir<{ data: ColaItem[] }>('mesa', 'GET', '/queue?include=song,table&limit=0');
             const mesa = this.state.mesa();
-            const mias = (r.data ?? [])
+            const items = r.data ?? [];
+            const mias = items
                 .filter(q => q.song && q.table?.number === mesa && (q.status === 'PLAYING' || q.status === 'WAITING'))
                 .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
                 .map((q): MiCancion => ({ video: this.aVideo(q), posicion: q.position ?? 0 }));
 
             const clave = (l: MiCancion[]) => l.map(m => `${m.video.id}:${m.posicion}`).join('|');
             if (clave(mias) !== clave(this.state.misCanciones())) this.state.misCanciones.set(mias);
+
+            // Sincronizar canción que suena actualmente en el local para la vista del cliente
+            const enCurso = items.find(q => q.song && q.status === 'PLAYING');
+            if (enCurso) {
+                const cancionActual = this.aCancion(enCurso);
+                if (this.state.sonando()?.uuid !== cancionActual.uuid) {
+                    this.state.sonando.set(cancionActual);
+                }
+            } else if (items.length > 0 && !items.some(q => q.status === 'PLAYING')) {
+                if (this.state.sonando() !== null) this.state.sonando.set(null);
+            }
         } catch {
             // Sin conexión por un momento: se conserva lo que ya se ve y se reintenta en el siguiente ciclo
         } finally {
@@ -205,7 +217,56 @@ export class QueueService {
         await this.refrescar();
     }
 
+    /**
+     * Trae las canciones de la tabla song (las más pedidas/escuchadas en la base de datos).
+     */
+    async cargarMasEscuchadas(): Promise<Video[]> {
+        try {
+            // 1. Intentar /song/popular (las más buscadas/pedidas por count DESC)
+            const r = await this.api.pedir<{ data: any[] }>('mesa', 'GET', '/song/popular');
+            let lista = r?.data ?? [];
+
+            // 2. Si viene vacío, consultar /song para obtener las canciones guardadas en el catálogo
+            if (!lista.length) {
+                const rAll = await this.api.pedir<{ data: any[] }>('mesa', 'GET', '/song?limit=15');
+                lista = rAll?.data ?? [];
+            }
+
+            const formateadas = lista.map(s => this.songEntityAVideo(s));
+            this.state.populares.set(formateadas);
+            return formateadas;
+        } catch {
+            return [];
+        }
+    }
+
+    private songEntityAVideo(s: any): Video {
+        const canal = (s.author ?? 'Artista').replace(/\s+and\s+\d+\s+more$/i, '').trim();
+        const views = Number(s.views) || 0;
+        let vistas = '';
+        if (views >= 1000000) vistas = (views / 1000000).toFixed(1).replace('.0', '') + ' M';
+        else if (views >= 1000) vistas = Math.round(views / 1000) + ' k';
+        else if (views > 0) vistas = String(views);
+
+        return {
+            id: s.id,
+            titulo: s.title,
+            canal,
+            vistas,
+            antiguedad: s.ago ?? '',
+            duracion: s.timestamp || '0:00',
+            tipo: (s.type === 'KARAOKE' || /karaoke/i.test(s.title)) ? 'karaoke' : 'sencillo',
+            miniatura: s.image || (s.id ? `https://i.ytimg.com/vi/${s.id}/mqdefault.jpg` : undefined),
+            miniaturaTitulo: '',
+            miniaturaSub: '',
+            inicialesCanal: canal.slice(0, 2).toUpperCase() || 'YT',
+            segundos: s.seconds,
+            vistasNumero: views,
+        };
+    }
+
     // --------------------------------------------------------------- internos
+
 
     private aCancion(q: ColaItem): Cancion {
         const s = q.song!;

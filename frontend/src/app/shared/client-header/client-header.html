@@ -1,13 +1,28 @@
 <header class="head">
-    @if (atras(); as ruta) {
-    <nav class="nav">
-        <a routerLink="/" aria-label="Inicio"><app-icon name="home" [size]="22" /></a>
-        <a [routerLink]="ruta" aria-label="Volver"><app-icon name="reply" [size]="22" /></a>
-    </nav>
-    }
-    <img src="logo.png" [alt]="state.nombreLocal()" class="logo">
-    <h1 class="brand">{{ state.nombreLocal() }}</h1>
-    @if (state.mesa() > 0) {
-    <span class="mesa">Mesa {{ state.mesa() }}</span>
-    }
-</header>
+    <div class="head-left">
+        @if (atras(); as ruta) {
+        <nav class="nav">
+            <a routerLink="/" aria-label="Inicio" class="nav-btn"><app-icon name="home" [size]="20" /></a>
+            <a [routerLink]="ruta" aria-label="Volver" class="nav-btn"><app-icon name="reply" [size]="20" /></a>
+        </nav>
+        }
+    </div>
+
+    <div class="brand-box">
+        <img src="logo.png" [alt]="state.nombreLocal()" class="logo">
+        <h1 class="brand">{{ state.nombreLocal() }}</h1>
+    </div>
+
+    <div class="head-right">
+        @if (state.mesa() > 0) {
+        <span class="mesa-badge">
+            <span class="mesa-dot"></span>
+            Mesa {{ state.mesa() }}
+        </span>
+        } @else {
+        <a routerLink="/sin-mesa" class="mesa-badge libre">
+            Escanear QR
+        </a>
+        }
+    </div>
+</header>
