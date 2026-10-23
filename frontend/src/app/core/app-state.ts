@@ -2,6 +2,21 @@ import { Injectable, signal } from '@angular/core';
 import { Anuncio, AudioItem, Cancion, EstadoLocal, MiCancion, Video } from './models';
 import { ANUNCIOS, AUDIOS, COLA, SONANDO, VIDEOS } from './mock-data';
 
+function leerStorage<T>(clave: string, def: T): T {
+  try {
+    const v = localStorage.getItem(clave);
+    return v ? (JSON.parse(v) as T) : def;
+  } catch {
+    return def;
+  }
+}
+
+function guardarStorage(clave: string, valor: any) {
+  try {
+    localStorage.setItem(clave, JSON.stringify(valor));
+  } catch {}
+}
+
 /** true = arranca con datos de ejemplo; false = todo vacío (producción) */
 const USAR_MOCK = false;
 
@@ -9,8 +24,18 @@ const USAR_MOCK = false;
 export class AppState {
   nombreLocal = signal('Escenario 89');
   hora = signal('5:33 p. m.');
-  estado = signal<EstadoLocal>('abierto');
-  horaCierre = signal('3:00 am');
+  estado = signal<EstadoLocal>(leerStorage<EstadoLocal>('e89_estado_local', 'abierto'));
+  horaCierre = signal<string>(leerStorage<string>('e89_hora_cierre', '3:00 am'));
+
+  setEstado(nuevo: EstadoLocal) {
+    this.estado.set(nuevo);
+    guardarStorage('e89_estado_local', nuevo);
+  }
+
+  setHoraCierre(nueva: string) {
+    this.horaCierre.set(nueva);
+    guardarStorage('e89_hora_cierre', nueva);
+  }
 
   // Reproductor
   sonando = signal<Cancion | null>(USAR_MOCK ? SONANDO : null);

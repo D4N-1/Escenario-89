@@ -46,6 +46,7 @@ export class PlayerService {
   listo = signal<boolean>(false);
   volumen = signal<number>(100);
   muteado = signal<boolean>(false);
+  necesitaInteraccion = signal<boolean>(false);
   error = signal<string>('');
 
   constructor() {
@@ -270,7 +271,17 @@ export class PlayerService {
                 }
               } catch {}
 
-              if (muted || !hayCancionReal) {
+              const userActive = typeof navigator !== 'undefined' && !!(navigator as any).userActivation?.hasBeenActive;
+              if (this.role === 'pantalla' && !userActive && hayCancionReal) {
+                // Chromium Autoplay: arrancar silenciado para no ser bloqueado por el navegador
+                try {
+                  event.target.mute();
+                  this.muteado.set(true);
+                  event.target.playVideo();
+                  this.state.reproduciendo.set(true);
+                  this.necesitaInteraccion.set(true);
+                } catch {}
+              } else if (muted || !hayCancionReal) {
                 try {
                   event.target.mute();
                   this.muteado.set(true);
@@ -284,6 +295,7 @@ export class PlayerService {
                   event.target.setVolume(this.volumen());
                   event.target.playVideo();
                   this.state.reproduciendo.set(true);
+                  this.necesitaInteraccion.set(false);
                 } catch {}
               }
 
@@ -447,10 +459,21 @@ export class PlayerService {
 
     if (this.player && typeof this.player.loadVideoById === 'function' && this.listo()) {
       try {
-        this.currentVideoId = vId;
-        this.player.unMute();
-        this.muteado.set(false);
-        this.player.setVolume(this.volumen());
+        const userActive = typeof navigator !== 'undefined' && !!(navigator as any).userActivation?.hasBeenActive;
+        if (this.role === 'pantalla' && !userActive) {
+          try {
+            this.player.mute();
+            this.muteado.set(true);
+            this.necesitaInteraccion.set(true);
+          } catch {}
+        } else {
+          try {
+            this.player.unMute();
+            this.muteado.set(false);
+            this.player.setVolume(this.volumen());
+            this.necesitaInteraccion.set(false);
+          } catch {}
+        }
 
         if (autoplay) {
           this.player.loadVideoById({ videoId: vId, startSeconds: 0 });
@@ -480,6 +503,25 @@ export class PlayerService {
         song: cancion,
         playing: autoplay,
       });
+    }
+  }
+
+  /** Desbloquea el audio en Chromium tras la primera interacción del usuario */
+  desbloquearAudio() {
+    this.necesitaInteraccion.set(false);
+    if (this.player) {
+      try {
+        if (typeof this.player.unMute === 'function') {
+          this.player.unMute();
+        }
+        if (typeof this.player.setVolume === 'function') {
+          this.player.setVolume(this.volumen() || 100);
+        }
+        this.muteado.set(false);
+        if (typeof this.player.playVideo === 'function') {
+          this.player.playVideo();
+        }
+      } catch {}
     }
   }
 

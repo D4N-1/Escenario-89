@@ -25,6 +25,13 @@ function leerToken(token: string): any {
   }
 }
 
+export function estaExpirado(token: string | null): boolean {
+  if (!token) return true;
+  const payload = leerToken(token);
+  if (!payload || !payload.exp) return false;
+  return (payload.exp * 1000) <= (Date.now() + 30000);
+}
+
 /** Mensaje legible a partir de la respuesta de error del backend (formatos distintos según el endpoint). */
 export function mensajeDeError(cuerpo: any, porDefecto: string): string {
   const m = cuerpo?.message;
@@ -46,10 +53,34 @@ export class SessionService {
   esAdmin = computed(() => !!this.tokenAdmin());
 
   constructor() {
-    // Si el cliente ya había escaneado el QR, recuperamos su número de mesa
+    // Si el token de admin ya expiró, limpiarlo
+    const a = this.tokenAdmin();
+    if (a && estaExpirado(a)) {
+      this.salirAdmin();
+    }
+
+    // Si el cliente tenía token de mesa, comprobar si expiró
     const t = this.tokenMesa();
-    const numero = t ? leerToken(t)?.number : null;
-    if (numero > 0) this.state.mesa.set(numero);
+    const cod = this.codigoMesa();
+
+    if (t) {
+      if (estaExpirado(t)) {
+        if (cod) {
+          // Intentar renovar automáticamente en segundo plano
+          this.entrarMesa(cod).catch(() => {
+            this.salirMesa();
+          });
+        } else {
+          this.salirMesa();
+        }
+      } else {
+        const numero = leerToken(t)?.number;
+        if (numero > 0) this.state.mesa.set(numero);
+      }
+    } else if (cod) {
+      // Tenía código pero no token: intentar conectar
+      this.entrarMesa(cod).catch(() => {});
+    }
   }
 
   /** El cliente escaneó el QR de su mesa: /?mesa=CODIGO */

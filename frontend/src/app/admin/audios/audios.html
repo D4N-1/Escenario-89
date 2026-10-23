@@ -2,53 +2,150 @@
   <span class="crumb">Panel principal › Audios</span>
   <span class="clock">{{ state.hora() }}</span>
 </div>
+
+@if (toast()) {
+  <div class="toast-banner">
+    <app-icon name="check" [size]="16" />
+    <span>{{ toast() }}</span>
+  </div>
+}
+
 <div class="page">
   <div class="title">
     <div>
       <h1>Audios</h1>
-      <p>Selecciona un audio para reproducir en tiempo real.</p>
+      <p>Selecciona un audio o cuña para reproducir en tiempo real o programarlo entre canciones.</p>
     </div>
-    <a class="btn-gold" routerLink="/admin/anuncios/nuevo"><app-icon name="add" [size]="16" /> Crear anuncio</a>
+    <a class="btn-gold" routerLink="/admin/anuncios/nuevo">
+      <app-icon name="add" [size]="16" /> Subir audio o anuncio
+    </a>
   </div>
 
   <div class="card">
     <div class="tools">
-      <div class="search"><app-icon name="search" [size]="16" /> <input placeholder="Buscar audios..."></div>
+      <div class="search">
+        <app-icon name="search" [size]="16" />
+        <input
+          [ngModel]="busqueda()"
+          (ngModelChange)="busqueda.set($event)"
+          placeholder="Buscar audios por título o descripción..."
+        />
+        @if (busqueda()) {
+          <button type="button" class="clear-btn" (click)="busqueda.set('')">
+            <app-icon name="close" [size]="14" />
+          </button>
+        }
+      </div>
+
+      <button type="button" class="filter" (click)="intermissions.cargar()" [disabled]="intermissions.cargando()">
+        <app-icon name="swap" [size]="14" />
+        <span>{{ intermissions.cargando() ? 'Cargando...' : 'Actualizar' }}</span>
+      </button>
     </div>
+
+    @if (intermissions.error()) {
+      <div class="error-box">
+        <app-icon name="close" [size]="16" />
+        <span>{{ intermissions.error() }}</span>
+      </div>
+    }
+
     <table>
       <thead>
         <tr>
           <th>AUDIO</th>
-          <th></th>
+          <th>PROGRAMACIÓN</th>
+          <th>ESTADO</th>
           <th class="r">ACCIONES</th>
         </tr>
       </thead>
       <tbody>
-        @for (a of state.audios(); track a.id) {
-        <tr [style.background]="a.sonando ? '#2c291c' : ''">
-          <td>
-            <div class="who">
-              <div class="img"></div>
-              <div><b>{{ a.titulo }}</b><small>{{ a.detalle }}</small></div>
-            </div>
-          </td>
-          <td>{{ a.duracion }}</td>
-          <td class="r"><app-icon [name]="a.sonando ? 'pause' : 'play'" [size]="18" /> <app-icon name="edit"
-              [size]="16" /></td>
-        </tr>
+        @for (a of items(); track a.uuid) {
+          <tr [style.background]="reproduciendoUuid() === a.uuid ? '#2c291c' : ''">
+            <td>
+              <div class="who">
+                @if (a.image) {
+                  <img [src]="a.image" alt="" class="img-thumb" />
+                } @else {
+                  <div class="img icon-thumb">
+                    <app-icon name="mic" [size]="18" />
+                  </div>
+                }
+                <div class="who-text">
+                  <b>{{ a.title }}</b>
+                  <small>{{ a.description || 'Cuña / audio del local' }}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <b class="p">{{ a.startTime.substring(0, 5) }} - {{ a.endTime.substring(0, 5) }}</b>
+              <small>{{ a.everySongs ? ('Cada ' + a.everySongs + ' canciones') : 'Reproducción manual' }}</small>
+            </td>
+            <td>
+              @if (!a.active) {
+                <span class="chip off cursor-pointer" (click)="alternarEstado(a)" title="Clic para activar">
+                  ● Inactivo
+                </span>
+              } @else {
+                <span class="chip ok cursor-pointer" (click)="alternarEstado(a)" title="Clic para pausar">
+                  ● Activo
+                </span>
+              }
+            </td>
+            <td class="r">
+              <button
+                type="button"
+                class="act-btn"
+                [style.background]="reproduciendoUuid() === a.uuid ? 'var(--c-gold)' : ''"
+                [style.color]="reproduciendoUuid() === a.uuid ? '#000' : ''"
+                [title]="reproduciendoUuid() === a.uuid ? 'Detener reproducción' : 'Reproducir ahora en vivo'"
+                (click)="togglePlay(a)"
+              >
+                <app-icon [name]="reproduciendoUuid() === a.uuid ? 'pause' : 'play'" [size]="16" />
+              </button>
+              <button
+                type="button"
+                class="act-btn play-next"
+                title="Poner en la siguiente pausa de canciones"
+                (click)="reproducirEnSiguientePausa(a)"
+              >
+                <app-icon name="clapper" [size]="16" />
+              </button>
+              <button
+                type="button"
+                class="act-btn danger"
+                title="Eliminar este audio"
+                (click)="eliminar(a)"
+              >
+                <app-icon name="delete" [size]="16" />
+              </button>
+            </td>
+          </tr>
         } @empty {
-        <tr>
-          <td colspan="3" class="vacio">Aún no hay audios.</td>
-        </tr>
+          <tr>
+            <td colspan="4" class="vacio">
+              @if (intermissions.cargando()) {
+                Cargando audios...
+              } @else {
+                No hay audios registrados todavía. Sube un archivo de audio o video usando el botón "Subir audio o anuncio".
+              }
+            </td>
+          </tr>
         }
       </tbody>
     </table>
-    <div class="foot"><span>Mostrando {{ state.audios().length }} de {{ state.audios().length }}
-        audios</span><span>Última actualización: hoy, 17:20</span></div>
+
+    <div class="foot">
+      <span>Mostrando {{ items().length }} audios</span>
+      <span>Control de audio en tiempo real</span>
+    </div>
   </div>
 
-  <div class="note"><app-icon name="clapper" [size]="16" />
-    <div><b>Pueden interrumpir la música</b><small>Los audios sonarán en el momento que se prefieran al presionar
-        reproducir sobre ellos.</small></div>
+  <div class="note">
+    <app-icon name="clapper" [size]="16" />
+    <div>
+      <b>Pueden sonar en vivo o programados</b>
+      <small>Haz clic en el botón de reproducción de cada fila para escuchar el audio de inmediato, o en el icono de claqueta para programarlo entre canciones.</small>
+    </div>
   </div>
 </div>

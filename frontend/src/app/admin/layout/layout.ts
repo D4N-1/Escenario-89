@@ -22,7 +22,9 @@ export class Layout implements OnInit, OnDestroy {
   hoursList = ['12:00 am', '1:00 am', '2:00 am', '3:00 am', '4:00 am', '5:00 am', '6:00 am'];
 
   ngOnInit() {
-    // La cola vive en el backend: se consulta cada pocos segundos mientras el admin está abierto
+    this.currentState = this.state.estado();
+    this.selectedHour = this.state.horaCierre();
+    // La cola vive en el backend: sincronizada vía WebSockets
     this.queue.iniciarPolling();
   }
 
@@ -52,6 +54,7 @@ export class Layout implements OnInit, OnDestroy {
 
   selectState(state: 'abierto' | 'cerrando' | 'cerrado') {
     this.currentState = state;
+    this.state.setEstado(state);
     this.estadoMenuOpen = false;
     if (state === 'abierto') {
       this.router.navigate(['/admin']);
@@ -79,6 +82,7 @@ export class Layout implements OnInit, OnDestroy {
 
   selectHour(hour: string) {
     this.selectedHour = hour;
+    this.state.setHoraCierre(hour);
     this.hourMenuOpen = false;
   }
 
