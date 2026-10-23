@@ -1,0 +1,29 @@
+config:
+  target: 'https://escenario89.danidev.top/api'
+  phases:
+    - duration: 30
+      arrivalRate: 5 # Usuarios nuevos por segundo
+      rampTo: 20   # Sube gradualmente hasta 20 usuarios por segundo
+      name: 'Fase de aumento de carga'
+  defaults:
+    headers:
+      Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoiVEFCTEUiLCJjb2RlIjoiMVcxN1AwIiwibnVtYmVyIjoxMCwiaWF0IjoxNzkyNzMzNTkzLCJleHAiOjE3OTI3NDc5OTN9.ZsfSdP37dIUunpnYv8d4rwzwINx74EaKj0zIFarLeVE'
+      Content-Type: 'application/json'
+
+scenarios:
+  - name: 'Consultar cola de canciones y búsqueda'
+    weight: 70 # 70% del tráfico simulará esto
+    flow:
+      - get:
+          url: '/queue?limit=10&page=1&all=false'
+      - think: 2 # Espera 2 segundos entre peticiones
+      - get:
+          url: '/search?title=Turn'
+
+  - name: 'Crear elemento en la cola'
+    weight: 30 # 30% del tráfico simulará esto
+    flow:
+      - post:
+          url: '/queue'
+          json:
+            songId: 'esj2E_NSmcE'

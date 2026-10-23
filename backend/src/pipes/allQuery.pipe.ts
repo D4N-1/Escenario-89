@@ -11,6 +11,7 @@ export class AllQueryPipe implements PipeTransform {
         if ( isNaN(limit) ) throw new BadRequestException('El limite debe ser un numero')
             else if ( isNaN(page) ) throw new BadRequestException('El paginado debe ser un numero')
 
+                console.log(value)
         return { ...value, limit, page }
     }
 }

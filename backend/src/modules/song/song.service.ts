@@ -116,12 +116,18 @@ export class SongService {
     }
 
     async insertBulk(songs: CreateSongDto[]) {
+        if (!songs || songs.length === 0) return;
 
-        await this.songRepository.upsert(songs, {
-            conflictPaths: ['id'],
-            skipUpdateIfNoValuesChanged: true,
-        });
-        
+        try {
+            const songEntities = this.songRepository.create(songs);
+
+            await this.songRepository.upsert(songEntities, {
+                conflictPaths: ['id'],
+                skipUpdateIfNoValuesChanged: true,
+            });
+        } catch (error: any) {
+            console.error('Error en insertBulk:', error.message);
+        }
     }
 
 }
