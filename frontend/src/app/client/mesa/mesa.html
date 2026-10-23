@@ -1,0 +1,18 @@
+<main class="screen">
+  <app-client-header />
+
+  <section class="caja" aria-live="polite">
+    @if (!codigo) {
+      <h2>Escanea el QR de tu mesa</h2>
+      <p>Para pedir canciones necesitas escanear el código QR que está en tu mesa con la cámara del celular.</p>
+    } @else if (cargando()) {
+      <div class="spinner" aria-hidden="true"></div>
+      <h2>Entrando a tu mesa…</h2>
+    } @else {
+      <h2>No pudimos entrar a tu mesa</h2>
+      <p role="alert">{{ error() }}</p>
+      <button type="button" class="btn-gold" (click)="entrar()">Intentar de nuevo</button>
+      <p class="ayuda">Si sigue fallando, escanea otra vez el QR o avísale al mesero.</p>
+    }
+  </section>
+</main>

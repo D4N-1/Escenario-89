@@ -12,10 +12,6 @@
     </a>
   </div>
 
-  @if (errorMesa()) {
-    <p class="vacio" role="alert">{{ errorMesa() }}</p>
-  }
-
   <h2>Mis canciones</h2>
   @if (state.misCanciones().length) {
     <div class="hscroll">

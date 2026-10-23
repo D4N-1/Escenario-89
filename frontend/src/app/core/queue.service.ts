@@ -1,15 +1,14 @@
 import { Injectable, inject } from '@angular/core';
-import { ApiService, ErrorApi, Rol } from './api.service';
+import { ApiService, Rol } from './api.service';
 import { AppState } from './app-state';
-import { SessionService } from './session.service';
-import { Cancion, Video } from './models';
+import { Cancion, MiCancion, Video } from './models';
 
 /** Un elemento de la cola tal como lo devuelve el backend: GET /queue?include=song,table */
 interface ColaItem {
     uuid: string;
     position: number | null;
     status: 'WAITING' | 'PLAYING' | 'FINISHED' | 'CANCELLED';
-    song?: { id: string; title: string; author: string; timestamp: string; image?: string };
+    song?: { id: string; title: string; author: string; timestamp: string; image?: string; views?: number; ago?: string | null };
     table?: { number: number; code: string } | null;
 }
 
@@ -36,19 +35,18 @@ function aSegundos(duracion: string): number {
 export class QueueService {
     private api = inject(ApiService);
     private state = inject(AppState);
-    private session = inject(SessionService);
 
     private temporizador: ReturnType<typeof setInterval> | undefined;
     private actualizando = false;
-    private codigoMesaAdmin: string | null = null;
+    private temporizadorMesa: ReturnType<typeof setInterval> | undefined;
+    private actualizandoMesa = false;
 
     // ---------------------------------------------------------------- agregar
 
     /** Guarda la canción (si no existía) y la pone en la cola. rol 'mesa' = cliente, 'admin' = panel. */
     async agregar(video: Video, rol: Rol): Promise<ResultadoAgregar> {
-        const tableCode = rol === 'admin' ? await this.obtenerCodigoMesaAdmin() : undefined;
-
-        // 1) La canción debe existir en la base de datos (409 = ya existía, no es un problema)
+        // 1) La canción debe existir en la base de datos. Si ya existía (la búsqueda también la guarda) o
+        //    este intento falla, se sigue: el paso 2 avisa con su propio error si de verdad no existe.
         try {
             await this.api.pedir(rol, 'POST', '/song', {
                 id: video.id,
@@ -60,15 +58,14 @@ export class QueueService {
                 url: `https://youtube.com/watch?v=${video.id}`,
                 ago: video.antiguedad || undefined,
                 author: video.canal || 'Desconocido',
+                description: '',
             });
-        } catch (e) {
-            if (!(e instanceof ErrorApi && e.estado === 409)) throw e;
-        }
+        } catch { /* ya existía o se guardó al buscar */ }
 
-        // 2) Entra a la cola. El uuid evita duplicados si el cliente toca dos veces.
+        // 2) Entra a la cola. La mesa sale del token del cliente; el admin entra sin mesa (aparece como "Admin").
+        //    El uuid evita duplicados si el cliente toca dos veces.
         const r = await this.api.pedir<{ position: number; status: string }>(rol, 'POST', '/queue', {
             songId: video.id,
-            tableCode: tableCode ?? this.session.codigoMesa() ?? '',
             uuid: nuevoUuid(),
         });
 
@@ -116,6 +113,40 @@ export class QueueService {
         this.temporizador = undefined;
     }
 
+    // ------------------------------------------------------- cliente (mesa)
+
+    /** Trae la cola y deja en state.misCanciones las canciones de esta mesa con su posición (0 = suena ahora). */
+    async refrescarMisCanciones(): Promise<void> {
+        if (this.actualizandoMesa) return;
+        this.actualizandoMesa = true;
+        try {
+            const r = await this.api.pedir<{ data: ColaItem[] }>('mesa', 'GET', '/queue?include=song,table&limit=0');
+            const mesa = this.state.mesa();
+            const mias = (r.data ?? [])
+                .filter(q => q.song && q.table?.number === mesa && (q.status === 'PLAYING' || q.status === 'WAITING'))
+                .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+                .map((q): MiCancion => ({ video: this.aVideo(q), posicion: q.position ?? 0 }));
+
+            const clave = (l: MiCancion[]) => l.map(m => `${m.video.id}:${m.posicion}`).join('|');
+            if (clave(mias) !== clave(this.state.misCanciones())) this.state.misCanciones.set(mias);
+        } catch {
+            // Sin conexión por un momento: se conserva lo que ya se ve y se reintenta en el siguiente ciclo
+        } finally {
+            this.actualizandoMesa = false;
+        }
+    }
+
+    iniciarPollingMesa(cadaMs = 5000) {
+        this.detenerPollingMesa();
+        this.refrescarMisCanciones();
+        this.temporizadorMesa = setInterval(() => this.refrescarMisCanciones(), cadaMs);
+    }
+
+    detenerPollingMesa() {
+        clearInterval(this.temporizadorMesa);
+        this.temporizadorMesa = undefined;
+    }
+
     // ------------------------------------------------------------ administrar
 
     /** Marca la canción como terminada; el backend sube la siguiente a "sonando". */
@@ -135,20 +166,46 @@ export class QueueService {
         await this.refrescar();
     }
 
-    // --------------------------------------------------------------- internos
-
     /**
-     * El backend exige una mesa para cada canción. Para las que agrega el administrador se usa la mesa 0
-     * si existe; si no, la de número más bajo.
+     * Cambia el orden de una canción en espera. `indiceDestino` es el lugar dentro de la lista de espera
+     * (0 = primera de la lista, justo después de la que suena). Se ve al instante y el backend lo confirma.
      */
-    private async obtenerCodigoMesaAdmin(): Promise<string> {
-        if (this.codigoMesaAdmin) return this.codigoMesaAdmin;
-        const r = await this.api.pedir<{ data: { code: string; number: number }[] }>('admin', 'GET', '/table');
-        const mesas = [...(r.data ?? [])].sort((a, b) => a.number - b.number);
-        if (!mesas.length) throw new Error('No hay mesas creadas en el backend.');
-        this.codigoMesaAdmin = mesas[0].code;
-        return this.codigoMesaAdmin;
+    async mover(uuid: string, indiceDestino: number): Promise<void> {
+        const lista = [...this.state.cola()];
+        const desde = lista.findIndex(c => c.uuid === uuid);
+        const hasta = Math.max(0, Math.min(indiceDestino, lista.length - 1));
+        if (desde === -1 || desde === hasta) return;
+
+        const [movida] = lista.splice(desde, 1);
+        lista.splice(hasta, 0, movida);
+        this.state.cola.set(lista);
+
+        // En el backend la que suena es la posición 0, por eso la lista de espera empieza en 1
+        const posicion = hasta + (this.state.sonando() ? 1 : 0);
+        try {
+            await this.api.pedir('admin', 'PATCH', '/queue', { uuid, position: posicion });
+        } finally {
+            await this.refrescarCuandoPueda();
+        }
     }
+
+    /** Quita una canción en espera de la cola. */
+    async quitar(uuid: string): Promise<void> {
+        this.state.cola.update(lista => lista.filter(c => c.uuid !== uuid));
+        try {
+            await this.api.pedir('admin', 'PATCH', '/queue', { uuid, status: 'CANCELLED' });
+        } finally {
+            await this.refrescarCuandoPueda();
+        }
+    }
+
+    /** Si justo hay una consulta en curso (puede traer datos viejos), espera a que termine y vuelve a consultar. */
+    private async refrescarCuandoPueda(): Promise<void> {
+        while (this.actualizando) await new Promise(r => setTimeout(r, 50));
+        await this.refrescar();
+    }
+
+    // --------------------------------------------------------------- internos
 
     private aCancion(q: ColaItem): Cancion {
         const s = q.song!;
@@ -162,6 +219,23 @@ export class QueueService {
             tipo: /karaoke/i.test(s.title) ? 'karaoke' : 'sencillo',
             videoId: s.id,
             miniatura: s.image || `https://i.ytimg.com/vi/${s.id}/mqdefault.jpg`,
+        };
+    }
+
+    private aVideo(q: ColaItem): Video {
+        const s = q.song!;
+        return {
+            id: s.id,
+            titulo: s.title,
+            canal: s.author,
+            vistas: String(s.views ?? ''),
+            antiguedad: s.ago ?? '',
+            duracion: s.timestamp,
+            tipo: /karaoke/i.test(s.title) ? 'karaoke' : 'sencillo',
+            miniatura: s.image || `https://i.ytimg.com/vi/${s.id}/mqdefault.jpg`,
+            miniaturaTitulo: '',
+            miniaturaSub: '',
+            inicialesCanal: s.author.slice(0, 2).toUpperCase(),
         };
     }
 }

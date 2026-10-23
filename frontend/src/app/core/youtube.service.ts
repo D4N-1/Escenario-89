@@ -1,58 +1,61 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { ApiService, ErrorApi, Rol } from './api.service';
+import { SessionService } from './session.service';
 import { Video } from './models';
 
-/** Un video tal como lo devuelve el backend en GET /search (librería yt-search) */
-interface ResultadoYt {
-  videoId: string;
+/** Una canción tal como la devuelve el backend en GET /search?title=... */
+interface ResultadoBusqueda {
+  id: string;
   title: string;
-  thumbnail?: string;
   image?: string;
   seconds: number;
   timestamp: string;
-  views: number;
+  views?: number;
   ago?: string | null;
-  author?: { name?: string };
+  author?: string;
 }
 
-/** Busca canciones en YouTube a través de nuestro backend (GET /search?video=...). */
+/** Busca canciones en YouTube a través de nuestro backend (GET /search?title=...). Requiere sesión de mesa o de admin. */
 @Injectable({ providedIn: 'root' })
 export class YoutubeService {
+  private api = inject(ApiService);
+  private session = inject(SessionService);
+  private router = inject(Router);
+
   async buscar(consulta: string): Promise<Video[]> {
     const q = consulta.trim();
     if (!q) return [];
 
-    let r: Response;
+    // En el panel de administración se usa el token del admin; en el celular, el de la mesa
+    const enAdmin = this.router.url.startsWith('/admin');
+    const rol: Rol = enAdmin || (!this.session.tokenMesa() && this.session.esAdmin()) ? 'admin' : 'mesa';
+
+    let cuerpo: { data?: ResultadoBusqueda[] };
     try {
-      r = await fetch(`/search?video=${encodeURIComponent(q)}`);
-    } catch {
-      throw new Error('No se pudo conectar con el servidor. ¿Está corriendo el backend? (npm run start:dev -w backend)');
-    }
-    if (!r.ok) throw new Error(`El servidor de búsqueda respondió con error ${r.status}`);
-
-    const contentType = r.headers.get('content-type') ?? '';
-    if (!contentType.includes('application/json')) {
-      throw new Error('El backend no respondió en formato JSON. Asegúrate de reiniciar el frontend para activar el proxy hacia el backend (puerto 3000).');
+      cuerpo = await this.api.pedir(rol, 'GET', `/search?title=${encodeURIComponent(q)}`);
+    } catch (e) {
+      if (e instanceof ErrorApi && e.estado === 0) throw e;
+      throw new Error(e instanceof Error ? `No se pudo buscar: ${e.message}` : 'No se pudo buscar. Intenta de nuevo.');
     }
 
-    const cuerpo = await r.json();
-    const videos: ResultadoYt[] = cuerpo?.videos ?? [];
-    return videos
-      .filter(v => v.videoId && v.seconds > 0) // sin transmisiones en vivo
+    return (cuerpo?.data ?? [])
+      .filter(v => v.id && v.seconds > 0) // sin transmisiones en vivo
       .slice(0, 10)
       .map(v => this.aVideo(v));
   }
 
-  private aVideo(v: ResultadoYt): Video {
-    const canal = (v.author?.name ?? '').replace(/\s+and\s+\d+\s+more$/i, '').trim(); // "Fulano and 3 more"
+  private aVideo(v: ResultadoBusqueda): Video {
+    const canal = (v.author ?? '').replace(/\s+and\s+\d+\s+more$/i, '').trim(); // "Fulano and 3 more"
     return {
-      id: v.videoId,
+      id: v.id,
       titulo: v.title,
       canal,
       vistas: this.formatearVistas(v.views ?? 0),
       antiguedad: this.traducirAntiguedad(v.ago),
       duracion: v.timestamp,
       tipo: /karaoke/i.test(v.title) ? 'karaoke' : 'sencillo',
-      miniatura: v.thumbnail ?? v.image,
+      miniatura: v.image,
       miniaturaTitulo: '',
       miniaturaSub: '',
       inicialesCanal: canal.slice(0, 2).toUpperCase(),

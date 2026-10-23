@@ -1,12 +1,12 @@
-import { Component, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { Icon } from '../../shared/icon/icon';
 import { ClientHeader } from '../../shared/client-header/client-header';
 import { VideoCard } from '../../shared/video-card/video-card';
 import { ConfirmDialog } from '../../shared/confirm-dialog/confirm-dialog';
 import { AppState } from '../../core/app-state';
 import { Video } from '../../core/models';
-import { SessionService } from '../../core/session.service';
+import { QueueService } from '../../core/queue.service';
 
 @Component({
   selector: 'app-home',
@@ -17,18 +17,13 @@ import { SessionService } from '../../core/session.service';
 export class Home {
   state = inject(AppState);
   router = inject(Router);
-  session = inject(SessionService);
+  queue = inject(QueueService);
   seleccion = signal<Video | null>(null);
-  errorMesa = signal('');
 
   constructor() {
-    // El QR de cada mesa abre /?mesa=CODIGO (el código de 6 caracteres de la mesa)
-    const mesa = inject(ActivatedRoute).snapshot.queryParamMap.get('mesa')?.trim();
-    if (mesa) {
-      this.session.entrarMesa(mesa).catch((e) => {
-        this.errorMesa.set(e instanceof Error ? e.message : 'No reconocemos esa mesa. Escanea de nuevo el QR.');
-      });
-    }
+    // "Mis canciones" y sus posiciones salen de la cola del backend; se actualizan solas mientras esta pantalla está abierta
+    this.queue.iniciarPollingMesa();
+    inject(DestroyRef).onDestroy(() => this.queue.detenerPollingMesa());
   }
 
   irABuscar(texto: string) {
