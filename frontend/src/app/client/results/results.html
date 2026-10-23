@@ -15,7 +15,7 @@
         Todos los resultados
       </button>
       <button type="button" class="tab-btn" [class.activo]="filtro() === 'karaoke'" (click)="setFiltro('karaoke')">
-        🎤 Solo Karaoke
+        Solo Karaoke
       </button>
     </div>
   </div>
@@ -37,10 +37,10 @@
         <h3 style="margin: 6px 0 2px; font-size: 16px;">Escribe una canción o artista</h3>
         <p style="color: var(--c-text2); font-size: 13px; margin: 0 0 14px; max-width: 280px; text-align: center;">Busca cualquier tema disponible en YouTube para agregarlo a la cola del bar.</p>
         <div class="chips-scroll" style="width: 100%; justify-content: center;">
-          <button type="button" class="chip-btn" (click)="q.value = 'Salsa'; buscarRapido('Salsa')">💃 Salsa</button>
-          <button type="button" class="chip-btn" (click)="q.value = 'Karaoke'; buscarRapido('Karaoke')">🎤 Karaoke</button>
-          <button type="button" class="chip-btn" (click)="q.value = 'Rock en español'; buscarRapido('Rock en español')">🎸 Rock</button>
-          <button type="button" class="chip-btn" (click)="q.value = 'Bachata'; buscarRapido('Bachata')">🎺 Bachata</button>
+          <button type="button" class="chip-btn" (click)="q.value = 'Salsa'; buscarRapido('Salsa')">Salsa</button>
+          <button type="button" class="chip-btn" (click)="q.value = 'Karaoke'; buscarRapido('Karaoke')">Karaoke</button>
+          <button type="button" class="chip-btn" (click)="q.value = 'Rock en español'; buscarRapido('Rock en español')">Rock</button>
+          <button type="button" class="chip-btn" (click)="q.value = 'Bachata'; buscarRapido('Bachata')">Bachata</button>
         </div>
       </div>
     } @else {

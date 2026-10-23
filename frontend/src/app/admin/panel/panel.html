@@ -14,8 +14,6 @@
   </div>
 
   <div class="video video-abierto" ytSlot [class.con-video]="!!state.sonando()?.videoId" (click)="onStageClick($event)">
-    <!-- El video lo muestra <app-yt-player> (en el layout) encima de este recuadro -->
-    <!-- Capturador de clics en el video para alternar Reproducir/Pausar -->
     <div class="stage-click-catcher" title="Haz clic en el escenario para reproducir o pausar"></div>
 
     @if (!state.sonando()) {
@@ -26,7 +24,6 @@
     </div>
     }
 
-    <!-- Botón central grande cuando la canción está en pausa -->
     @if (state.sonando() && !state.reproduciendo() && !player.cargando()) {
     <div class="stage-play-prompt">
       <div class="stage-play-circle" title="Haz clic para reproducir">
@@ -36,7 +33,6 @@
     </div>
     }
 
-    <!-- Indicador de carga / buffering -->
     @if (player.cargando()) {
     <div class="stage-status-overlay">
       <div class="stage-spinner"></div>
@@ -44,7 +40,6 @@
     </div>
     }
 
-    <!-- Notificación de error si YouTube bloquea la reproducción embebida -->
     @if (player.error(); as err) {
     <div class="stage-error-banner">
       <app-icon name="alert" [size]="18" />
@@ -54,7 +49,7 @@
 
     <div class="stage-overlay">
       <span class="status-pill" [class.abierto]="state.reproduciendo()">
-        {{ state.reproduciendo() ? '● En Vivo · Reproduciendo' : (state.sonando() ? '⏸ En Pausa' : '○ En Espera') }}
+        {{ state.reproduciendo() ? 'En Vivo · Reproduciendo' : (state.sonando() ? 'En Pausa' : 'En Espera') }}
       </span>
       <p class="status-msg">
         @if (state.sonando(); as s) {

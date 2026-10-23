@@ -23,12 +23,10 @@ export class Pantalla implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit() {
-    // Escucha en tiempo real la cola y la canción actual desde el backend / sockets
     this.queue.iniciarPolling();
   }
 
   ngAfterViewInit() {
-    // Inicializado en modo 'pantalla' y silenciado al 100% (altavoces externos en el local)
     this.player.inicializar('tv-yt-player', 'pantalla', 'tv-player-container', undefined, true);
   }
 

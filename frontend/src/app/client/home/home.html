@@ -1,7 +1,6 @@
 <main class="screen">
   <app-client-header></app-client-header>
 
-  <!-- 1. Buscador siempre visible arriba -->
   <section class="buscar-section">
     <div class="pill-input">
       <input #q placeholder="Busca canción, artista o karaoke..." enterkeyhint="search" autocomplete="off" (keydown.enter)="irABuscar(q.value)">
@@ -17,7 +16,6 @@
     </button>
   </section>
 
-  <!-- 2. Tarjeta EN VIVO en la mitad (muestra solo qué canción se está reproduciendo, sin indicar la mesa) -->
   @if (state.sonando(); as ahora) {
     <section class="en-vivo-card" aria-label="Canción sonando ahora">
       <div class="en-vivo-head">
@@ -46,7 +44,6 @@
     </section>
   }
 
-  <!-- 3. Mis canciones (Cola de la mesa) -->
   <section class="mis-canciones-section">
     <div class="seccion-head">
       <h3 class="seccion-titulo">Mis canciones pedidas</h3>
@@ -78,7 +75,6 @@
     }
   </section>
 
-  <!-- 4. Canciones más escuchadas en la base de datos (tabla song), sin mostrar qué mesa pidió -->
   @if (state.populares().length) {
     <section class="mas-escuchadas-section">
       <div class="seccion-head">

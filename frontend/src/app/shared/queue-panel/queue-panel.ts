@@ -45,9 +45,6 @@ export class QueuePanel {
     return '';
   }
 
-  // ---------------------------------------------------------- orden de la cola
-
-  /** Lugar de la canción dentro de la lista de espera real (sin anuncios). -1 si no es del backend. */
   indice(c: Cancion): number {
     return c.uuid ? this.state.cola().findIndex(x => x.uuid === c.uuid) : -1;
   }

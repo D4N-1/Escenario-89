@@ -44,12 +44,7 @@ export class QueueService {
     private actualizandoMesa = false;
     private unsubscribeSocketMesa?: () => void;
 
-    // ---------------------------------------------------------------- agregar
-
-    /** Guarda la canción (si no existía) y la pone en la cola. rol 'mesa' = cliente, 'admin' = panel. */
     async agregar(video: Video, rol: Rol): Promise<ResultadoAgregar> {
-        // 1) La canción debe existir en la base de datos. Si ya existía (la búsqueda también la guarda) o
-        //    este intento falla, se sigue: el paso 2 avisa con su propio error si de verdad no existe.
         try {
             await this.api.pedir(rol, 'POST', '/song', {
                 id: video.id,
@@ -63,9 +58,8 @@ export class QueueService {
                 author: video.canal || 'Desconocido',
                 description: '',
             });
-        } catch { /* ya existía o se guardó al buscar */ }
+        } catch {}
 
-        // 2) Entra a la cola. El backend emite la actualización en tiempo real por WebSocket a todos
         const r = await this.api.pedir<{ position: number; status: string }>(rol, 'POST', '/queue', {
             songId: video.id,
             uuid: nuevoUuid(),

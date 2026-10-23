@@ -53,8 +53,7 @@ export class PlayerService {
 
   constructor() {
     this.iniciarBroadcastChannel();
-
-    // Sincronización reactiva con la canción actual
+    
     effect(() => {
       const cancion = this.state.sonando();
       if (!cancion) {
@@ -65,7 +64,7 @@ export class PlayerService {
         this.loadingVideoId = '';
         this.pendingSong = null;
         if (this.player && typeof this.player.stopVideo === 'function') {
-          try { this.player.stopVideo(); } catch {}
+          try { this.player.stopVideo(); } catch { }
         }
         if (this.role === 'admin') this.broadcast({ type: 'CHANGE_SONG', song: null, playing: false });
         return;
@@ -147,7 +146,7 @@ export class PlayerService {
     };
   }
 
-  /** Solicita el estado actual y segundo exacto de reproducción al panel de admin */
+ 
   solicitarSincronizacion() {
     if (this.role !== 'pantalla') return;
     this.broadcast({ type: 'REQUEST_SYNC' });
@@ -165,7 +164,7 @@ export class PlayerService {
   private broadcast(msg: PlayerBroadcastMessage) {
     try {
       this.channel?.postMessage(msg);
-    } catch {}
+    } catch { }
   }
 
   /** Carga dinámicamente y de forma segura la API de YouTube IFrame */
@@ -180,7 +179,6 @@ export class PlayerService {
         return;
       }
 
-      // Polling de seguridad por si ya se cargó o está a punto de completarse
       const interval = setInterval(() => {
         if (window.YT && window.YT.Player) {
           clearInterval(interval);
@@ -203,7 +201,6 @@ export class PlayerService {
         resolve();
       };
 
-      // Timeout de contingencia (5s)
       setTimeout(() => {
         clearInterval(interval);
         resolve();
@@ -213,7 +210,6 @@ export class PlayerService {
     return this.apiLoadedPromise;
   }
 
-  /** Inicializa el reproductor sobre un contenedor HTML */
   async inicializar(
     elementId: string,
     role: PlayerRole = 'admin',
@@ -239,7 +235,6 @@ export class PlayerService {
       this.currentVideoId = videoId;
     }
 
-    // Si el player ya existe y responde, simplemente cargamos la canción si no es la actual
     if (this.player && typeof this.player.loadVideoById === 'function' && this.listo()) {
       if (hayCancionReal && cancionActual && this.currentVideoId !== videoId) {
         await this.cargarCancion(cancionActual, true);
@@ -247,7 +242,6 @@ export class PlayerService {
       return;
     }
 
-    // Asegurar que el elemento DOM es un <div> limpio y no un <iframe> reciclado
     let el = document.getElementById(elementId);
     const container = this.currentContainerId
       ? document.getElementById(this.currentContainerId)
@@ -256,7 +250,7 @@ export class PlayerService {
     if (!el || el.tagName === 'IFRAME') {
       if (container) {
         if (this.player) {
-          try { this.player.destroy(); } catch {}
+          try { this.player.destroy(); } catch { }
           this.player = null;
         }
         container.innerHTML = `<div id="${elementId}"></div>`;
@@ -302,7 +296,6 @@ export class PlayerService {
                 this.currentVideoId = videoId;
               }
 
-              // Asignar permisos al iframe generado para permitir reproducción de audio/video y pantalla completa
               try {
                 const iframe = document.getElementById(elementId) as HTMLIFrameElement;
                 if (iframe) {
@@ -312,10 +305,9 @@ export class PlayerService {
                   );
                   iframe.setAttribute('allowfullscreen', 'true');
                 }
-              } catch {}
+              } catch { }
 
               if (this.role === 'pantalla' || muted) {
-                // Modo pantalla / TV duplicada: 100% silenciado para usar los altavoces propios de la sala
                 try {
                   event.target.mute();
                   this.muteado.set(true);
@@ -324,14 +316,14 @@ export class PlayerService {
                     event.target.playVideo();
                     this.state.reproduciendo.set(true);
                   }
-                } catch {}
+                } catch { }
               } else if (!hayCancionReal) {
                 try {
                   event.target.mute();
                   this.muteado.set(true);
                   event.target.pauseVideo();
                   this.state.reproduciendo.set(false);
-                } catch {}
+                } catch { }
               } else {
                 try {
                   event.target.unMute();
@@ -340,13 +332,12 @@ export class PlayerService {
                   event.target.playVideo();
                   this.state.reproduciendo.set(true);
                   this.necesitaInteraccion.set(false);
-                } catch {}
+                } catch { }
               }
 
               this.desactivarSubtitulos();
               this.actualizarProgreso();
 
-              // Si había una canción esperando mientras cargaba el reproductor
               if (this.pendingSong) {
                 const pend = this.pendingSong;
                 const pendTime = this.pendingTime;
@@ -380,7 +371,7 @@ export class PlayerService {
   }
 
   private onPlayerStateChange(stateCode: number) {
-    // -1: UNSTARTED, 0: ENDED, 1: PLAYING, 2: PAUSED, 3: BUFFERING, 5: VIDEO CUED
+    
     if (stateCode === 1) { // PLAYING
       this.desactivarSubtitulos();
       this.state.reproduciendo.set(true);
@@ -406,7 +397,7 @@ export class PlayerService {
     this.cargando.set(false);
     console.warn(`YouTube Player error (${code})`);
 
-    // 101 o 150: El autor del video prohibió reproducirlo incrustado en otras webs
+    
     if (code === 150 || code === 101) {
       this.error.set('Este video tiene restricciones de reproducción embebida en YouTube. Buscando versión alternativa...');
       const cancion = this.state.sonando();
@@ -420,7 +411,7 @@ export class PlayerService {
             await this.cargarCancion(cancion, true);
             return;
           }
-        } catch {}
+        } catch { }
       }
       setTimeout(() => this.next(), 3500);
     } else if (code === 2) {
@@ -463,7 +454,6 @@ export class PlayerService {
       const pct = dur > 0 ? (cur / dur) * 100 : 0;
       this.progreso.set(Math.min(100, Math.max(0, pct)));
 
-      // Sincronizar tiempo hacia la pantalla TV cada 2 segundos mientras se reproduce
       if (this.role === 'admin' && this.state.reproduciendo()) {
         this.syncTick = (this.syncTick + 1) % 4;
         if (this.syncTick === 0) {
@@ -474,7 +464,7 @@ export class PlayerService {
           });
         }
       }
-    } catch {}
+    } catch { }
   }
 
   private segundosAString(sec: number): string {
@@ -484,7 +474,6 @@ export class PlayerService {
     return `${m}:${resto.toString().padStart(2, '0')}`;
   }
 
-  /** Carga una canción en el reproductor */
   async cargarCancion(cancion: Cancion, autoplay = true, startSeconds = 0) {
     let vId = cancion.videoId;
 
@@ -509,10 +498,8 @@ export class PlayerService {
       return;
     }
 
-    // Evitar invocaciones duplicadas simultáneas
     if (this.loadingVideoId === vId) return;
 
-    // Si ya es el video actual y el reproductor está listo, no recargar desde 0
     if (this.currentVideoId === vId && this.listo() && this.player) {
       if (typeof startSeconds === 'number' && startSeconds > 0) {
         const cur = this.tiempoSegundos();
@@ -537,14 +524,14 @@ export class PlayerService {
             this.player.mute();
             this.muteado.set(true);
             this.necesitaInteraccion.set(false);
-          } catch {}
+          } catch { }
         } else {
           try {
             this.player.unMute();
             this.muteado.set(false);
             this.player.setVolume(this.volumen());
             this.necesitaInteraccion.set(false);
-          } catch {}
+          } catch { }
         }
 
         if (autoplay) {
@@ -582,7 +569,6 @@ export class PlayerService {
     }
   }
 
-  /** Desactiva y descarga forzosamente el módulo de subtítulos de YouTube */
   desactivarSubtitulos() {
     if (!this.player) return;
     try {
@@ -595,10 +581,9 @@ export class PlayerService {
         this.player.setOption('cc', 'track', {});
         this.player.setOption('captions', 'reload', false);
       }
-    } catch {}
+    } catch { }
   }
 
-  /** Desbloquea el audio en Chromium tras la primera interacción del usuario */
   desbloquearAudio() {
     this.necesitaInteraccion.set(false);
     if (this.player) {
@@ -613,7 +598,7 @@ export class PlayerService {
         if (typeof this.player.playVideo === 'function') {
           this.player.playVideo();
         }
-      } catch {}
+      } catch { }
     }
   }
 
@@ -632,22 +617,19 @@ export class PlayerService {
           try {
             this.player.mute();
             this.muteado.set(true);
-          } catch {}
+          } catch { }
         } else {
           try {
             this.player.unMute();
             this.muteado.set(false);
             this.player.setVolume(this.volumen());
-          } catch {}
+          } catch { }
         }
 
-        // Si la canción cambió de videoId, cargamos el nuevo video
         if (cancion.videoId && this.currentVideoId !== cancion.videoId) {
           this.cargarCancion(cancion, true);
           return;
         }
-
-        // Si es la misma canción, simplemente reanudamos sin reiniciar
         this.player.playVideo();
         this.state.reproduciendo.set(true);
       } catch (e) {
@@ -666,7 +648,7 @@ export class PlayerService {
       try {
         this.player.pauseVideo();
         this.state.reproduciendo.set(false);
-      } catch {}
+      } catch { }
       if (emitir && this.role === 'admin') {
         this.broadcast({ type: 'PAUSE', time: this.tiempoSegundos() });
       }
@@ -688,9 +670,7 @@ export class PlayerService {
     }
   }
 
-  /** Pasa a la siguiente canción en la cola */
   next() {
-    // La cola vive en el backend: se marca la canción como terminada y el backend sube la siguiente.
     const actual = this.state.sonando();
     if (actual?.uuid) {
       if (this.role === 'admin') {
@@ -702,7 +682,6 @@ export class PlayerService {
       return;
     }
 
-    // Sin backend (datos de ejemplo): se maneja la cola local
     const lista = this.state.cola();
     if (lista.length > 0) {
       const [siguiente, ...resto] = lista;
@@ -718,7 +697,7 @@ export class PlayerService {
       this.currentVideoId = '';
       this.loadingVideoId = '';
       if (this.player && typeof this.player.stopVideo === 'function') {
-        try { this.player.stopVideo(); } catch {}
+        try { this.player.stopVideo(); } catch { }
       }
       if (this.role === 'admin') {
         this.broadcast({ type: 'CHANGE_SONG', song: null, playing: false });
@@ -726,7 +705,6 @@ export class PlayerService {
     }
   }
 
-  /** Reinicia la canción actual o regresa */
   prev() {
     this.seekTo(0);
   }
@@ -736,7 +714,7 @@ export class PlayerService {
       try {
         this.player.seekTo(segundos, true);
         this.actualizarProgreso();
-      } catch {}
+      } catch { }
       if (emitir && this.role === 'admin') {
         this.broadcast({ type: 'SEEK', time: segundos });
       }
@@ -756,7 +734,7 @@ export class PlayerService {
     const v = Math.max(0, Math.min(100, vol));
     this.volumen.set(v);
     if (this.player && typeof this.player.setVolume === 'function') {
-      try { this.player.setVolume(v); } catch {}
+      try { this.player.setVolume(v); } catch { }
     }
   }
 
@@ -770,13 +748,13 @@ export class PlayerService {
         this.player.mute();
         this.muteado.set(true);
       }
-    } catch {}
+    } catch { }
   }
 
   destruir() {
     this.detenerTicker();
     if (this.player) {
-      try { this.player.destroy(); } catch {}
+      try { this.player.destroy(); } catch { }
       this.player = null;
     }
     this.listo.set(false);
