@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
 import { SessionService, mensajeDeError } from './session.service';
 
 export type Rol = 'mesa' | 'admin';
@@ -37,7 +38,7 @@ export class ApiService {
 
     let r: Response;
     try {
-      r = await fetch(url, {
+      r = await fetch(environment.apiUrl + url, {
         method: metodo,
         headers,
         body: cuerpo !== undefined ? (isFormData ? cuerpo : JSON.stringify(cuerpo)) : undefined,

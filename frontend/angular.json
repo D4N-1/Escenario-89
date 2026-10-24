@@ -59,6 +59,12 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
@@ -92,6 +98,7 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
+            "port": 105,
             "allowedHosts": [
               "localhost",
               "127.0.0.1",
@@ -99,8 +106,7 @@
               "danidev.top",
               ".danidev.top",
               "dani.dev.top"
-            ],
-            "proxyConfig": "proxy.conf.json"
+            ]
           },
           "configurations": {
             "production": {

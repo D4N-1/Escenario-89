@@ -55,3 +55,6 @@ Thumbs.db
 
 #Env
 **/.env
+
+# Logs
+**/logs

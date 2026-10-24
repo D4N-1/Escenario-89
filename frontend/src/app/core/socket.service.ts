@@ -1,17 +1,13 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { SessionService } from './session.service';
 
 export type SocketRol = 'admin' | 'mesa';
 
-function obtenerSocketUrl(): string | undefined {
-  if (typeof window === 'undefined') return undefined;
+function obtenerSocketUrl(): string {
 
-  if (window.location.port === '4200') {
-    return `http://${window.location.hostname}:3000`;
-  }
-
-  return undefined;
+    return `https://escenario89.danidev.top`;
+  
 }
 
 
@@ -48,7 +44,7 @@ export class SocketService {
     const url = obtenerSocketUrl();
 
     this.socket = io(url ?? '', {
-      path: '/socket.io',
+      path: '/api/socket.io',
       auth: {
         authorization: token,
       },

@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { environment } from '../../environments/environment';
 import { AppState } from './app-state';
 
 const K_MESA_TOKEN = 'e89_mesa_token';
@@ -85,7 +86,9 @@ export class SessionService {
 
   /** El cliente escaneó el QR de su mesa: /?mesa=CODIGO */
   async entrarMesa(codigo: string): Promise<void> {
-    const r = await fetch('/auth/table', {
+    const url = environment.apiUrl + '/auth/table'
+    console.log(url)
+    const r = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code: codigo }),
@@ -103,7 +106,7 @@ export class SessionService {
   }
 
   async entrarAdmin(nombre: string, clave: string): Promise<void> {
-    const r = await fetch('/auth/user', {
+    const r = await fetch(environment.apiUrl + '/auth/user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: nombre, password: clave }),
