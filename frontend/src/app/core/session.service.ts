@@ -105,14 +105,14 @@ export class SessionService {
     if (numero > 0) this.state.mesa.set(numero);
   }
 
-  async entrarAdmin(nombre: string, clave: string): Promise<void> {
+  async entrarAdmin(clave: string): Promise<void> {
     const r = await fetch(environment.apiUrl + '/auth/user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: nombre, password: clave }),
+      body: JSON.stringify({ password: clave }),
     });
     const cuerpo = await r.json().catch(() => null);
-    if (!r.ok) throw new Error(mensajeDeError(cuerpo, 'Usuario o contraseña incorrectos.'));
+    if (!r.ok) throw new Error(mensajeDeError(cuerpo, 'Contraseña incorrecta'));
     if (cuerpo?.data?.role && cuerpo.data.role !== 'ADMIN') throw new Error('Este usuario no tiene permisos de administrador.');
 
     this.tokenAdmin.set(cuerpo.access_token);

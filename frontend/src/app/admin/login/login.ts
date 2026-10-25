@@ -14,15 +14,15 @@ export class Login {
     if (this.session.esAdmin()) this.router.navigate(['/admin']);
   }
 
-  async entrar(nombre: string, clave: string) {
-    if (!nombre.trim() || !clave) {
-      this.error.set('Escribe tu usuario y tu contraseña.');
+  async entrar(clave: string) {
+    if (!clave) {
+      this.error.set('Escribe tu contraseña');
       return;
     }
     this.enviando.set(true);
     this.error.set('');
     try {
-      await this.session.entrarAdmin(nombre.trim(), clave);
+      await this.session.entrarAdmin(clave);
       this.router.navigate(['/admin']);
     } catch (e) {
       this.error.set(e instanceof Error ? e.message : 'No se pudo iniciar sesión.');

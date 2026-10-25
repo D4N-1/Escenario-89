@@ -1,9 +1,7 @@
 <div class="wrap">
-  <form class="box" (submit)="$event.preventDefault(); entrar(usuario.value, clave.value)">
+  <form class="box" (submit)="$event.preventDefault(); entrar(clave.value)">
     <img src="logo.png" alt="Escenario 89">
     <h1 class="brand">Escenario 89</h1>
-    <label for="usuario">Usuario</label>
-    <input #usuario id="usuario" type="text" autocomplete="username" placeholder="Ingresa tu usuario">
     <label for="clave">Contraseña</label>
     <input #clave id="clave" type="password" autocomplete="current-password" placeholder="Ingresa tu contraseña">
     @if (error()) {
