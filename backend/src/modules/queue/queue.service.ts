@@ -217,9 +217,12 @@ export class QueueService implements OnModuleInit {
                 const value = waitingSongs.length
                 newData.value = value
 
-                const prev = Queue.findLastIndex( (q) => q.value === value)
-                const position = prev === -1 ? Queue.length
+                const prev = Queue.findLastIndex( (q) => q.value! <= value)
+                const position = prev === -1 ? 1
                     : prev + 1
+
+                console.log('PREV: ', prev, '\nPOSITION: ', position)
+
 
                 newData.position = position
                 newData.status = newData.position == 0 ? SongStatus.PLAYING : SongStatus.WAITING

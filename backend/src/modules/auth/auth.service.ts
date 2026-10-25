@@ -1,15 +1,15 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
-import { UserService } from "../user/user.service";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { CreateUserSignDto } from "./dto/user-sign.dto";
 import { compare } from "bcrypt";
-import { AuthErrorCode } from "./auth.constants";
-import { AuthResCreateInterface } from "./interfaces/auth-resCreate.interface";
-import { TableRequest, UserRequest } from "../../common/interfaces/payload.interface";
-import { CreateTableSignDto } from "./dto/table-sign.dto";
-import { TableService } from "../table/table.service";
 import { TypeRequest } from "../../common/enums/typeRequest.enum";
+import { TableRequest, UserRequest } from "../../common/interfaces/payload.interface";
 import { AnyRequest } from "../../common/types/payload.type";
+import { TableService } from "../table/table.service";
+import { UserService } from "../user/user.service";
+import { AuthErrorCode } from "./auth.constants";
+import { CreateTableSignDto } from "./dto/table-sign.dto";
+import { CreateUserSignDto } from "./dto/user-sign.dto";
+import { AuthResCreateInterface } from "./interfaces/auth-resCreate.interface";
 
 
 @Injectable()
@@ -27,9 +27,9 @@ export class AuthService {
 
         user: async(createUserSignDto: CreateUserSignDto): Promise<AuthResCreateInterface> => {
 
-            const { name, password } = createUserSignDto;
+            const { password } = createUserSignDto;
 
-            const user = await this.userService.findOne.name(name)
+            const user = ( await this.userService.find() )?.[0]
 
             const match = await compare(password, user.passwordHash)
             if (!match) throw new UnauthorizedException( AuthErrorCode.UNAUTHORIZED('Contraseña incorrecta') )

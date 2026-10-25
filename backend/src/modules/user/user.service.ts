@@ -1,10 +1,10 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { UserEntity } from "./entities/user.entity";
+import { hash } from "bcrypt";
 import { Repository } from "typeorm";
-import { CreateUserDto } from "./dto/user.dto";
 import { ResCreateInterface } from "../../common/interfaces/resCreate.interface";
-import { hash } from "bcrypt"
+import { CreateUserDto } from "./dto/user.dto";
+import { UserEntity } from "./entities/user.entity";
 import { UserErrorCode } from "./user.constants";
 
 
@@ -45,7 +45,6 @@ export class UserService {
         }
     }
 
-
     async create(createUserDto: CreateUserDto): Promise<ResCreateInterface> {
 
         const { password, name } = createUserDto
@@ -66,4 +65,10 @@ export class UserService {
             data: await this.userRepository.save(newUser)
         }
     }
+
+    async find() {
+
+        return this.userRepository.find()
+    }
+
 }
