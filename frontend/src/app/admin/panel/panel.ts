@@ -41,6 +41,10 @@ export class Panel {
     if (target.closest('.stage-top-actions, .stage-overlay, button, a, app-buscador')) {
       return;
     }
+    if (this.player.necesitaInteraccion() || this.player.muteado() || !this.state.reproduciendo()) {
+      this.player.desbloquearAudio();
+      return;
+    }
     this.player.togglePlay();
   }
 }

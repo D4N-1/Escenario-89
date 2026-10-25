@@ -44,6 +44,8 @@ export class PlayerService {
   private lastAdminTime = 0;
   private lastAdminTimeAt = 0;
   private initialSyncDone = false;
+  private listenerInteraccion: (() => void) | null = null;
+  private timeoutAutoplay: any = null;
 
   progreso = signal<number>(0);
   tiempoSegundos = signal<number>(0);
@@ -420,9 +422,9 @@ export class PlayerService {
                   this.muteado.set(false);
                   event.target.setVolume(this.volumen());
                   event.target.playVideo();
-                  this.state.reproduciendo.set(true);
                   this.necesitaInteraccion.set(false);
                 } catch { }
+                this.intentarAutoplay();
               }
 
               this.desactivarSubtitulos();
@@ -466,6 +468,10 @@ export class PlayerService {
       this.state.reproduciendo.set(true);
       this.cargando.set(false);
       this.iniciarTicker();
+      if (!this.muteado()) {
+        this.necesitaInteraccion.set(false);
+        this.removerDesbloqueoInteraccion();
+      }
 
       if (this.role === 'pantalla' && !this.initialSyncDone) {
         this.initialSyncDone = true;
@@ -501,9 +507,64 @@ export class PlayerService {
       this.next();
     } else if (stateCode === 3) { // BUFFERING
       this.cargando.set(true);
-    } else if (stateCode === 5) { // CUED
+    } else if (stateCode === 5 || stateCode === -1) { // CUED or UNSTARTED
+      this.state.reproduciendo.set(false);
       this.cargando.set(false);
+      this.detenerTicker();
+      if (this.role === 'admin' && this.state.sonando()) {
+        this.intentarAutoplay();
+      }
     }
+  }
+
+  registrarDesbloqueoInteraccion() {
+    if (typeof window === 'undefined' || this.listenerInteraccion) return;
+    this.listenerInteraccion = () => {
+      this.removerDesbloqueoInteraccion();
+      if (this.role === 'admin' && this.state.sonando()) {
+        this.desbloquearAudio();
+      }
+    };
+    window.addEventListener('click', this.listenerInteraccion, { capture: true });
+    window.addEventListener('keydown', this.listenerInteraccion, { capture: true });
+  }
+
+  private removerDesbloqueoInteraccion() {
+    if (typeof window === 'undefined' || !this.listenerInteraccion) return;
+    window.removeEventListener('click', this.listenerInteraccion, { capture: true });
+    window.removeEventListener('keydown', this.listenerInteraccion, { capture: true });
+    this.listenerInteraccion = null;
+  }
+
+  private intentarAutoplay() {
+    if (this.role !== 'admin' || !this.state.sonando() || !this.player) return;
+
+    if (this.timeoutAutoplay) {
+      clearTimeout(this.timeoutAutoplay);
+      this.timeoutAutoplay = null;
+    }
+
+    try {
+      this.player.unMute();
+      this.player.setVolume(this.volumen() || 100);
+      this.player.playVideo();
+    } catch { }
+
+    this.timeoutAutoplay = setTimeout(() => {
+      if (this.role === 'admin' && this.state.sonando() && this.player) {
+        let st = -1;
+        try { st = this.player.getPlayerState(); } catch { }
+        if (st !== 1 && st !== 3) {
+          try {
+            this.player.mute();
+            this.muteado.set(true);
+            this.player.playVideo();
+            this.necesitaInteraccion.set(true);
+            this.registrarDesbloqueoInteraccion();
+          } catch { }
+        }
+      }
+    }, 450);
   }
 
   private async handlePlayerError(code: number) {
@@ -656,7 +717,9 @@ export class PlayerService {
 
         if (autoplay) {
           this.player.loadVideoById({ videoId: vId, startSeconds });
-          this.state.reproduciendo.set(true);
+          if (this.role === 'admin') {
+            this.intentarAutoplay();
+          }
         } else {
           this.player.cueVideoById({ videoId: vId, startSeconds });
           this.state.reproduciendo.set(false);
@@ -705,6 +768,7 @@ export class PlayerService {
   }
 
   desbloquearAudio() {
+    this.removerDesbloqueoInteraccion();
     this.necesitaInteraccion.set(false);
     if (this.player) {
       try {
@@ -715,6 +779,13 @@ export class PlayerService {
           this.player.setVolume(this.volumen() || 100);
         }
         this.muteado.set(false);
+
+        let cur = 0;
+        try { cur = this.player.getCurrentTime() || 0; } catch { }
+        if (cur > 0 && cur < 4) {
+          try { this.player.seekTo(0, true); } catch { }
+        }
+
         if (typeof this.player.playVideo === 'function') {
           this.player.playVideo();
         }
@@ -872,6 +943,11 @@ export class PlayerService {
   }
 
   destruir() {
+    this.removerDesbloqueoInteraccion();
+    if (this.timeoutAutoplay) {
+      clearTimeout(this.timeoutAutoplay);
+      this.timeoutAutoplay = null;
+    }
     this.detenerTicker();
     if (this.player) {
       try { this.player.destroy(); } catch { }
