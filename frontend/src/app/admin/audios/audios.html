@@ -14,7 +14,7 @@
   <div class="title-row">
     <div>
       <h1>Audios</h1>
-      <p>Selecciona un audio o cuña para reproducir en tiempo real o programarlo entre canciones.</p>
+      <p>Selecciona un audio o cuña para reproducir en tiempo real.</p>
     </div>
     <button type="button" class="btn-gold" (click)="abrirModal()" id="btn-subir-audio">
       <app-icon name="add" [size]="16" /> Subir audio o anuncio
@@ -87,8 +87,6 @@
       <thead>
         <tr>
           <th>AUDIO</th>
-          <th>PROGRAMACIÓN</th>
-          <th>ESTADO</th>
           <th class="r">ACCIONES</th>
         </tr>
       </thead>
@@ -106,21 +104,6 @@
                 </div>
               </div>
             </td>
-            <td>
-              <b class="p">{{ formatearFechaHora(a.createdAt) }}</b>
-              <small>Reproducción manual en cabina</small>
-            </td>
-            <td>
-              @if (reproduciendoUuid() === a.uuid) {
-                <span class="chip ok sonando-chip" title="Sonando actualmente">
-                  ● Sonando en vivo
-                </span>
-              } @else {
-                <span class="chip ok" title="Listo para reproducir">
-                  ● Activo
-                </span>
-              }
-            </td>
             <td class="r">
               <button
                 type="button"
@@ -130,14 +113,6 @@
                 (click)="togglePlay(a)"
               >
                 <app-icon [name]="reproduciendoUuid() === a.uuid ? 'pause' : 'play'" [size]="16" />
-              </button>
-              <button
-                type="button"
-                class="act-btn play-next"
-                title="Programar para emitir entre canciones"
-                (click)="prepararEnCabina(a)"
-              >
-                <app-icon name="clapper" [size]="16" />
               </button>
               <button
                 type="button"
@@ -159,7 +134,7 @@
           </tr>
         } @empty {
           <tr>
-            <td colspan="4" class="vacio">
+            <td colspan="2" class="vacio">
               @if (cargando()) {
                 Cargando audios...
               } @else {
@@ -178,10 +153,10 @@
   </div>
 
   <div class="note">
-    <app-icon name="clapper" [size]="16" />
+    <app-icon name="mic" [size]="16" />
     <div>
-      <b>Pueden sonar en vivo o programados</b>
-      <small>Haz clic en el botón de reproducción de cada fila para escuchar el audio de inmediato, o en el icono de claqueta para programarlo entre canciones.</small>
+      <b>Reproducción en vivo</b>
+      <small>Haz clic en el botón de reproducción de cada fila para escuchar el audio de inmediato en el sistema.</small>
     </div>
   </div>
 </div>

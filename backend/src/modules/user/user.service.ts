@@ -3,6 +3,8 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { hash } from "bcrypt";
 import { Repository } from "typeorm";
 import { ResCreateInterface } from "../../common/interfaces/resCreate.interface";
+import { ResUpdateInterface } from "../../common/interfaces/resUpdate.interface";
+import { UpdateUserDto } from "./dto/update-user.dto";
 import { CreateUserDto } from "./dto/user.dto";
 import { UserEntity } from "./entities/user.entity";
 import { UserErrorCode } from "./user.constants";
@@ -70,5 +72,24 @@ export class UserService {
 
         return this.userRepository.find()
     }
+
+
+    async update(updateUserDto: UpdateUserDto): Promise<ResUpdateInterface> {
+          
+  
+        const user = ( await this.find() )?.[0]
+  
+        const newData: Partial<UserEntity> = { ...updateUserDto }
+  
+        const editIntermission = this.userRepository.merge(user, newData)
+        const saved = await this.userRepository.save(editIntermission)
+
+        return {
+            message: "El usuario ha sido modificado",
+            change: updateUserDto,
+            data: saved
+        }
+  
+  }
 
 }

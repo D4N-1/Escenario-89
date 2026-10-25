@@ -68,6 +68,21 @@ export class TableSeederService implements OnModuleInit {
             },
             {
                 number: 15
+            },
+            {
+                number: 16
+            },
+            {
+                number: 17
+            },
+            {
+                number: 18
+            },
+            {
+                number: 19
+            },
+            {
+                number: 20
             }
         ]
 
