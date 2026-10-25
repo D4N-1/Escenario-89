@@ -38,12 +38,14 @@
       </div>
     }
 
-    @if (state.estado() !== 'cerrado' && state.sonando() && !state.reproduciendo() && !player.cargando()) {
-      <div class="stage-play-prompt">
+    @if (state.estado() !== 'cerrado' && state.sonando() && (!state.reproduciendo() || player.necesitaInteraccion()) && !player.cargando()) {
+      <div class="stage-play-prompt" (click)="onPlayPromptClick($event)">
         <div class="stage-play-circle" title="Haz clic para reproducir">
           <app-icon name="play" [size]="38" />
         </div>
-        <span class="stage-play-label">Haz clic para reproducir</span>
+        <span class="stage-play-label">
+          {{ player.necesitaInteraccion() ? 'Haz clic para activar reproducción' : 'Haz clic para reproducir' }}
+        </span>
       </div>
     }
 
@@ -51,13 +53,21 @@
       <div class="stage-status-overlay">
         <div class="stage-spinner"></div>
         <span>Cargando video de YouTube...</span>
+        @if (player.error(); as err) {
+          <small class="stage-status-sub">{{ err }}</small>
+        }
       </div>
     }
 
     @if (state.estado() !== 'cerrado' && player.error(); as err) {
       <div class="stage-error-banner">
-        <app-icon name="alert" [size]="18" />
-        <span>{{ err }}</span>
+        <div class="stage-error-info">
+          <app-icon name="alert" [size]="18" />
+          <span>{{ err }}</span>
+        </div>
+        <button type="button" class="btn-skip-error" (click)="skipError($event)" title="Saltar a la siguiente canción">
+          Siguiente tema ›
+        </button>
       </div>
     }
 
@@ -76,7 +86,7 @@
         </p>
       } @else {
         <span class="status-pill" [class.abierto]="state.reproduciendo()">
-          {{ state.reproduciendo() ? 'En Vivo · Reproduciendo' : (state.sonando() ? 'En Pausa' : 'En Espera') }}
+          {{ state.reproduciendo() ? 'En Vivo · Reproduciendo' : (state.sonando() ? (player.cargando() ? 'Cargando video...' : 'En Pausa') : 'En Espera') }}
         </span>
         <p class="status-msg">
           @if (state.sonando(); as s) {
