@@ -196,7 +196,7 @@
     margin: 16px 0 18px;
     background: linear-gradient(135deg, rgba(20, 20, 25, 0.95), rgba(15, 15, 18, 0.98));
     border: 1px solid rgba(212, 170, 67, 0.35);
-    border-radius: 18px;
+    border-radius: 12px;
     padding: 12px 14px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
@@ -218,7 +218,7 @@
     font-size: 10px;
     font-weight: 800;
     padding: 2px 7px;
-    border-radius: 999px;
+    border-radius: 6px;
     letter-spacing: 0.5px;
 }
 
@@ -343,14 +343,14 @@
     letter-spacing: -0.2px;
 }
 
-.sub-badge {
+.count-badge {
     font-size: 11px;
     font-weight: 700;
-    color: var(--c-gold);
-    background: rgba(212, 170, 67, 0.12);
-    border: 1px solid rgba(212, 170, 67, 0.35);
-    padding: 2px 8px;
-    border-radius: 999px;
+    color: #1a1202;
+    background: linear-gradient(180deg, #fceda2 0%, #dfb752 50%, #c9982a 100%);
+    padding: 2px 7px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* =========================================================
@@ -391,7 +391,7 @@
 .vacio-card {
     background: #141418;
     border: 1px dashed rgba(212, 170, 67, 0.35);
-    border-radius: 20px;
+    border-radius: 12px;
     padding: 26px 18px;
     text-align: center;
     display: flex;
@@ -468,7 +468,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--c-text2);
     padding: 6px 14px;
-    border-radius: 999px;
+    border-radius: 8px;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -495,7 +495,7 @@
     border: 1px solid rgba(212, 170, 67, 0.3);
     color: var(--c-gold);
     padding: 6px 14px;
-    border-radius: 999px;
+    border-radius: 8px;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
