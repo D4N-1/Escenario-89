@@ -17,15 +17,48 @@ function guardarStorage(clave: string, valor: any) {
   } catch {}
 }
 
+function obtenerHoraActual(): string {
+  try {
+    return new Date().toLocaleTimeString('es', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    const d = new Date();
+    let h = d.getHours();
+    const m = d.getMinutes().toString().padStart(2, '0');
+    const ampm = h >= 12 ? 'p. m.' : 'a. m.';
+    h = h % 12 || 12;
+    return `${h}:${m} ${ampm}`;
+  }
+}
+
 /** true = arranca con datos de ejemplo; false = todo vacío (producción) */
 const USAR_MOCK = false;
 
 @Injectable({ providedIn: 'root' })
 export class AppState {
   nombreLocal = signal('Escenario 89');
-  hora = signal('5:33 p. m.');
+  hora = signal(obtenerHoraActual());
   estado = signal<EstadoLocal>(leerStorage<EstadoLocal>('e89_estado_local', 'abierto'));
   horaCierre = signal<string>(leerStorage<string>('e89_hora_cierre', '3:00 am'));
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      const ahora = new Date();
+      // Milisegundos exactos que faltan para el segundo :00 del siguiente minuto
+      const msHastaSiguienteMinuto = (60 - ahora.getSeconds()) * 1000 - ahora.getMilliseconds();
+
+      setTimeout(() => {
+        this.hora.set(obtenerHoraActual());
+        // A partir de alinearse al minuto exacto, se actualiza solo una vez cada 60 segundos
+        setInterval(() => {
+          this.hora.set(obtenerHoraActual());
+        }, 60_000);
+      }, Math.max(100, msHastaSiguienteMinuto));
+    }
+  }
 
   setEstado(nuevo: EstadoLocal) {
     this.estado.set(nuevo);
