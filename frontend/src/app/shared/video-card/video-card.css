@@ -18,7 +18,7 @@
     color: inherit;
     background: #151518;
     border: 1px solid rgba(212, 170, 67, 0.25);
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
     transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
@@ -161,7 +161,7 @@
     border: 1px solid var(--c-gold-border);
     color: var(--c-gold);
     padding: 6px 10px;
-    border-radius: 10px;
+    border-radius: 8px;
     font-size: 11px;
     font-weight: 700;
     flex: none;
@@ -175,7 +175,7 @@
 
 /* Compact (Carrusel) */
 .compact {
-    border-radius: 14px;
+    border-radius: 10px;
 }
 
 .compact-info {
@@ -207,7 +207,7 @@
     font-size: 11px;
     font-weight: 700;
     padding: 3px 8px;
-    border-radius: 999px;
+    border-radius: 6px;
 }
 
 .pos-now {

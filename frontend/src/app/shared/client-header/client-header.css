@@ -92,35 +92,31 @@ h1 {
     gap: 6px;
     font-size: 11px;
     font-weight: 700;
-    color: var(--c-gold);
-    background: rgba(212, 170, 67, 0.12);
-    border: 1px solid var(--c-gold-border);
-    border-radius: 999px;
-    padding: 5px 10px;
-    box-shadow: 0 0 8px rgba(242, 206, 100, 0.15);
+    color: #1a1202;
+    background: linear-gradient(180deg, #fceda2 0%, #dfb752 50%, #c9982a 100%);
+    border: 1px solid rgba(255, 238, 170, 0.45);
+    border-radius: 8px;
+    padding: 5px 11px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.55);
     white-space: nowrap;
     text-decoration: none;
 }
 
 .mesa-dot {
-    width: 7px;
-    height: 7px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
-    background: var(--c-green-light);
-    box-shadow: 0 0 6px var(--c-green-light);
+    background: #15803d;
     display: inline-block;
-    animation: pulse 2s infinite ease-in-out;
 }
 
 .mesa-badge.libre {
-    color: var(--c-text2);
-    border-color: rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.05);
-    font-size: 10px;
-    padding: 5px 8px;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(0.85); }
+    color: var(--c-gold);
+    border: 1px solid rgba(212, 170, 67, 0.35);
+    background: #18181d;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    box-shadow: none;
 }
