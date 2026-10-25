@@ -1,5 +1,5 @@
 <div class="head">
-  <span class="crumb">Panel principal › Audios</span>
+  <span class="crumb">Panel principal › <b>Audios</b></span>
   <span class="clock">{{ state.hora() }}</span>
 </div>
 
@@ -11,17 +11,79 @@
 }
 
 <div class="page">
-  <div class="title">
+  <div class="title-row">
     <div>
       <h1>Audios</h1>
       <p>Selecciona un audio o cuña para reproducir en tiempo real o programarlo entre canciones.</p>
     </div>
-    <a class="btn-gold" routerLink="/admin/anuncios/nuevo">
-      <app-icon name="add" [size]="16" /> Subir audio o anuncio
-    </a>
+    <button type="button" class="btn-gold" (click)="abrirModal()" id="btn-subir-audio">
+      <app-icon name="add" [size]="16" /> Subir audio o cuña
+    </button>
   </div>
 
+  <!-- Barra de previsualización en vivo (cuando se reproduce un elemento) -->
+  @if (itemSonando(); as s) {
+    <div class="preview-bar">
+      <div class="preview-info">
+        <div class="preview-badge">
+          <span class="pulse-dot"></span> SONANDO
+        </div>
+        <div class="preview-text">
+          <b>{{ s.title }}</b>
+          <small>{{ s.description || 'Pausa publicitaria / Cuña del local' }}</small>
+        </div>
+      </div>
+
+      <div class="preview-progress">
+        <span class="time-label">{{ formatearTiempo(tiempoActual()) }}</span>
+        <div class="progress-track" (click)="onSeek($event)">
+          <div class="progress-fill" [style.width.%]="progreso()"></div>
+        </div>
+        <span class="time-label">{{ formatearTiempo(duracion()) }}</span>
+      </div>
+
+      <button type="button" class="btn-stop" (click)="detener()" title="Detener reproducción">
+        <app-icon name="stop" [size]="16" />
+      </button>
+    </div>
+  }
+
   <div class="card">
+    <div class="tabs">
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="filtroActivo() === 'todos'"
+        (click)="filtroActivo.set('todos')"
+      >
+        Todos <sup>{{ total() }}</sup>
+      </button>
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="filtroActivo() === 'activos'"
+        (click)="filtroActivo.set('activos')"
+      >
+        Activos <sup>{{ activos() }}</sup>
+      </button>
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="filtroActivo() === 'programados'"
+        (click)="filtroActivo.set('programados')"
+      >
+        Programados <sup>{{ programados() }}</sup>
+      </button>
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="filtroActivo() === 'inactivos'"
+        (click)="filtroActivo.set('inactivos')"
+      >
+        Inactivos <sup>{{ inactivos() }}</sup>
+      </button>
+    </div>
+
     <div class="tools">
       <div class="search">
         <app-icon name="search" [size]="16" />
@@ -37,7 +99,13 @@
         }
       </div>
 
-      <button type="button" class="filter" (click)="intermissions.cargar()" [disabled]="intermissions.cargando()">
+      <button
+        type="button"
+        class="filter"
+        (click)="intermissions.cargar()"
+        [disabled]="intermissions.cargando()"
+        title="Actualizar lista del servidor"
+      >
         <app-icon name="swap" [size]="14" />
         <span>{{ intermissions.cargando() ? 'Cargando...' : 'Actualizar' }}</span>
       </button>
@@ -61,19 +129,19 @@
       </thead>
       <tbody>
         @for (a of items(); track a.uuid) {
-          <tr [style.background]="reproduciendoUuid() === a.uuid ? '#2c291c' : ''">
+          <tr [class.sonando]="reproduciendoUuid() === a.uuid">
             <td>
               <div class="who">
                 @if (a.image) {
                   <img [src]="a.image" alt="" class="img-thumb" />
                 } @else {
-                  <div class="img icon-thumb">
-                    <app-icon name="mic" [size]="18" />
+                  <div class="icon-thumb">
+                    <app-icon name="mic" [size]="20" />
                   </div>
                 }
                 <div class="who-text">
                   <b>{{ a.title }}</b>
-                  <small>{{ a.description || 'Cuña / audio del local' }}</small>
+                  <small>{{ a.description || 'Pausa publicitaria / Cuña del local' }}</small>
                 </div>
               </div>
             </td>
@@ -96,8 +164,7 @@
               <button
                 type="button"
                 class="act-btn"
-                [style.background]="reproduciendoUuid() === a.uuid ? 'var(--c-gold)' : ''"
-                [style.color]="reproduciendoUuid() === a.uuid ? '#000' : ''"
+                [class.active-play]="reproduciendoUuid() === a.uuid"
                 [title]="reproduciendoUuid() === a.uuid ? 'Detener reproducción' : 'Reproducir ahora en vivo'"
                 (click)="togglePlay(a)"
               >
@@ -127,7 +194,7 @@
               @if (intermissions.cargando()) {
                 Cargando audios...
               } @else {
-                No hay audios registrados todavía. Sube un archivo de audio o video usando el botón "Subir audio o anuncio".
+                No hay elementos registrados todavía en intermission. Usa el botón "Subir audio o cuña" para agregar uno.
               }
             </td>
           </tr>
@@ -149,3 +216,145 @@
     </div>
   </div>
 </div>
+
+<!-- MODAL: SUBIR AUDIO O CUÑA A INTERMISSION -->
+@if (modalSubir()) {
+  <div class="modal-overlay" (click)="cerrarModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <h2>
+          <app-icon name="upload" [size]="18" /> Subir audio o cuña
+        </h2>
+        <button type="button" class="btn-icon" (click)="cerrarModal()" title="Cerrar">
+          <app-icon name="close" [size]="16" />
+        </button>
+      </div>
+
+      <div class="modal-body">
+        @if (formError()) {
+          <div class="error-box">
+            <app-icon name="close" [size]="14" />
+            <span>{{ formError() }}</span>
+          </div>
+        }
+
+        <!-- Archivo -->
+        <div class="form-group">
+          <label>Archivo (.mp3, .wav, .ogg, .mp4, etc.):</label>
+          <label class="dropzone" [class.has-file]="!!formFile()">
+            <input
+              type="file"
+              class="file-hidden"
+              accept="audio/*,video/*,.mp3,.wav,.ogg,.aac,.m4a,.flac,.mp4,.webm"
+              (change)="onFileChange($event)"
+            />
+            @if (formFile(); as f) {
+              <div class="file-info">
+                <app-icon name="music" [size]="22" />
+                <span class="file-name">{{ f.name }}</span>
+                <span class="file-size">{{ formatearBytes(f.size) }}</span>
+              </div>
+              <small class="file-hint">Clic para cambiar de archivo</small>
+            } @else {
+              <div class="drop-icon"><app-icon name="upload" [size]="22" /></div>
+              <b>Selecciona o arrastra el archivo aquí</b>
+              <small>Admite audio y video para pausas publicitarias</small>
+            }
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label>Título:</label>
+          <input
+            type="text"
+            class="input-dark"
+            [ngModel]="formTitle()"
+            (ngModelChange)="formTitle.set($event)"
+            placeholder="Ej. La hora del brindis / Promoción 2x1"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Descripción (opcional):</label>
+          <input
+            type="text"
+            class="input-dark"
+            [ngModel]="formDescription()"
+            (ngModelChange)="formDescription.set($event)"
+            placeholder="Ej. Cuña oficial del bar para la medianoche"
+          />
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Hora de inicio:</label>
+            <input
+              type="time"
+              class="input-dark"
+              [ngModel]="formStartTime()"
+              (ngModelChange)="formStartTime.set($event)"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>Hora de fin:</label>
+            <input
+              type="time"
+              class="input-dark"
+              [ngModel]="formEndTime()"
+              (ngModelChange)="formEndTime.set($event)"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="check-row">
+            <input
+              type="checkbox"
+              [ngModel]="formConFrecuencia()"
+              (ngModelChange)="formConFrecuencia.set($event)"
+            />
+            <span>Emitir periódicamente entre canciones</span>
+          </label>
+          @if (formConFrecuencia()) {
+            <div class="freq-box">
+              <span>Cada</span>
+              <input
+                type="number"
+                min="1"
+                max="50"
+                class="input-dark input-num"
+                [ngModel]="formEverySongs()"
+                (ngModelChange)="formEverySongs.set($event)"
+              />
+              <span>canciones finalizadas</span>
+            </div>
+          }
+        </div>
+
+        <div class="form-group">
+          <label class="check-row">
+            <input
+              type="checkbox"
+              [ngModel]="formActive()"
+              (ngModelChange)="formActive.set($event)"
+            />
+            <span>Activar inmediatamente al subir</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn-cancel" (click)="cerrarModal()" [disabled]="subiendo()">
+          Cancelar
+        </button>
+        <button type="button" class="btn-gold" (click)="guardarAudio()" [disabled]="subiendo()">
+          <app-icon name="check" [size]="16" />
+          <span>{{ subiendo() ? 'Subiendo...' : 'Guardar y Publicar' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}

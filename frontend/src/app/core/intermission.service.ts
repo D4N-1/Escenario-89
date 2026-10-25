@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { environment } from '../../environments/environment';
 import { ApiService } from './api.service';
 import { AppState } from './app-state';
 import { Anuncio, AudioItem, EstadoAnuncio, IntermissionItem } from './models';
@@ -26,8 +27,9 @@ export class IntermissionService {
   error = signal('');
   ultimoMensaje = signal('');
 
-  anuncios = computed(() => this.items());
+  anuncios = computed(() => this.items().filter(i => !this.esAudio(i)));
   audios = computed(() => this.items().filter(i => this.esAudio(i)));
+  todosLosItems = computed(() => this.items());
 
   constructor() {
     // Escuchar eventos de intermission emitidos por el websocket
@@ -41,7 +43,9 @@ export class IntermissionService {
 
   esAudio(item: IntermissionItem): boolean {
     const ext = item.url?.split('.').pop()?.toLowerCase() ?? '';
-    return ['mp3', 'wav', 'ogg', 'aac', 'm4a', 'flac'].includes(ext);
+    if (['mp3', 'wav', 'ogg', 'aac', 'm4a', 'flac', 'weba', 'opus'].includes(ext)) return true;
+    if (!item.image && !['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(ext)) return true;
+    return false;
   }
 
   calcularEstado(item: IntermissionItem): EstadoAnuncio {
@@ -52,8 +56,16 @@ export class IntermissionService {
 
   resolverUrl(path: string | undefined): string {
     if (!path) return '';
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    const base = typeof window !== 'undefined' ? `http://${window.location.hostname || 'localhost'}:3000` : 'http://localhost:3000';
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:') || path.startsWith('data:')) return path;
+    let base = 'http://localhost:3000';
+    try {
+      if (environment?.apiUrl) {
+        const u = new URL(environment.apiUrl);
+        base = u.origin;
+      }
+    } catch {
+      base = environment?.apiUrl ? environment.apiUrl.replace(/\/api\/?$/, '') : base;
+    }
     return `${base}${path.startsWith('/') ? '' : '/'}${path}`;
   }
 
