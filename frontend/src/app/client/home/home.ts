@@ -4,6 +4,7 @@ import { Icon } from '../../shared/icon/icon';
 import { ClientHeader } from '../../shared/client-header/client-header';
 import { VideoCard } from '../../shared/video-card/video-card';
 import { ConfirmDialog } from '../../shared/confirm-dialog/confirm-dialog';
+import { ClientFooter } from '../../shared/client-footer/client-footer';
 import { AppState } from '../../core/app-state';
 import { BarService } from '../../core/bar.service';
 import { Video } from '../../core/models';
@@ -11,7 +12,7 @@ import { QueueService } from '../../core/queue.service';
 
 @Component({
   selector: 'app-home',
-  imports: [Icon, ClientHeader, VideoCard, ConfirmDialog],
+  imports: [Icon, ClientHeader, VideoCard, ConfirmDialog, ClientFooter],
   templateUrl: './home.html',
   styleUrl: './home.css',
 })

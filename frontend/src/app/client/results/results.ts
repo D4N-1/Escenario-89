@@ -3,13 +3,14 @@ import { Icon } from '../../shared/icon/icon';
 import { ClientHeader } from '../../shared/client-header/client-header';
 import { VideoCard } from '../../shared/video-card/video-card';
 import { ConfirmDialog } from '../../shared/confirm-dialog/confirm-dialog';
+import { ClientFooter } from '../../shared/client-footer/client-footer';
 import { AppState } from '../../core/app-state';
 import { YoutubeService } from '../../core/youtube.service';
 import { Video } from '../../core/models';
 
 @Component({
   selector: 'app-results',
-  imports: [Icon, ClientHeader, VideoCard, ConfirmDialog],
+  imports: [Icon, ClientHeader, VideoCard, ConfirmDialog, ClientFooter],
   templateUrl: './results.html',
   styleUrl: '../home/home.css',
 })
