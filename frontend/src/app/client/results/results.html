@@ -32,15 +32,6 @@
       }
       <button type="button" class="pill-btn" [disabled]="state.estado() === 'cerrado'" aria-label="Buscar" (click)="buscar(q.value)"><app-icon name="search" /></button>
     </div>
-
-    <div class="filtros-tabs">
-      <button type="button" class="tab-btn" [class.activo]="filtro() === 'todos'" (click)="setFiltro('todos')">
-        Todos los resultados
-      </button>
-      <button type="button" class="tab-btn" [class.activo]="filtro() === 'karaoke'" (click)="setFiltro('karaoke')">
-        Solo Karaoke
-      </button>
-    </div>
   </div>
 
   <section class="lista">
@@ -69,7 +60,7 @@
         </div>
       </div>
     } @else {
-      @for (v of resultadosFiltrados(); track v.id) {
+      @for (v of resultados(); track v.id) {
         <app-video-card [video]="v" (click)="seleccionar(v)" />
       } @empty {
         <div class="estado-mensaje">

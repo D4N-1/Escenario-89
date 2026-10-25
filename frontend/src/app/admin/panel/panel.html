@@ -61,6 +61,13 @@
       </div>
     }
 
+    @if (state.estado() !== 'cerrado' && state.sonando() && player.necesitaInteraccion() && player.muteado()) {
+      <div class="stage-unmute-banner" (click)="player.desbloquearAudio()" title="Haz clic para activar el audio">
+        <app-icon name="volume" [size]="18" />
+        <span>Audio silenciado por el navegador · Haz clic para activar el sonido</span>
+      </div>
+    }
+
     <div class="stage-overlay">
       @if (state.estado() === 'cerrado') {
         <span class="status-pill cerrado">● Estado: Cerrado</span>
@@ -75,8 +82,8 @@
           }
         </p>
       } @else {
-        <span class="status-pill" [class.abierto]="state.reproduciendo()">
-          {{ state.reproduciendo() ? 'En Vivo · Reproduciendo' : (state.sonando() ? 'En Pausa' : 'En Espera') }}
+        <span class="status-pill" [class.abierto]="state.reproduciendo() && !player.muteado()">
+          {{ state.reproduciendo() ? (player.muteado() ? 'En Vivo · Audio en espera' : 'En Vivo · Reproduciendo') : (state.sonando() ? 'En Pausa' : 'En Espera') }}
         </span>
         <p class="status-msg">
           @if (state.sonando(); as s) {

@@ -18,6 +18,7 @@ export interface PlayerBroadcastMessage {
   song?: Cancion | null;
   time?: number;
   playing?: boolean;
+  sentAt?: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -38,6 +39,13 @@ export class PlayerService {
   private apiLoadedPromise: Promise<void> | null = null;
   private channel: BroadcastChannel | null = null;
   private role: PlayerRole = 'admin';
+  private lastSyncSeekTime = 0;
+  private currentPlaybackRate = 1.0;
+  private lastAdminTime = 0;
+  private lastAdminTimeAt = 0;
+  private initialSyncDone = false;
+  private listenerInteraccion: (() => void) | null = null;
+  private timeoutAutoplay: any = null;
 
   progreso = signal<number>(0);
   tiempoSegundos = signal<number>(0);
@@ -85,6 +93,31 @@ export class PlayerService {
     this.role = r;
   }
 
+  private setSpeed(desiredRate: number) {
+    if (this.currentPlaybackRate === desiredRate) return;
+    if (!this.player || typeof this.player.setPlaybackRate !== 'function') return;
+
+    try {
+      let rateToSet = desiredRate;
+      if (typeof this.player.getAvailablePlaybackRates === 'function') {
+        const available: number[] = this.player.getAvailablePlaybackRates();
+        if (Array.isArray(available) && available.length > 0) {
+          if (!available.includes(desiredRate)) {
+            if (desiredRate > 1.0) {
+              const higher = available.filter((r) => r > 1.0).sort((a, b) => a - b);
+              rateToSet = higher[0] || 1.0;
+            } else if (desiredRate < 1.0) {
+              const lower = available.filter((r) => r < 1.0).sort((a, b) => b - a);
+              rateToSet = lower[0] || 1.0;
+            }
+          }
+        }
+      }
+      this.player.setPlaybackRate(rateToSet);
+      this.currentPlaybackRate = rateToSet;
+    } catch { }
+  }
+
   private iniciarBroadcastChannel() {
     if (typeof BroadcastChannel === 'undefined') return;
     this.channel = new BroadcastChannel('escenario89_player');
@@ -95,36 +128,94 @@ export class PlayerService {
       if (this.role === 'pantalla') {
         if (msg.type === 'CHANGE_SONG') {
           this.state.sonando.set(msg.song ?? null);
+          this.initialSyncDone = false;
+          this.setSpeed(1.0);
           if (msg.song) {
             this.cargarCancion(msg.song, msg.playing ?? true, 0);
           } else if (this.player && typeof this.player.stopVideo === 'function') {
             this.player.stopVideo();
           }
         } else if (msg.type === 'PLAY') {
+          this.setSpeed(1.0);
           if (typeof msg.time === 'number') {
-            const diff = Math.abs(this.tiempoSegundos() - msg.time);
-            if (diff > 1.2) {
+            let curTime = this.tiempoSegundos();
+            if (this.player && typeof this.player.getCurrentTime === 'function') {
+              try {
+                const live = this.player.getCurrentTime();
+                if (typeof live === 'number' && !isNaN(live) && live >= 0) curTime = live;
+              } catch { }
+            }
+            const diff = Math.abs(curTime - msg.time);
+            if (diff > 0.4) {
+              this.lastSyncSeekTime = Date.now();
               this.seekTo(msg.time, false);
             }
           }
           this.play(false);
         } else if (msg.type === 'PAUSE') {
+          this.setSpeed(1.0);
           if (typeof msg.time === 'number') {
+            this.lastSyncSeekTime = Date.now();
             this.seekTo(msg.time, false);
           }
           this.pause(false);
         } else if (msg.type === 'SEEK' && typeof msg.time === 'number') {
+          this.lastSyncSeekTime = Date.now();
+          this.setSpeed(1.0);
           this.seekTo(msg.time, false);
         } else if (msg.type === 'SYNC_STATE') {
           if (msg.song) {
+            this.lastAdminTime = msg.time ?? 0;
+            this.lastAdminTimeAt = Date.now();
+            this.initialSyncDone = false;
+            this.setSpeed(1.0);
             this.state.sonando.set(msg.song);
             this.cargarCancion(msg.song, msg.playing ?? true, msg.time ?? 0);
           }
         } else if (msg.type === 'TIME_SYNC') {
           if (typeof msg.time === 'number') {
-            const curTime = this.tiempoSegundos();
-            if (Math.abs(curTime - msg.time) > 1.2) {
-              this.seekTo(msg.time, false);
+            const now = Date.now();
+            this.lastAdminTime = msg.time;
+            this.lastAdminTimeAt = now;
+
+            let playerState = -1;
+            if (this.player && typeof this.player.getPlayerState === 'function') {
+              try { playerState = this.player.getPlayerState(); } catch { }
+            }
+
+            if (this.player && playerState === 1) {
+              let curTime = this.tiempoSegundos();
+              if (typeof this.player.getCurrentTime === 'function') {
+                try {
+                  const live = this.player.getCurrentTime();
+                  if (typeof live === 'number' && !isNaN(live) && live >= 0) {
+                    curTime = live;
+                  }
+                } catch { }
+              }
+
+              const transit = Math.max(0, (now - (msg.sentAt || now)) / 1000);
+              const targetTime = msg.time + transit;
+              const diff = targetTime - curTime;
+              const absDiff = Math.abs(diff);
+
+              if (absDiff > 2.0) {
+                if (now - this.lastSyncSeekTime > 3000) {
+                  this.lastSyncSeekTime = now;
+                  this.setSpeed(1.0);
+                  this.seekTo(targetTime + 0.25, false);
+                }
+              } else if (diff > 0.8) {
+                this.setSpeed(1.5);
+              } else if (diff > 0.15) {
+                this.setSpeed(1.25);
+              } else if (diff < -0.8) {
+                this.setSpeed(0.5);
+              } else if (diff < -0.15) {
+                this.setSpeed(0.75);
+              } else {
+                this.setSpeed(1.0);
+              }
             }
           }
           if (msg.playing && !this.state.reproduciendo()) {
@@ -140,6 +231,7 @@ export class PlayerService {
             song: this.state.sonando(),
             time: this.tiempoSegundos(),
             playing: this.state.reproduciendo(),
+            sentAt: Date.now(),
           });
         }
       }
@@ -330,9 +422,9 @@ export class PlayerService {
                   this.muteado.set(false);
                   event.target.setVolume(this.volumen());
                   event.target.playVideo();
-                  this.state.reproduciendo.set(true);
                   this.necesitaInteraccion.set(false);
                 } catch { }
+                this.intentarAutoplay();
               }
 
               this.desactivarSubtitulos();
@@ -371,26 +463,108 @@ export class PlayerService {
   }
 
   private onPlayerStateChange(stateCode: number) {
-    
     if (stateCode === 1) { // PLAYING
       this.desactivarSubtitulos();
       this.state.reproduciendo.set(true);
       this.cargando.set(false);
       this.iniciarTicker();
+      if (!this.muteado()) {
+        this.necesitaInteraccion.set(false);
+        this.removerDesbloqueoInteraccion();
+      }
+
+      if (this.role === 'pantalla' && !this.initialSyncDone) {
+        this.initialSyncDone = true;
+        if (this.lastAdminTime > 1.0) {
+          const elapsed = (Date.now() - this.lastAdminTimeAt) / 1000;
+          const target = this.lastAdminTime + elapsed + 0.25;
+          let live = this.tiempoSegundos();
+          try {
+            const t = this.player?.getCurrentTime();
+            if (typeof t === 'number' && !isNaN(t) && t >= 0) live = t;
+          } catch { }
+
+          if (Math.abs(target - live) > 0.8) {
+            this.lastSyncSeekTime = Date.now();
+            this.seekTo(target, false);
+          }
+        }
+      }
     } else if (stateCode === 2) { // PAUSED
       this.state.reproduciendo.set(false);
       this.cargando.set(false);
       this.detenerTicker();
+      if (this.role === 'pantalla') {
+        this.setSpeed(1.0);
+      }
     } else if (stateCode === 0) { // ENDED
       this.detenerTicker();
       this.state.reproduciendo.set(false);
       this.cargando.set(false);
+      if (this.role === 'pantalla') {
+        this.setSpeed(1.0);
+      }
       this.next();
     } else if (stateCode === 3) { // BUFFERING
       this.cargando.set(true);
-    } else if (stateCode === 5) { // CUED
+    } else if (stateCode === 5 || stateCode === -1) { // CUED or UNSTARTED
+      this.state.reproduciendo.set(false);
       this.cargando.set(false);
+      this.detenerTicker();
+      if (this.role === 'admin' && this.state.sonando()) {
+        this.intentarAutoplay();
+      }
     }
+  }
+
+  registrarDesbloqueoInteraccion() {
+    if (typeof window === 'undefined' || this.listenerInteraccion) return;
+    this.listenerInteraccion = () => {
+      this.removerDesbloqueoInteraccion();
+      if (this.role === 'admin' && this.state.sonando()) {
+        this.desbloquearAudio();
+      }
+    };
+    window.addEventListener('click', this.listenerInteraccion, { capture: true });
+    window.addEventListener('keydown', this.listenerInteraccion, { capture: true });
+  }
+
+  private removerDesbloqueoInteraccion() {
+    if (typeof window === 'undefined' || !this.listenerInteraccion) return;
+    window.removeEventListener('click', this.listenerInteraccion, { capture: true });
+    window.removeEventListener('keydown', this.listenerInteraccion, { capture: true });
+    this.listenerInteraccion = null;
+  }
+
+  private intentarAutoplay() {
+    if (this.role !== 'admin' || !this.state.sonando() || !this.player) return;
+
+    if (this.timeoutAutoplay) {
+      clearTimeout(this.timeoutAutoplay);
+      this.timeoutAutoplay = null;
+    }
+
+    try {
+      this.player.unMute();
+      this.player.setVolume(this.volumen() || 100);
+      this.player.playVideo();
+    } catch { }
+
+    this.timeoutAutoplay = setTimeout(() => {
+      if (this.role === 'admin' && this.state.sonando() && this.player) {
+        let st = -1;
+        try { st = this.player.getPlayerState(); } catch { }
+        if (st !== 1 && st !== 3) {
+          try {
+            this.player.mute();
+            this.muteado.set(true);
+            this.player.playVideo();
+            this.necesitaInteraccion.set(true);
+            this.registrarDesbloqueoInteraccion();
+          } catch { }
+        }
+      }
+    }, 450);
   }
 
   private async handlePlayerError(code: number) {
@@ -455,14 +629,12 @@ export class PlayerService {
       this.progreso.set(Math.min(100, Math.max(0, pct)));
 
       if (this.role === 'admin' && this.state.reproduciendo()) {
-        this.syncTick = (this.syncTick + 1) % 4;
-        if (this.syncTick === 0) {
-          this.broadcast({
-            type: 'TIME_SYNC',
-            time: cur,
-            playing: true,
-          });
-        }
+        this.broadcast({
+          type: 'TIME_SYNC',
+          time: cur,
+          playing: true,
+          sentAt: Date.now(),
+        });
       }
     } catch { }
   }
@@ -475,6 +647,8 @@ export class PlayerService {
   }
 
   async cargarCancion(cancion: Cancion, autoplay = true, startSeconds = 0) {
+    this.initialSyncDone = false;
+    this.currentPlaybackRate = 1.0;
     let vId = cancion.videoId;
 
     if (!vId) {
@@ -502,8 +676,15 @@ export class PlayerService {
 
     if (this.currentVideoId === vId && this.listo() && this.player) {
       if (typeof startSeconds === 'number' && startSeconds > 0) {
-        const cur = this.tiempoSegundos();
-        if (Math.abs(cur - startSeconds) > 1.2) {
+        let cur = this.tiempoSegundos();
+        if (typeof this.player.getCurrentTime === 'function') {
+          try {
+            const live = this.player.getCurrentTime();
+            if (typeof live === 'number' && !isNaN(live) && live >= 0) cur = live;
+          } catch { }
+        }
+        if (Math.abs(cur - startSeconds) > 0.5) {
+          this.lastSyncSeekTime = Date.now();
           this.seekTo(startSeconds, false);
         }
       }
@@ -536,7 +717,9 @@ export class PlayerService {
 
         if (autoplay) {
           this.player.loadVideoById({ videoId: vId, startSeconds });
-          this.state.reproduciendo.set(true);
+          if (this.role === 'admin') {
+            this.intentarAutoplay();
+          }
         } else {
           this.player.cueVideoById({ videoId: vId, startSeconds });
           this.state.reproduciendo.set(false);
@@ -585,6 +768,7 @@ export class PlayerService {
   }
 
   desbloquearAudio() {
+    this.removerDesbloqueoInteraccion();
     this.necesitaInteraccion.set(false);
     if (this.player) {
       try {
@@ -595,6 +779,13 @@ export class PlayerService {
           this.player.setVolume(this.volumen() || 100);
         }
         this.muteado.set(false);
+
+        let cur = 0;
+        try { cur = this.player.getCurrentTime() || 0; } catch { }
+        if (cur > 0 && cur < 4) {
+          try { this.player.seekTo(0, true); } catch { }
+        }
+
         if (typeof this.player.playVideo === 'function') {
           this.player.playVideo();
         }
@@ -752,6 +943,11 @@ export class PlayerService {
   }
 
   destruir() {
+    this.removerDesbloqueoInteraccion();
+    if (this.timeoutAutoplay) {
+      clearTimeout(this.timeoutAutoplay);
+      this.timeoutAutoplay = null;
+    }
     this.detenerTicker();
     if (this.player) {
       try { this.player.destroy(); } catch { }
@@ -760,5 +956,7 @@ export class PlayerService {
     this.listo.set(false);
     this.currentVideoId = '';
     this.loadingVideoId = '';
+    this.currentPlaybackRate = 1.0;
+    this.initialSyncDone = false;
   }
 }

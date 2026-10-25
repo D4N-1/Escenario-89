@@ -456,32 +456,6 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
-.filtros-tabs {
-    display: flex;
-    gap: 8px;
-    margin-top: 8px;
-    flex-wrap: wrap;
-}
-
-.tab-btn {
-    background: #18181c;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: var(--c-text2);
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.tab-btn.activo {
-    background: var(--c-gold);
-    color: #121008;
-    border-color: var(--c-gold);
-    font-weight: 700;
-}
-
 .chips-scroll {
     display: flex;
     gap: 8px;
