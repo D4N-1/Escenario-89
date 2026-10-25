@@ -254,7 +254,7 @@ export class QueueService {
             miniaturaTitulo: '',
             miniaturaSub: '',
             inicialesCanal: canal.slice(0, 2).toUpperCase() || 'YT',
-            segundos: s.seconds,
+                segundos: s.seconds,
             vistasNumero: views,
         };
     }
