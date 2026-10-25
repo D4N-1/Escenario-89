@@ -18,9 +18,9 @@
        [class.video-cerrando]="state.estado() === 'cerrando'"
        [class.video-cerrado]="state.estado() === 'cerrado'"
        ytSlot
-       [class.con-video]="!!state.sonando()?.videoId && state.estado() !== 'cerrado'"
+       [class.con-video]="!!state.sonando()?.videoId && state.estado() !== 'cerrado' && !player.karaokeIntroActivo()"
        (click)="onStageClick($event)">
-    @if (!player.intermissionActual()) {
+    @if (!player.intermissionActual() && !player.karaokeIntroActivo()) {
       <div class="stage-click-catcher" title="Haz clic en el escenario para reproducir o pausar"></div>
     }
 
@@ -29,6 +29,14 @@
         <div class="empty-icon closed-icon"><app-icon name="alert" [size]="48" /></div>
         <p class="empty-title">Local Cerrado</p>
         <span class="empty-sub">El local se encuentra cerrado. Todas las canciones han sido finalizadas y no se aceptan nuevos pedidos.</span>
+      </div>
+    } @else if (player.karaokeIntroActivo()) {
+      <div class="stage-karaoke-intro">
+        <div class="stage-intro-glow"></div>
+        <img src="logo.png" class="stage-intro-logo" alt="Escenario 89" />
+        <button type="button" class="btn-skip-intro" (click)="player.saltarKaraokeIntro()" title="Omitir audio e iniciar canción inmediatamente">
+          Omitir intro ⏭
+        </button>
       </div>
     } @else if (!state.sonando() && !player.intermissionActual()) {
       <div class="empty-stage">
@@ -40,7 +48,7 @@
       </div>
     }
 
-    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && state.sonando() && !state.reproduciendo() && !player.cargando()) {
+    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && state.sonando() && !state.reproduciendo() && !player.cargando()) {
       <div class="stage-play-prompt">
         <div class="stage-play-circle" title="Haz clic para reproducir">
           <app-icon name="play" [size]="38" />
@@ -49,28 +57,28 @@
       </div>
     }
 
-    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && player.cargando()) {
+    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && player.cargando()) {
       <div class="stage-status-overlay">
         <div class="stage-spinner"></div>
         <span>Cargando video de YouTube...</span>
       </div>
     }
 
-    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && player.error(); as err) {
+    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && player.error(); as err) {
       <div class="stage-error-banner">
         <app-icon name="alert" [size]="18" />
         <span>{{ err }}</span>
       </div>
     }
 
-    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && state.sonando() && player.necesitaInteraccion() && player.muteado()) {
+    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && state.sonando() && player.necesitaInteraccion() && player.muteado()) {
       <div class="stage-unmute-banner" (click)="player.desbloquearAudio()" title="Haz clic para activar el audio">
         <app-icon name="volume" [size]="18" />
         <span>Audio silenciado por el navegador · Haz clic para activar el sonido</span>
       </div>
     }
 
-    @if (!player.intermissionActual()) {
+    @if (!player.intermissionActual() && !player.karaokeIntroActivo()) {
       <div class="stage-overlay">
         @if (state.estado() === 'cerrado') {
           <span class="status-pill cerrado">● Estado: Cerrado</span>

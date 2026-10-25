@@ -16,13 +16,15 @@ declare global {
 export type PlayerRole = 'admin' | 'pantalla';
 
 export interface PlayerBroadcastMessage {
-  type: 'PLAY' | 'PAUSE' | 'CHANGE_SONG' | 'SEEK' | 'SYNC_STATE' | 'REQUEST_SYNC' | 'TIME_SYNC' | 'INTERMISSION_START' | 'INTERMISSION_END';
+  type: 'PLAY' | 'PAUSE' | 'CHANGE_SONG' | 'SEEK' | 'SYNC_STATE' | 'REQUEST_SYNC' | 'TIME_SYNC' | 'INTERMISSION_START' | 'INTERMISSION_END' | 'KARAOKE_INTRO_START' | 'KARAOKE_INTRO_END';
   song?: Cancion | null;
   time?: number;
   playing?: boolean;
   sentAt?: number;
   intermission?: IntermissionItem | null;
   resumeSong?: boolean;
+  audioIndex?: number;
+  karaokeIntro?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -51,6 +53,13 @@ export class PlayerService {
   private initialSyncDone = false;
   private listenerInteraccion: (() => void) | null = null;
   private timeoutAutoplay: any = null;
+
+  // Introducción karaoke tras canción normal
+  karaokeIntroActivo = signal<boolean>(false);
+  private cancionPrevia: Cancion | null = null;
+  private audioIntro: HTMLAudioElement | null = null;
+  private timeoutIntro: any = null;
+  private cancionIntroPendiente: Cancion | null = null;
 
   progreso = signal<number>(0);
   tiempoSegundos = signal<number>(0);
@@ -91,6 +100,9 @@ export class PlayerService {
         this.currentVideoId = '';
         this.loadingVideoId = '';
         this.pendingSong = null;
+        this.detenerAudioIntro();
+        this.karaokeIntroActivo.set(false);
+        this.cancionIntroPendiente = null;
         if (this.player && typeof this.player.stopVideo === 'function') {
           try { this.player.stopVideo(); } catch { }
         }
@@ -151,13 +163,16 @@ export class PlayerService {
           this.state.sonando.set(msg.song ?? null);
           this.initialSyncDone = false;
           this.setSpeed(1.0);
+          if (this.karaokeIntroActivo()) {
+            return;
+          }
           if (msg.song) {
             this.cargarCancion(msg.song, msg.playing ?? true, 0);
-          } else if (this.player && typeof this.player.stopVideo === 'function') {
-            this.player.stopVideo();
+          } else if (this.player && typeof this.player.pauseVideo === 'function') {
+            try { this.player.pauseVideo(); } catch { }
           }
         } else if (msg.type === 'PLAY') {
-          if (this.intermissionActual()) return;
+          if (this.intermissionActual() || this.karaokeIntroActivo()) return;
           this.setSpeed(1.0);
           if (typeof msg.time === 'number') {
             let curTime = this.tiempoSegundos();
@@ -183,7 +198,7 @@ export class PlayerService {
           }
           this.pause(false);
         } else if (msg.type === 'SEEK' && typeof msg.time === 'number') {
-          if (this.intermissionActual()) return;
+          if (this.intermissionActual() || this.karaokeIntroActivo()) return;
           this.lastSyncSeekTime = Date.now();
           this.setSpeed(1.0);
           this.seekTo(msg.time, false);
@@ -198,15 +213,41 @@ export class PlayerService {
               this.detenerTicker();
             }
           }
+          if (msg.karaokeIntro !== undefined) {
+            this.karaokeIntroActivo.set(msg.karaokeIntro);
+            if (msg.karaokeIntro) {
+              if (this.player && typeof this.player.pauseVideo === 'function') {
+                try { this.player.pauseVideo(); } catch { }
+              }
+              this.state.reproduciendo.set(false);
+              this.detenerTicker();
+            }
+          }
           if (msg.song) {
             this.lastAdminTime = msg.time ?? 0;
             this.lastAdminTimeAt = Date.now();
             this.initialSyncDone = false;
             this.setSpeed(1.0);
             this.state.sonando.set(msg.song);
-            if (!this.intermissionActual()) {
+            if (!this.intermissionActual() && !this.karaokeIntroActivo()) {
               this.cargarCancion(msg.song, msg.playing ?? true, msg.time ?? 0);
             }
+          }
+        } else if (msg.type === 'KARAOKE_INTRO_START') {
+          this.karaokeIntroActivo.set(true);
+          if (this.timeoutAutoplay) {
+            clearTimeout(this.timeoutAutoplay);
+            this.timeoutAutoplay = null;
+          }
+          if (this.player && typeof this.player.pauseVideo === 'function') {
+            try { this.player.pauseVideo(); } catch { }
+          }
+          this.state.reproduciendo.set(false);
+          this.detenerTicker();
+        } else if (msg.type === 'KARAOKE_INTRO_END') {
+          this.karaokeIntroActivo.set(false);
+          if (msg.song) {
+            this.ejecutarCargaCancion(msg.song, true, 0);
           }
         } else if (msg.type === 'INTERMISSION_START') {
           if (this.player && typeof this.player.pauseVideo === 'function') {
@@ -221,7 +262,7 @@ export class PlayerService {
             this.play(false);
           }
         } else if (msg.type === 'TIME_SYNC') {
-          if (this.intermissionActual()) return;
+          if (this.intermissionActual() || this.karaokeIntroActivo()) return;
           if (typeof msg.time === 'number') {
             const now = Date.now();
             this.lastAdminTime = msg.time;
@@ -282,6 +323,7 @@ export class PlayerService {
             playing: this.state.reproduciendo(),
             sentAt: Date.now(),
             intermission: this.intermissionActual(),
+            karaokeIntro: this.karaokeIntroActivo(),
           });
         }
       }
@@ -513,7 +555,7 @@ export class PlayerService {
   }
 
   private onPlayerStateChange(stateCode: number) {
-    if (this.intermissionActual()) {
+    if (this.intermissionActual() || this.karaokeIntroActivo()) {
       if (stateCode === 1) { // PLAYING
         try { this.player?.pauseVideo(); } catch { }
       }
@@ -569,7 +611,7 @@ export class PlayerService {
     } else if (stateCode === 5 || stateCode === -1) { // CUED or UNSTARTED
       this.cargando.set(false);
       this.detenerTicker();
-      if (this.role === 'admin' && this.state.sonando() && this.state.reproduciendo() && !this.intermissionActual()) {
+      if (this.role === 'admin' && this.state.sonando() && this.state.reproduciendo() && !this.intermissionActual() && !this.karaokeIntroActivo()) {
         this.intentarAutoplay();
       } else {
         this.state.reproduciendo.set(false);
@@ -580,7 +622,7 @@ export class PlayerService {
   registrarDesbloqueoInteraccion() {
     if (typeof window === 'undefined' || this.listenerInteraccion) return;
     this.listenerInteraccion = () => {
-      if (this.intermissionActual()) return;
+      if (this.intermissionActual() || this.karaokeIntroActivo()) return;
       this.removerDesbloqueoInteraccion();
       if (this.role === 'admin' && this.state.sonando() && this.state.reproduciendo()) {
         this.desbloquearAudio();
@@ -598,7 +640,7 @@ export class PlayerService {
   }
 
   private intentarAutoplay() {
-    if (this.intermissionActual()) return;
+    if (this.intermissionActual() || this.karaokeIntroActivo()) return;
     if (this.role !== 'admin' || !this.state.sonando() || !this.player) return;
     if (!this.state.reproduciendo() && !this.cargando()) return;
 
@@ -614,7 +656,7 @@ export class PlayerService {
     } catch { }
 
     this.timeoutAutoplay = setTimeout(() => {
-      if (this.role === 'admin' && this.state.sonando() && this.player && !this.intermissionActual() && this.state.reproduciendo()) {
+      if (this.role === 'admin' && this.state.sonando() && this.player && !this.intermissionActual() && !this.karaokeIntroActivo() && this.state.reproduciendo()) {
         let st = -1;
         try { st = this.player.getPlayerState(); } catch { }
         if (st !== 1 && st !== 3) {
@@ -710,8 +752,139 @@ export class PlayerService {
   }
 
   async cargarCancion(cancion: Cancion, autoplay = true, startSeconds = 0) {
+    // Si viene una canción de karaoke tras una canción normal (o inicio sin karaoke previo),
+    // se muestra la pantalla de fondo con logo y se reproduce uno de los 3 audios aleatoriamente
+    const esTransicionKaraoke =
+      this.role === 'admin' &&
+      autoplay &&
+      startSeconds === 0 &&
+      cancion.tipo === 'karaoke' &&
+      (!this.cancionPrevia || this.cancionPrevia.tipo !== 'karaoke') &&
+      !this.karaokeIntroActivo() &&
+      !this.intermissionActual();
+
+    if (esTransicionKaraoke) {
+      this.iniciarKaraokeIntro(cancion);
+      return;
+    }
+
+    await this.ejecutarCargaCancion(cancion, autoplay, startSeconds);
+  }
+
+  iniciarKaraokeIntro(cancion: Cancion) {
+    this.detenerAudioIntro();
+    if (this.timeoutAutoplay) {
+      clearTimeout(this.timeoutAutoplay);
+      this.timeoutAutoplay = null;
+    }
+    this.cancionIntroPendiente = cancion;
+    this.karaokeIntroActivo.set(true);
+    this.state.reproduciendo.set(false);
+    this.detenerTicker();
+
+    // Pausar inmediatamente cualquier video previo que estuviera en pantalla
+    if (this.player && typeof this.player.pauseVideo === 'function') {
+      try { this.player.pauseVideo(); } catch { }
+    }
+
+    // Pre-buscar videoId si no está resuelto para no demorar cuando termine el audio
+    if (!cancion.videoId) {
+      const query = `${cancion.titulo} ${cancion.artista}`.trim();
+      this.yt.buscar(query).then((resultados) => {
+        if (resultados.length > 0) {
+          cancion.videoId = resultados[0].id;
+          cancion.miniatura = resultados[0].miniatura;
+        }
+      }).catch(() => {});
+    }
+
+    // Elegir aleatoriamente uno de los 3 audios: karaoke_01, karaoke_02, karaoke_03
+    const audioIndex = Math.floor(Math.random() * 3) + 1;
+    const audioUrl = `/karaoke_0${audioIndex}.mp3`;
+
+    this.broadcast({
+      type: 'KARAOKE_INTRO_START',
+      audioIndex,
+      song: cancion,
+    });
+
+    try {
+      this.audioIntro = new Audio(audioUrl);
+      this.audioIntro.volume = this.muteado() ? 0 : (this.volumen() || 100) / 100;
+
+      let finalizado = false;
+      const finalizar = () => {
+        if (finalizado) return;
+        finalizado = true;
+        this.finalizarKaraokeIntro(cancion);
+      };
+
+      this.audioIntro.onended = finalizar;
+      this.audioIntro.onerror = (e) => {
+        console.warn('Error al reproducir audio intro karaoke:', e);
+        finalizar();
+      };
+
+      const playPromise = this.audioIntro.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn('Autoplay de audio intro bloqueado por el navegador:', err);
+          finalizar();
+        });
+      }
+
+      // Timeout de seguridad en caso de que ended no se dispare
+      this.timeoutIntro = setTimeout(() => {
+        finalizar();
+      }, 25000);
+    } catch (e) {
+      console.warn('Fallo al inicializar Audio intro:', e);
+      this.finalizarKaraokeIntro(cancion);
+    }
+  }
+
+  saltarKaraokeIntro() {
+    if (!this.karaokeIntroActivo() || !this.cancionIntroPendiente) return;
+    const cancion = this.cancionIntroPendiente;
+    this.detenerAudioIntro();
+    this.finalizarKaraokeIntro(cancion);
+  }
+
+  finalizarKaraokeIntro(cancion: Cancion) {
+    if (!this.karaokeIntroActivo()) return;
+    this.detenerAudioIntro();
+    this.cancionPrevia = cancion;
+    this.karaokeIntroActivo.set(false);
+    this.cancionIntroPendiente = null;
+
+    this.broadcast({
+      type: 'KARAOKE_INTRO_END',
+      song: cancion,
+    });
+
+    this.ejecutarCargaCancion(cancion, true, 0);
+  }
+
+  private detenerAudioIntro() {
+    if (this.timeoutIntro) {
+      clearTimeout(this.timeoutIntro);
+      this.timeoutIntro = null;
+    }
+    if (this.audioIntro) {
+      try {
+        this.audioIntro.pause();
+        this.audioIntro.currentTime = 0;
+        this.audioIntro.onended = null;
+        this.audioIntro.onerror = null;
+      } catch { }
+      this.audioIntro = null;
+    }
+  }
+
+  async ejecutarCargaCancion(cancion: Cancion, autoplay = true, startSeconds = 0) {
     this.initialSyncDone = false;
     this.currentPlaybackRate = 1.0;
+    this.cancionPrevia = cancion;
     let vId = cancion.videoId;
 
     if (!vId) {
@@ -835,6 +1008,12 @@ export class PlayerService {
     this.removerDesbloqueoInteraccion();
     this.necesitaInteraccion.set(false);
     if (this.intermissionActual()) return;
+    if (this.audioIntro) {
+      try {
+        this.audioIntro.volume = (this.volumen() || 100) / 100;
+        this.audioIntro.play().catch(() => {});
+      } catch { }
+    }
     if (this.player) {
       try {
         if (typeof this.player.unMute === 'function') {
@@ -859,7 +1038,7 @@ export class PlayerService {
   }
 
   play(emitir = true) {
-    if (this.intermissionActual()) return;
+    if (this.intermissionActual() || this.karaokeIntroActivo()) return;
     const cancion = this.state.sonando();
     if (!cancion) {
       if (this.state.cola().length > 0) {
@@ -913,7 +1092,7 @@ export class PlayerService {
   }
 
   togglePlay() {
-    if (this.intermissionActual()) return;
+    if (this.intermissionActual() || this.karaokeIntroActivo()) return;
 
     if (!this.state.sonando()) {
       if (this.state.cola().length > 0) {
@@ -930,6 +1109,11 @@ export class PlayerService {
   }
 
   next() {
+    if (this.karaokeIntroActivo()) {
+      this.saltarKaraokeIntro();
+      return;
+    }
+
     if (this.intermissionActual()) {
       this.saltarIntermission();
       return;
@@ -970,12 +1154,12 @@ export class PlayerService {
   }
 
   prev() {
-    if (this.intermissionActual()) return;
+    if (this.intermissionActual() || this.karaokeIntroActivo()) return;
     this.seekTo(0);
   }
 
   seekTo(segundos: number, emitir = true) {
-    if (this.intermissionActual()) return;
+    if (this.intermissionActual() || this.karaokeIntroActivo()) return;
     if (this.player && typeof this.player.seekTo === 'function') {
       try {
         this.player.seekTo(segundos, true);
@@ -988,7 +1172,7 @@ export class PlayerService {
   }
 
   seekPorcentaje(porcentaje: number) {
-    if (this.intermissionActual()) return;
+    if (this.intermissionActual() || this.karaokeIntroActivo()) return;
     const dur = this.duracionSegundos();
     if (dur > 0) {
       const seg = (porcentaje / 100) * dur;
@@ -1003,6 +1187,9 @@ export class PlayerService {
     if (this.player && typeof this.player.setVolume === 'function') {
       try { this.player.setVolume(v); } catch { }
     }
+    if (this.audioIntro) {
+      try { this.audioIntro.volume = this.muteado() ? 0 : v / 100; } catch { }
+    }
   }
 
   toggleMute() {
@@ -1011,14 +1198,19 @@ export class PlayerService {
       if (this.muteado()) {
         this.player.unMute();
         this.muteado.set(false);
+        if (this.audioIntro) this.audioIntro.volume = (this.volumen() || 100) / 100;
       } else {
         this.player.mute();
         this.muteado.set(true);
+        if (this.audioIntro) this.audioIntro.volume = 0;
       }
     } catch { }
   }
 
   destruir() {
+    this.detenerAudioIntro();
+    this.karaokeIntroActivo.set(false);
+    this.cancionIntroPendiente = null;
     this.removerDesbloqueoInteraccion();
     if (this.timeoutAutoplay) {
       clearTimeout(this.timeoutAutoplay);
@@ -1054,6 +1246,12 @@ export class PlayerService {
 
   reproducirIntermission(items: IntermissionItem[]) {
     if (!items || items.length === 0) return;
+
+    if (this.karaokeIntroActivo()) {
+      this.detenerAudioIntro();
+      this.karaokeIntroActivo.set(false);
+      this.cancionIntroPendiente = null;
+    }
 
     // Solo marcar para reanudar si YouTube estaba activamente reproduciéndose (no si estaba pausado)
     const habiaMusica = this.state.reproduciendo();
