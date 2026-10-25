@@ -101,7 +101,8 @@ export class PlayerService {
       const vId = cancion.videoId;
       if (this.listo()) {
         if (!vId || vId !== this.currentVideoId) {
-          this.cargarCancion(cancion, true);
+          const autoplay = !this.intermissionActual();
+          this.cargarCancion(cancion, autoplay);
         }
       } else {
         this.pendingSong = cancion;
@@ -512,6 +513,15 @@ export class PlayerService {
   }
 
   private onPlayerStateChange(stateCode: number) {
+    if (this.intermissionActual()) {
+      if (stateCode === 1) { // PLAYING
+        try { this.player?.pauseVideo(); } catch { }
+      }
+      this.state.reproduciendo.set(false);
+      this.detenerTicker();
+      return;
+    }
+
     if (stateCode === 1) { // PLAYING
       this.desactivarSubtitulos();
       this.state.reproduciendo.set(true);
@@ -557,11 +567,12 @@ export class PlayerService {
     } else if (stateCode === 3) { // BUFFERING
       this.cargando.set(true);
     } else if (stateCode === 5 || stateCode === -1) { // CUED or UNSTARTED
-      this.state.reproduciendo.set(false);
       this.cargando.set(false);
       this.detenerTicker();
-      if (this.role === 'admin' && this.state.sonando()) {
+      if (this.role === 'admin' && this.state.sonando() && this.state.reproduciendo() && !this.intermissionActual()) {
         this.intentarAutoplay();
+      } else {
+        this.state.reproduciendo.set(false);
       }
     }
   }
@@ -569,8 +580,9 @@ export class PlayerService {
   registrarDesbloqueoInteraccion() {
     if (typeof window === 'undefined' || this.listenerInteraccion) return;
     this.listenerInteraccion = () => {
+      if (this.intermissionActual()) return;
       this.removerDesbloqueoInteraccion();
-      if (this.role === 'admin' && this.state.sonando()) {
+      if (this.role === 'admin' && this.state.sonando() && this.state.reproduciendo()) {
         this.desbloquearAudio();
       }
     };
@@ -586,7 +598,9 @@ export class PlayerService {
   }
 
   private intentarAutoplay() {
+    if (this.intermissionActual()) return;
     if (this.role !== 'admin' || !this.state.sonando() || !this.player) return;
+    if (!this.state.reproduciendo() && !this.cargando()) return;
 
     if (this.timeoutAutoplay) {
       clearTimeout(this.timeoutAutoplay);
@@ -600,7 +614,7 @@ export class PlayerService {
     } catch { }
 
     this.timeoutAutoplay = setTimeout(() => {
-      if (this.role === 'admin' && this.state.sonando() && this.player) {
+      if (this.role === 'admin' && this.state.sonando() && this.player && !this.intermissionActual() && this.state.reproduciendo()) {
         let st = -1;
         try { st = this.player.getPlayerState(); } catch { }
         if (st !== 1 && st !== 3) {
@@ -764,7 +778,8 @@ export class PlayerService {
           } catch { }
         }
 
-        if (autoplay) {
+        if (autoplay && !this.intermissionActual()) {
+          this.state.reproduciendo.set(true);
           this.player.loadVideoById({ videoId: vId, startSeconds });
           if (this.role === 'admin') {
             this.intentarAutoplay();
@@ -819,6 +834,7 @@ export class PlayerService {
   desbloquearAudio() {
     this.removerDesbloqueoInteraccion();
     this.necesitaInteraccion.set(false);
+    if (this.intermissionActual()) return;
     if (this.player) {
       try {
         if (typeof this.player.unMute === 'function') {
@@ -835,7 +851,7 @@ export class PlayerService {
           try { this.player.seekTo(0, true); } catch { }
         }
 
-        if (typeof this.player.playVideo === 'function') {
+        if (this.state.reproduciendo() && typeof this.player.playVideo === 'function') {
           this.player.playVideo();
         }
       } catch { }
@@ -843,6 +859,7 @@ export class PlayerService {
   }
 
   play(emitir = true) {
+    if (this.intermissionActual()) return;
     const cancion = this.state.sonando();
     if (!cancion) {
       if (this.state.cola().length > 0) {
@@ -896,6 +913,8 @@ export class PlayerService {
   }
 
   togglePlay() {
+    if (this.intermissionActual()) return;
+
     if (!this.state.sonando()) {
       if (this.state.cola().length > 0) {
         this.next();
@@ -951,10 +970,12 @@ export class PlayerService {
   }
 
   prev() {
+    if (this.intermissionActual()) return;
     this.seekTo(0);
   }
 
   seekTo(segundos: number, emitir = true) {
+    if (this.intermissionActual()) return;
     if (this.player && typeof this.player.seekTo === 'function') {
       try {
         this.player.seekTo(segundos, true);
@@ -967,6 +988,7 @@ export class PlayerService {
   }
 
   seekPorcentaje(porcentaje: number) {
+    if (this.intermissionActual()) return;
     const dur = this.duracionSegundos();
     if (dur > 0) {
       const seg = (porcentaje / 100) * dur;
@@ -1033,8 +1055,8 @@ export class PlayerService {
   reproducirIntermission(items: IntermissionItem[]) {
     if (!items || items.length === 0) return;
 
-    // Si YouTube estaba sonando o en cola activa, marcar para reanudar al terminar
-    const habiaMusica = this.state.reproduciendo() || !!this.state.sonando();
+    // Solo marcar para reanudar si YouTube estaba activamente reproduciéndose (no si estaba pausado)
+    const habiaMusica = this.state.reproduciendo();
     this.intermissionPausadaYoutube.set(habiaMusica);
 
     // Pausar YouTube inmediatamente en Admin

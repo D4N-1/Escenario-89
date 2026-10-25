@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { ApiService, ErrorApi, Rol } from './api.service';
 import { SessionService } from './session.service';
-import { Video } from './models';
+import { Video, detectarTipoCancion } from './models';
 
 /** Una canción tal como la devuelve el backend en GET /search?title=... */
 interface ResultadoBusqueda {
@@ -14,6 +14,7 @@ interface ResultadoBusqueda {
   views?: number;
   ago?: string | null;
   author?: string;
+  type?: string;
 }
 
 /** Busca canciones en YouTube a través de nuestro backend (GET /search?title=...). Requiere sesión de mesa o de admin. */
@@ -54,7 +55,7 @@ export class YoutubeService {
       vistas: this.formatearVistas(v.views ?? 0),
       antiguedad: this.traducirAntiguedad(v.ago),
       duracion: v.timestamp,
-      tipo: /karaoke/i.test(v.title) ? 'karaoke' : 'sencillo',
+      tipo: detectarTipoCancion(v),
       miniatura: v.image,
       miniaturaTitulo: '',
       miniaturaSub: '',

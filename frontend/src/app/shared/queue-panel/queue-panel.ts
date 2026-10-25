@@ -26,7 +26,7 @@ export class QueuePanel {
   items = computed(() => this.state.cola());
 
   reproducirAhora(cancion: Cancion, index: number) {
-    if (cancion.tipo === 'anuncio') return;
+    if (cancion.tipo === 'anuncio' || this.player.intermissionActual()) return;
     this.state.cola.update(lista => lista.filter((_, i) => i !== index));
     this.state.sonando.set(cancion);
     if (cancion.uuid) {
@@ -35,6 +35,7 @@ export class QueuePanel {
   }
 
   togglePlay() {
+    if (this.player.intermissionActual()) return;
     this.player.togglePlay();
   }
 

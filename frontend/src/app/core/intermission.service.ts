@@ -15,6 +15,16 @@ export interface NuevoAnuncioDto {
   active?: boolean;
 }
 
+export interface ActualizarAnuncioDto {
+  uuid: string;
+  title: string;
+  description?: string;
+  startTime: string;
+  endTime: string;
+  everySongs?: number | null;
+  active?: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class IntermissionService {
   private api = inject(ApiService);
@@ -112,6 +122,36 @@ export class IntermissionService {
       await this.cargar();
     } catch (err: any) {
       const msg = err?.message || 'Error al guardar el anuncio';
+      this.error.set(msg);
+      throw err;
+    } finally {
+      this.guardando.set(false);
+    }
+  }
+
+  async actualizar(dto: ActualizarAnuncioDto): Promise<void> {
+    this.guardando.set(true);
+    this.error.set('');
+    try {
+      const payload: Record<string, any> = {
+        uuid: dto.uuid,
+        title: dto.title.trim(),
+        description: dto.description?.trim() ?? '',
+        startTime: dto.startTime,
+        endTime: dto.endTime,
+        active: dto.active ?? true,
+        everySongs: (dto.everySongs !== null && dto.everySongs !== undefined && dto.everySongs > 0)
+          ? dto.everySongs
+          : null,
+      };
+
+      await this.api.pedir('admin', 'PATCH', '/intermission', payload);
+      this.items.update(lista =>
+        lista.map(x => (x.uuid === dto.uuid ? { ...x, ...payload } : x))
+      );
+      this.sincronizarConAppState(this.items());
+    } catch (err: any) {
+      const msg = err?.message || 'Error al actualizar el anuncio';
       this.error.set(msg);
       throw err;
     } finally {

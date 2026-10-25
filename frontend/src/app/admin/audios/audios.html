@@ -290,6 +290,16 @@
           </div>
         }
 
+        @if (itemEditando(); as it) {
+          <div class="file-readonly-box">
+            <div class="file-readonly-left">
+              <app-icon name="mic" [size]="18" />
+              <span>Archivo de audio</span>
+            </div>
+            <small>El archivo no se puede modificar al editar</small>
+          </div>
+        }
+
         <div class="form-group">
           <label>Título:</label>
           <input

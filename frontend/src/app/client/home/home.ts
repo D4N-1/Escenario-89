@@ -38,14 +38,19 @@ export class Home {
   }
 
   irABuscar(texto: string) {
-    if (this.state.estado() === 'cerrado') return;
+    if (this.state.estado() === 'cerrado' || this.state.estado() === 'cerrando') return;
     const q = texto.trim();
     if (q) this.state.busqueda.set(q);
     this.router.navigate(['/buscar']);
   }
 
+  seleccionar(v: Video) {
+    if (this.state.estado() === 'cerrado' || this.state.estado() === 'cerrando') return;
+    this.seleccion.set(v);
+  }
+
   buscarPorVoz() {
-    if (this.state.estado() === 'cerrado') return;
+    if (this.state.estado() === 'cerrado' || this.state.estado() === 'cerrando') return;
     if (typeof window === 'undefined') return;
     const SpeechRec = (window as unknown as { SpeechRecognition?: any; webkitSpeechRecognition?: any }).SpeechRecognition
       || (window as unknown as { SpeechRecognition?: any; webkitSpeechRecognition?: any }).webkitSpeechRecognition;

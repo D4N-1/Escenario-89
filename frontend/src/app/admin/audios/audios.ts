@@ -37,6 +37,7 @@ export class Audios implements OnInit, OnDestroy {
 
   // Modal para editar audio
   modalEditar = signal(false);
+  itemEditando = signal<AudioEntity | null>(null);
   editUuid = signal('');
   editTitle = signal('');
   editDescription = signal('');
@@ -263,6 +264,7 @@ export class Audios implements OnInit, OnDestroy {
   // --- MODAL DE EDICIÓN (PATCH /audio) ---
 
   abrirModalEditar(item: AudioEntity) {
+    this.itemEditando.set(item);
     this.editUuid.set(item.uuid);
     this.editTitle.set(item.title);
     this.editDescription.set(item.description || '');
@@ -272,6 +274,7 @@ export class Audios implements OnInit, OnDestroy {
 
   cerrarModalEditar() {
     this.modalEditar.set(false);
+    this.itemEditando.set(null);
     this.guardandoEdicion.set(false);
   }
 
@@ -288,17 +291,18 @@ export class Audios implements OnInit, OnDestroy {
     this.editError.set('');
 
     try {
+      const description = this.editDescription().trim();
       await this.api.pedir('admin', 'PATCH', '/audio', {
         uuid,
         title,
-        description: this.editDescription().trim() || undefined,
+        description,
       });
 
       this.listaAudios.update(lista =>
         lista.map(x => (x.uuid === uuid ? {
           ...x,
           title,
-          description: this.editDescription().trim() || undefined,
+          description: description || null,
         } : x))
       );
       this.sincronizarConAppState(this.listaAudios());

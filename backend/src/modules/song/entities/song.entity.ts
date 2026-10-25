@@ -27,7 +27,7 @@ export class SongEntity extends BaseEntity {
 
     @ApiProperty({ description: DESCRIPTION.TYPE, example: EXAMPLE.TYPE })
     @Column({ type: 'enum', enum: SongType, default: SongType.SINGLE })
-    type: SongType.SINGLE;
+    type: SongType;
 
     @ApiProperty({ description: DESCRIPTION.IMAGE, example: EXAMPLE.IMAGE })
     @Column({ type: 'varchar' })

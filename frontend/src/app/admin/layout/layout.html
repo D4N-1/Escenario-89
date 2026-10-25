@@ -132,7 +132,8 @@
           </div>
         }
         <div class="np-meta">
-          <b>{{ s.titulo }}</b><span>{{ s.artista }} @if (s.mesa > 0) { · Mesa #{{ s.mesa }} }</span>
+          <b [title]="s.titulo">{{ s.titulo }}</b>
+          <span>{{ s.artista }} @if (s.mesa > 0) { · Mesa #{{ s.mesa }} }</span>
         </div>
       } @else {
         <div class="np-meta">
@@ -141,13 +142,13 @@
       }
     </div>
     <div class="ctrl">
-      <button type="button" class="ctrl-btn" [disabled]="state.estado() === 'cerrado'" title="Anterior (reiniciar)" (click)="player.prev()">
+      <button type="button" class="ctrl-btn" [disabled]="state.estado() === 'cerrado' || !!player.intermissionActual()" [title]="player.intermissionActual() ? 'Pausa publicitaria en curso' : 'Anterior (reiniciar)'" (click)="player.prev()">
         <app-icon name="prev" [size]="24" />
       </button>
-      <button type="button" class="play" [disabled]="state.estado() === 'cerrado'" [title]="state.reproduciendo() ? 'Pausar' : 'Reproducir'" (click)="player.togglePlay()">
+      <button type="button" class="play" [disabled]="state.estado() === 'cerrado' || !!player.intermissionActual()" [title]="player.intermissionActual() ? 'Pausa publicitaria en curso' : (state.reproduciendo() ? 'Pausar' : 'Reproducir')" (click)="player.togglePlay()">
         <app-icon [name]="state.reproduciendo() ? 'pause' : 'play'" [size]="22" />
       </button>
-      <button type="button" class="ctrl-btn" [disabled]="state.estado() === 'cerrado'" title="Siguiente canción" (click)="player.next()">
+      <button type="button" class="ctrl-btn" [disabled]="state.estado() === 'cerrado' || !!player.intermissionActual()" [title]="player.intermissionActual() ? 'Pausa publicitaria en curso' : 'Siguiente canción'" (click)="player.next()">
         <app-icon name="next" [size]="24" />
       </button>
     </div>

@@ -2,6 +2,17 @@ export type EstadoLocal = 'abierto' | 'cerrando' | 'cerrado';
 export type TipoPista = 'karaoke' | 'sencillo';
 export type EstadoAnuncio = 'En cola' | 'Programado' | 'Sin usar';
 
+export function detectarTipoCancion(song?: { title?: string; type?: string; description?: string | null } | null): TipoPista {
+  if (!song) return 'sencillo';
+  const t = String(song.type || '').toUpperCase();
+  if (t === 'KARAOKE') return 'karaoke';
+  const title = song.title || '';
+  const norm = title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (/(karaoke|kara\b|ktv|instrumental|backing\s*track|\bpista\b)/i.test(norm)) return 'karaoke';
+  if (song.description && /(karaoke|backing\s*track)/i.test(song.description)) return 'karaoke';
+  return 'sencillo';
+}
+
 export interface Cancion {
   id: number;
   titulo: string;

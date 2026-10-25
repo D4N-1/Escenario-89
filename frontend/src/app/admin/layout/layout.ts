@@ -355,7 +355,7 @@ export class Layout implements OnInit, OnDestroy {
   }
 
   onSeek(event: MouseEvent) {
-    if (this.state.estado() === 'cerrado') return;
+    if (this.state.estado() === 'cerrado' || this.player.intermissionActual()) return;
     const el = event.currentTarget as HTMLElement;
     const rect = el.getBoundingClientRect();
     const clickX = event.clientX - rect.left;

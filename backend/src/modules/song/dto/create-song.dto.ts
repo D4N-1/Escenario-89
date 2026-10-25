@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNumber, IsOptional, IsString, MaxLength } from "class-validator";
-import { DESCRIPTION, EXAMPLE } from "../../../common/constants/dto.constants";
+import { IsEnum, IsNumber, IsOptional, IsString, MaxLength } from "class-validator";
+import { DESCRIPTION, EXAMPLE } from "../../../common/constants/dto.constants.js";
+import { SongType } from "../entities/song.entity.js";
 
 
 export class CreateSongDto {
@@ -18,6 +19,11 @@ export class CreateSongDto {
     @IsString()
     @IsOptional()
     description?: string;
+
+    @ApiProperty({ description: DESCRIPTION.TYPE, example: EXAMPLE.TYPE, enum: SongType, required: false })
+    @IsEnum(SongType)
+    @IsOptional()
+    type?: SongType;
     
     @ApiProperty({ description: DESCRIPTION.IMAGE, example: EXAMPLE.IMAGE })
     @IsString()

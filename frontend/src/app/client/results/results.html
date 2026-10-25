@@ -20,17 +20,17 @@
   }
 
   <div class="buscar-sticky">
-    <div class="pill-input" [class.disabled]="state.estado() === 'cerrado'">
+    <div class="pill-input" [class.disabled]="state.estado() === 'cerrado' || state.estado() === 'cerrando'">
       <input #q [value]="state.busqueda()"
-             [placeholder]="state.estado() === 'cerrado' ? 'Local cerrado' : 'Busca canción, artista o karaoke...'"
-             [disabled]="state.estado() === 'cerrado'"
+             [placeholder]="state.estado() === 'cerrado' ? 'Local cerrado' : (state.estado() === 'cerrando' ? 'Local cerrando - Pedidos cerrados' : 'Busca canción, artista o karaoke...')"
+             [disabled]="state.estado() === 'cerrado' || state.estado() === 'cerrando'"
              enterkeyhint="search"
              autocomplete="off"
              (keydown.enter)="buscar(q.value)">
       @if (q.value) {
         <button type="button" class="clear-btn" (click)="q.value = ''; state.busqueda.set('')" aria-label="Limpiar"><app-icon name="close" [size]="16" /></button>
       }
-      <button type="button" class="pill-btn" [disabled]="state.estado() === 'cerrado'" aria-label="Buscar" (click)="buscar(q.value)"><app-icon name="search" /></button>
+      <button type="button" class="pill-btn" [disabled]="state.estado() === 'cerrado' || state.estado() === 'cerrando'" aria-label="Buscar" (click)="buscar(q.value)"><app-icon name="search" /></button>
     </div>
   </div>
 

@@ -42,6 +42,20 @@ export class Anuncios implements OnInit {
   selectedFile = signal<File | null>(null);
   formError = signal('');
 
+  // Formulario de edición (sin archivo)
+  modalEditar = signal(false);
+  itemEditando = signal<IntermissionItem | null>(null);
+  editUuid = signal('');
+  editTitle = signal('');
+  editDescription = signal('');
+  editStartTime = signal('20:00');
+  editEndTime = signal('04:00');
+  editEverySongs = signal<number | null>(5);
+  editConFrecuencia = signal(true);
+  editActive = signal(true);
+  editError = signal('');
+  guardandoEdicion = signal(false);
+
   ngOnInit() {
     this.intermissions.cargar();
     this.route.url.subscribe(() => {
@@ -159,6 +173,63 @@ export class Anuncios implements OnInit {
     this.formDescription.set('');
     this.selectedFile.set(null);
     this.formError.set('');
+  }
+
+  abrirModalEditar(item: IntermissionItem) {
+    this.itemEditando.set(item);
+    this.editUuid.set(item.uuid);
+    this.editTitle.set(item.title);
+    this.editDescription.set(item.description || '');
+    this.editStartTime.set(item.startTime ? item.startTime.substring(0, 5) : '20:00');
+    this.editEndTime.set(item.endTime ? item.endTime.substring(0, 5) : '04:00');
+    const conFreq = !!(item.everySongs && item.everySongs > 0);
+    this.editConFrecuencia.set(conFreq);
+    this.editEverySongs.set(conFreq ? item.everySongs! : 5);
+    this.editActive.set(item.active);
+    this.editError.set('');
+    this.modalEditar.set(true);
+  }
+
+  cerrarModalEditar() {
+    this.modalEditar.set(false);
+    this.itemEditando.set(null);
+    this.editError.set('');
+    this.guardandoEdicion.set(false);
+  }
+
+  async guardarEdicion() {
+    const uuid = this.editUuid();
+    const title = this.editTitle().trim();
+    if (!uuid) return;
+    if (!title) {
+      this.editError.set('Ingresa un título para el anuncio.');
+      return;
+    }
+    if (!this.editStartTime() || !this.editEndTime()) {
+      this.editError.set('Especifica las horas de inicio y fin (HH:mm).');
+      return;
+    }
+
+    this.guardandoEdicion.set(true);
+    this.editError.set('');
+
+    try {
+      await this.intermissions.actualizar({
+        uuid,
+        title,
+        description: this.editDescription().trim() || undefined,
+        startTime: this.editStartTime(),
+        endTime: this.editEndTime(),
+        everySongs: this.editConFrecuencia() ? this.editEverySongs() : null,
+        active: this.editActive(),
+      });
+      this.mostrarToast(`Anuncio "${title}" actualizado con éxito`);
+      this.cerrarModalEditar();
+    } catch (e: any) {
+      this.editError.set(e?.message || 'Error al actualizar el anuncio.');
+    } finally {
+      this.guardandoEdicion.set(false);
+    }
   }
 
   private mostrarToast(mensaje: string) {

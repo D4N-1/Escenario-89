@@ -40,16 +40,23 @@ export class Results {
 
   constructor() {
     const q = this.state.busqueda();
-    if (q.trim()) {
+    if (q.trim() && this.state.estado() !== 'cerrado' && this.state.estado() !== 'cerrando') {
       this.buscar(q);
     }
   }
 
   buscarRapido(termino: string) {
+    if (this.state.estado() === 'cerrado' || this.state.estado() === 'cerrando') return;
     this.buscar(termino);
   }
 
   async buscar(texto: string) {
+    if (this.state.estado() === 'cerrado' || this.state.estado() === 'cerrando') {
+      this.error.set(this.state.estado() === 'cerrado'
+        ? 'El local está cerrado. No se pueden pedir canciones.'
+        : 'El local está cerrando. Solo se reproducen las canciones que ya están en cola.');
+      return;
+    }
     const q = texto.trim();
     if (!q) return;
     this.state.busqueda.set(q);

@@ -2,14 +2,24 @@ import { Injectable, inject } from '@angular/core';
 import { ApiService, Rol } from './api.service';
 import { AppState } from './app-state';
 import { SocketService } from './socket.service';
-import { Cancion, MiCancion, Video } from './models';
+import { Cancion, MiCancion, Video, detectarTipoCancion } from './models';
 
 /** Un elemento de la cola tal como lo devuelve el backend: GET /queue?include=song,table */
 interface ColaItem {
     uuid: string;
     position: number | null;
     status: 'WAITING' | 'PLAYING' | 'FINISHED' | 'CANCELLED';
-    song?: { id: string; title: string; author: string; timestamp: string; image?: string; views?: number; ago?: string | null };
+    song?: {
+        id: string;
+        title: string;
+        author: string;
+        timestamp: string;
+        image?: string;
+        views?: number;
+        ago?: string | null;
+        type?: string;
+        description?: string | null;
+    };
     table?: { number: number; code: string } | null;
 }
 
@@ -58,6 +68,7 @@ export class QueueService {
                 ago: video.antiguedad || undefined,
                 author: video.canal || 'Desconocido',
                 description: '',
+                type: video.tipo === 'karaoke' ? 'KARAOKE' : 'SINGLE',
             });
         } catch {}
 
@@ -249,7 +260,7 @@ export class QueueService {
             vistas,
             antiguedad: s.ago ?? '',
             duracion: s.timestamp || '0:00',
-            tipo: (s.type === 'KARAOKE' || /karaoke/i.test(s.title)) ? 'karaoke' : 'sencillo',
+            tipo: detectarTipoCancion(s),
             miniatura: s.image || (s.id ? `https://i.ytimg.com/vi/${s.id}/mqdefault.jpg` : undefined),
             miniaturaTitulo: '',
             miniaturaSub: '',
@@ -271,7 +282,7 @@ export class QueueService {
             artista: s.author,
             duracion: s.timestamp,
             mesa: q.table?.number ?? 0,
-            tipo: /karaoke/i.test(s.title) ? 'karaoke' : 'sencillo',
+            tipo: detectarTipoCancion(s),
             videoId: s.id,
             miniatura: s.image || `https://i.ytimg.com/vi/${s.id}/mqdefault.jpg`,
         };
@@ -286,7 +297,7 @@ export class QueueService {
             vistas: String(s.views ?? ''),
             antiguedad: s.ago ?? '',
             duracion: s.timestamp,
-            tipo: /karaoke/i.test(s.title) ? 'karaoke' : 'sencillo',
+            tipo: detectarTipoCancion(s),
             miniatura: s.image || `https://i.ytimg.com/vi/${s.id}/mqdefault.jpg`,
             miniaturaTitulo: '',
             miniaturaSub: '',

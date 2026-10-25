@@ -7,7 +7,7 @@ import { ResCreateInterface } from "../../common/interfaces/resCreate.interface.
 import { ResUpdateInterface } from "../../common/interfaces/resUpdate.interface.js";
 import { CreateSongDto } from "./dto/create-song.dto.js";
 import { UpdateSongDto } from "./dto/update-song.dto.js";
-import { SongEntity } from "./entities/song.entity.js";
+import { SongEntity, SongType } from "./entities/song.entity.js";
 import { SongErrorCode } from "./song.constants.js";
 
 
@@ -83,6 +83,12 @@ export class SongService {
 
         newData.id = id;
         newData.description = createSongDto.description ?? null;
+        if (!newData.type && newData.title) {
+            const norm = newData.title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            newData.type = /(karaoke|kara\b|ktv|instrumental|backing\s*track|\bpista\b)/i.test(norm)
+                ? SongType.KARAOKE
+                : SongType.SINGLE;
+        }
 
         const newSong = this.songRepository.create(newData)
 

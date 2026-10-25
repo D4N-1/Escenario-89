@@ -443,3 +443,25 @@ small { color: var(--c-subtext); font-size: 12px; }
   padding: 8px 14px; border-radius: 8px; cursor: pointer;
 }
 .btn-cancel:hover { background: #2a2a36; }
+
+.file-readonly-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(242, 206, 100, 0.06);
+  border: 1px solid var(--c-gold-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+}
+.file-readonly-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--c-gold);
+  font-weight: 600;
+}
+.file-readonly-box small {
+  color: var(--c-subtext);
+  font-size: 11px;
+}

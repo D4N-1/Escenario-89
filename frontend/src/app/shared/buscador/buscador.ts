@@ -1,4 +1,4 @@
-import { Component, DestroyRef, HostListener, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, computed, effect, inject, signal } from '@angular/core';
 import { Icon } from '../icon/icon';
 import { AppState } from '../../core/app-state';
 import { YoutubeService } from '../../core/youtube.service';
@@ -26,11 +26,20 @@ export class Buscador {
   abierto = signal(false);
   escuchandoVoz = signal(false);
 
+  bloqueado = computed(() => this.state.estado() === 'cerrado' || this.state.estado() === 'cerrando');
+
   private recognition: any = null;
 
   constructor() {
     this.destroyRef.onDestroy(() => {
       this.detenerVoz();
+    });
+
+    effect(() => {
+      if (this.bloqueado()) {
+        this.detenerVoz();
+        this.abierto.set(false);
+      }
     });
   }
 
@@ -38,8 +47,10 @@ export class Buscador {
 
   async buscar() {
     this.detenerVoz();
-    if (this.state.estado() === 'cerrado') {
-      this.error.set('El local está cerrado. No se pueden pedir canciones.');
+    if (this.bloqueado()) {
+      this.error.set(this.state.estado() === 'cerrado'
+        ? 'El local está cerrado. No se pueden pedir canciones.'
+        : 'El local está cerrando. Solo se reproducen las canciones que ya están en cola.');
       return;
     }
     const q = this.consulta().trim();
@@ -59,7 +70,7 @@ export class Buscador {
   }
 
   buscarPorVoz() {
-    if (this.state.estado() === 'cerrado') return;
+    if (this.bloqueado()) return;
 
     if (this.escuchandoVoz()) {
       this.detenerVoz();

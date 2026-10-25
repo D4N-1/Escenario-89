@@ -20,16 +20,16 @@
   }
 
   <section class="buscar-section">
-    <div class="pill-input" [class.disabled]="state.estado() === 'cerrado'">
-      <input #q [placeholder]="state.estado() === 'cerrado' ? 'Local cerrado' : (state.estado() === 'cerrando' ? 'Local cerrando - Solo cola activa' : 'Busca canción, artista o karaoke...')"
-             [disabled]="state.estado() === 'cerrado'"
+    <div class="pill-input" [class.disabled]="state.estado() === 'cerrado' || state.estado() === 'cerrando'">
+      <input #q [placeholder]="state.estado() === 'cerrado' ? 'Local cerrado' : (state.estado() === 'cerrando' ? 'Local cerrando - Pedidos cerrados' : 'Busca canción, artista o karaoke...')"
+             [disabled]="state.estado() === 'cerrado' || state.estado() === 'cerrando'"
              enterkeyhint="search"
              autocomplete="off"
              (keydown.enter)="irABuscar(q.value)">
       @if (q.value) {
         <button type="button" class="clear-btn" (click)="q.value = ''" aria-label="Limpiar"><app-icon name="close" [size]="16" /></button>
       }
-      <button type="button" class="pill-btn" [disabled]="state.estado() === 'cerrado'" aria-label="Buscar" (click)="irABuscar(q.value)"><app-icon name="search" /></button>
+      <button type="button" class="pill-btn" [disabled]="state.estado() === 'cerrado' || state.estado() === 'cerrando'" aria-label="Buscar" (click)="irABuscar(q.value)"><app-icon name="search" /></button>
     </div>
 
     @if (state.estado() === 'abierto') {
@@ -102,7 +102,7 @@
       </div>
       <div class="lista">
         @for (v of state.populares(); track v.id) {
-          <app-video-card [video]="v" (click)="seleccion.set(v)" />
+          <app-video-card [video]="v" (click)="seleccionar(v)" />
         }
       </div>
     </section>

@@ -1,11 +1,11 @@
-<div class="pill-input" [class.disabled]="state.estado() === 'cerrado'" [class.escuchando]="escuchandoVoz()">
-  <input [placeholder]="escuchandoVoz() ? 'Escuchando... habla ahora' : (state.estado() === 'cerrado' ? 'Local cerrado - Pedidos no permitidos' : (state.estado() === 'cerrando' ? 'Local cerrando - Solo cola activa' : 'Busca tu proxima canción'))"
-         [disabled]="state.estado() === 'cerrado'"
+<div class="pill-input" [class.disabled]="bloqueado()" [class.escuchando]="escuchandoVoz()">
+  <input [placeholder]="escuchandoVoz() ? 'Escuchando... habla ahora' : (state.estado() === 'cerrado' ? 'Local cerrado - Pedidos no permitidos' : (state.estado() === 'cerrando' ? 'Local cerrando - Pedidos no permitidos' : 'Busca tu proxima canción'))"
+         [disabled]="bloqueado()"
          [value]="consulta()"
          (input)="onInput($event)"
          (keydown.enter)="buscar()">
-  <button class="pill-btn" type="button" [disabled]="state.estado() === 'cerrado'" title="Buscar" (click)="buscar()"><app-icon name="search" /></button>
-  <button class="pill-btn mic-btn" [class.escuchando]="escuchandoVoz()" type="button" [disabled]="state.estado() === 'cerrado'" [title]="escuchandoVoz() ? 'Detener búsqueda por voz' : 'Buscar por voz'" (click)="buscarPorVoz()"><app-icon name="mic" /></button>
+  <button class="pill-btn" type="button" [disabled]="bloqueado()" title="Buscar" (click)="buscar()"><app-icon name="search" /></button>
+  <button class="pill-btn mic-btn" [class.escuchando]="escuchandoVoz()" type="button" [disabled]="bloqueado()" [title]="escuchandoVoz() ? 'Detener búsqueda por voz' : 'Buscar por voz'" (click)="buscarPorVoz()"><app-icon name="mic" /></button>
 </div>
 
 @if (abierto()) {

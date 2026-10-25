@@ -55,10 +55,14 @@ export class IntermissionService {
     if (uuid) {
       const intermission = await this.findOrNull.uuid(uuid)
 
-      if (intermission?.everySongs) this.counters.set(intermission.uuid, {
-        ...intermission,
-        current: 0
-      })
+      if (intermission?.everySongs && intermission?.active) {
+        this.counters.set(intermission.uuid, {
+          ...intermission,
+          current: 0
+        })
+      } else {
+        this.counters.delete(uuid);
+      }
 
       return
     }
@@ -268,13 +272,14 @@ export class IntermissionService {
     const newData: Partial<IntermissionEntity> = { ...updateIntermissionDto }
   
     const editIntermission = this.intermissionRepository.merge(intermission, newData)
+    const saved = await this.intermissionRepository.save(editIntermission)
 
-    this.syncCounters(uuid)
+    await this.syncCounters(uuid)
 
     return {
         message: "El video ha sido modificado con exito",
         change: updateIntermissionDto,
-        data: await this.intermissionRepository.save(editIntermission)
+        data: saved
     }
   
   }

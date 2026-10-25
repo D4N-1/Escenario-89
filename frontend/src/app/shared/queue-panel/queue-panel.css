@@ -3,30 +3,94 @@
     border-left: 1px solid #1e1e1e;
     height: 100%;
     overflow-y: auto;
-    padding: 16px 0;
+    padding: 14px 0 24px;
 }
 
 h2 {
-    font-size: 18px;
-    margin: 4px 16px 14px;
+    font-size: 16px;
+    margin: 4px 14px 14px;
     font-weight: 700;
+    color: var(--c-title);
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
+/* Tarjetas normales en cola: fondo oscuro neutral, SIN tono dorado */
 .row {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 14px;
+    padding: 8px 10px;
+    margin: 4px 10px;
+    border-radius: 8px;
     color: var(--c-icon);
+    background: #141417;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
 }
 
+.row:hover {
+    background: #1b1b20;
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateY(-1px);
+}
+
+/* Canción que suena actualmente (estándar, cuando NO es karaoke) */
 .row.now {
-    background: #222;
+    background: #1e1e24;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    color: #ffffff;
+    margin-bottom: 12px;
+}
+
+.row.now:hover {
+    background: #25252d;
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* =====================================================================
+   CANCIONES DE KARAOKE: Tarjeta en tono dorado (solo dorado, sin micrófono ni texto)
+   ===================================================================== */
+.row.karaoke {
+    background: linear-gradient(135deg, rgba(242, 206, 100, 0.16) 0%, rgba(38, 30, 18, 0.92) 50%, rgba(22, 18, 12, 0.98) 100%);
+    border: 1px solid rgba(212, 170, 67, 0.45);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(242, 206, 100, 0.15);
+    color: var(--c-title);
+}
+
+.row.karaoke:hover {
+    background: linear-gradient(135deg, rgba(242, 206, 100, 0.24) 0%, rgba(48, 38, 22, 0.95) 50%, rgba(28, 22, 14, 1) 100%);
+    border-color: var(--c-gold);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(254, 230, 154, 0.25);
+}
+
+/* Canción sonando actualmente si es Karaoke */
+.row.now.karaoke {
+    background: linear-gradient(135deg, rgba(242, 206, 100, 0.3) 0%, rgba(58, 46, 22, 0.96) 50%, rgba(32, 26, 14, 1) 100%);
+    border: 1px solid var(--c-gold);
+    box-shadow: 0 0 20px rgba(212, 170, 67, 0.35), inset 0 1px 0 rgba(254, 230, 154, 0.4);
     color: var(--c-gold);
 }
 
+.row.now.karaoke:hover {
+    background: linear-gradient(135deg, rgba(242, 206, 100, 0.36) 0%, rgba(68, 54, 26, 0.98) 50%, rgba(38, 30, 16, 1) 100%);
+    border-color: var(--c-gold-glow);
+}
+
+/* Tarjeta de anuncio */
 .row.ad {
-    background: #25221a;
+    background: linear-gradient(135deg, rgba(216, 128, 28, 0.12) 0%, rgba(36, 26, 16, 0.88) 50%, rgba(22, 16, 10, 0.96) 100%);
+    border: 1px solid rgba(216, 128, 28, 0.28);
+}
+
+.row.ad:hover {
+    background: linear-gradient(135deg, rgba(216, 128, 28, 0.18) 0%, rgba(44, 32, 20, 0.92) 50%, rgba(28, 20, 12, 0.98) 100%);
+    border-color: rgba(216, 128, 28, 0.45);
 }
 
 .num {
@@ -36,10 +100,12 @@ h2 {
     flex-direction: column;
     align-items: center;
     font-size: 12px;
+    flex-shrink: 0;
 }
 
 .n {
     color: var(--c-text2);
+    font-weight: 600;
 }
 
 .n.big {
@@ -55,7 +121,7 @@ h2 {
 .thumb {
     width: 48px;
     height: 36px;
-    border-radius: 4px;
+    border-radius: 6px;
     background: #1a1a1e;
     flex: none;
     overflow: hidden;
@@ -74,8 +140,12 @@ h2 {
 }
 
 .now-thumb {
-    border-color: var(--c-gold-border);
-    box-shadow: 0 0 8px rgba(212, 170, 67, 0.25);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.row.now.karaoke .now-thumb,
+.row.karaoke .thumb {
+    border-color: rgba(212, 170, 67, 0.5);
 }
 
 .ad-thumb {
@@ -93,29 +163,39 @@ h2 {
     min-width: 0;
     display: flex;
     flex-direction: column;
+    gap: 2px;
 }
 
 .info b {
     font-size: 12px;
     color: var(--c-title);
-    font-weight: 500;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.info small {
-    font-size: 10px;
-    color: var(--c-subtext);
+.row.now .info b {
+    color: #ffffff;
 }
 
-.kara {
-    color: #e02020;
+.row.karaoke .info b {
+    color: #ffffff;
+}
+
+.info small {
+    font-size: 11px;
+    color: var(--c-subtext);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .dur {
     font-size: 11px;
     color: var(--c-text2);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
 }
 
 .vacio {
@@ -138,15 +218,17 @@ h2 {
 
 .row.arrastrando {
     opacity: 0.4;
+    transform: scale(0.98);
 }
 
 .row.sobre {
-    box-shadow: inset 0 2px 0 var(--c-gold);
+    border-color: var(--c-gold);
+    box-shadow: 0 0 12px rgba(212, 170, 67, 0.4), inset 0 2px 0 var(--c-gold);
 }
 
 .acciones {
     display: none;
-    gap: 2px;
+    gap: 3px;
     flex: none;
 }
 
@@ -159,27 +241,48 @@ h2 {
 }
 
 .acciones button {
-    width: 22px;
+    width: 24px;
     height: 24px;
     padding: 0;
-    border: 1px solid #333;
-    border-radius: 4px;
-    background: #1c1c1c;
-    color: var(--c-gold);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 5px;
+    background: #1e1e24;
+    color: var(--c-text2);
     font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     line-height: 1;
+    transition: all 0.15s ease;
+}
+
+.row.karaoke .acciones button {
+    border-color: rgba(212, 170, 67, 0.3);
+    background: #1c1810;
+    color: var(--c-gold);
 }
 
 .acciones button:hover:not(:disabled) {
-    background: #2a2412;
-    border-color: var(--c-gold-border);
+    background: #2a2210;
+    border-color: var(--c-gold);
+    color: #fff;
+    transform: scale(1.05);
 }
 
 .acciones button:disabled {
     color: #444;
+    border-color: #2a2a2a;
+    background: #161616;
     cursor: default;
 }
 
 .acciones .quitar {
-    color: #e02020;
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.acciones .quitar:hover:not(:disabled) {
+    background: #381212;
+    border-color: #ef4444;
+    color: #fca5a5;
 }
