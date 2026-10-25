@@ -3,9 +3,9 @@
   <div
     id="tv-player-container"
     class="tv-player"
-    [class.oculto]="!state.sonando()?.videoId || state.estado() === 'cerrado' || !!player.intermissionActual()"
+    [class.oculto]="!state.sonando()?.videoId || state.estado() === 'cerrado' || !!player.intermissionActual() || player.karaokeIntroActivo()"
   >
-    <div id="tv-yt-player" [class.oculto-intermission]="!!player.intermissionActual()"></div>
+    <div id="tv-yt-player" [class.oculto-intermission]="!!player.intermissionActual() || player.karaokeIntroActivo()"></div>
   </div>
 
   <div class="tv-shield"></div>
@@ -16,6 +16,16 @@
       <img src="logo.png" class="tv-cerrado-logo" alt="Escenario 89">
       <h1 class="tv-cerrado-title">Local Cerrado</h1>
       <p class="tv-cerrado-sub">Gracias por su visita · Nos vemos pronto</p>
+    </div>
+  }
+
+  <!-- Fondo con el logo en el medio SOLO en la vista previa antes de iniciar el karaoke -->
+  @if (state.estado() !== 'cerrado' && !player.intermissionActual() && player.karaokeIntroActivo()) {
+    <div class="tv-fondo-logo intro-activa">
+      <div class="tv-fondo-glow"></div>
+      <div class="tv-fondo-center">
+        <img src="logo.png" class="tv-logo-main" alt="Escenario 89 Karaoke Bar" />
+      </div>
     </div>
   }
 
