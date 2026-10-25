@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Icon } from '../../shared/icon/icon';
 import { ClientHeader } from '../../shared/client-header/client-header';
 import { VideoCard } from '../../shared/video-card/video-card';
@@ -22,7 +22,6 @@ export class Results {
   resultados = signal<Video[]>([]);
   cargando = signal(false);
   error = signal('');
-  filtro = signal<'todos' | 'karaoke'>('todos');
   busquedaRealizada = signal(false);
 
   seleccionar(v: Video) {
@@ -39,26 +38,10 @@ export class Results {
 
   private busquedaActual = 0; // para ignorar respuestas viejas si el cliente busca otra vez
 
-  resultadosFiltrados = computed(() => {
-    const lista = this.resultados();
-    if (this.filtro() === 'karaoke') {
-      return lista.filter(v => v.tipo === 'karaoke' || /karaoke/i.test(v.titulo));
-    }
-    return lista;
-  });
-
   constructor() {
     const q = this.state.busqueda();
     if (q.trim()) {
       this.buscar(q);
-    }
-  }
-
-  setFiltro(tipo: 'todos' | 'karaoke') {
-    this.filtro.set(tipo);
-    // Si filtró por karaoke y no hay ninguno en la lista actual, re-buscar con 'karaoke'
-    if (tipo === 'karaoke' && this.state.busqueda().trim() && !this.resultadosFiltrados().length) {
-      this.buscar(`${this.state.busqueda()} karaoke`);
     }
   }
 
