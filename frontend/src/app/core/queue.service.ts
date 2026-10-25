@@ -43,6 +43,7 @@ export class QueueService {
 
     private actualizandoMesa = false;
     private unsubscribeSocketMesa?: () => void;
+    private onVisibilityMesa?: () => void;
 
     async agregar(video: Video, rol: Rol): Promise<ResultadoAgregar> {
         try {
@@ -149,8 +150,10 @@ export class QueueService {
             if (this.state.sonando()?.uuid !== cancionActual.uuid) {
                 this.state.sonando.set(cancionActual);
             }
-        } else if (items.length > 0 && !items.some(q => q.status === 'PLAYING')) {
-            if (this.state.sonando() !== null) this.state.sonando.set(null);
+        } else {
+            if (this.state.sonando() !== null) {
+                this.state.sonando.set(null);
+            }
         }
     }
 
@@ -162,12 +165,25 @@ export class QueueService {
         this.unsubscribeSocketMesa = this.socket.onQueue((items) => {
             this.procesarColaMesa(items);
         });
+
+        if (typeof document !== 'undefined') {
+            this.onVisibilityMesa = () => {
+                if (document.visibilityState === 'visible') {
+                    this.refrescarMisCanciones();
+                }
+            };
+            document.addEventListener('visibilitychange', this.onVisibilityMesa);
+        }
     }
 
     detenerPollingMesa() {
         if (this.unsubscribeSocketMesa) {
             this.unsubscribeSocketMesa();
             this.unsubscribeSocketMesa = undefined;
+        }
+        if (this.onVisibilityMesa && typeof document !== 'undefined') {
+            document.removeEventListener('visibilitychange', this.onVisibilityMesa);
+            this.onVisibilityMesa = undefined;
         }
     }
 
