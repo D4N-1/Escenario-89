@@ -1,4 +1,4 @@
-import { Component, HostListener, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, inject, signal } from '@angular/core';
 import { Icon } from '../icon/icon';
 import { AppState } from '../../core/app-state';
 import { YoutubeService } from '../../core/youtube.service';
@@ -16,6 +16,7 @@ export class Buscador {
   state = inject(AppState);
   yt = inject(YoutubeService);
   queue = inject(QueueService);
+  private destroyRef = inject(DestroyRef);
 
   consulta = signal('');
   ultima = signal('');
@@ -23,10 +24,20 @@ export class Buscador {
   cargando = signal(false);
   error = signal('');
   abierto = signal(false);
+  escuchandoVoz = signal(false);
+
+  private recognition: any = null;
+
+  constructor() {
+    this.destroyRef.onDestroy(() => {
+      this.detenerVoz();
+    });
+  }
 
   onInput(e: Event) { this.consulta.set((e.target as HTMLInputElement).value); }
 
   async buscar() {
+    this.detenerVoz();
     if (this.state.estado() === 'cerrado') {
       this.error.set('El local está cerrado. No se pueden pedir canciones.');
       return;
@@ -45,6 +56,85 @@ export class Buscador {
     } finally {
       this.cargando.set(false);
     }
+  }
+
+  buscarPorVoz() {
+    if (this.state.estado() === 'cerrado') return;
+
+    if (this.escuchandoVoz()) {
+      this.detenerVoz();
+      return;
+    }
+
+    if (typeof window === 'undefined') return;
+
+    const SpeechRec = (window as unknown as { SpeechRecognition?: any; webkitSpeechRecognition?: any }).SpeechRecognition
+      || (window as unknown as { SpeechRecognition?: any; webkitSpeechRecognition?: any }).webkitSpeechRecognition;
+
+    if (!SpeechRec) {
+      this.error.set('Tu navegador no es compatible con la búsqueda por voz (usa Google Chrome o Microsoft Edge).');
+      this.abierto.set(true);
+      return;
+    }
+
+    try {
+      this.detenerVoz();
+      const rec = new SpeechRec();
+      rec.lang = 'es-ES';
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+
+      rec.onstart = () => {
+        this.escuchandoVoz.set(true);
+      };
+
+      rec.onresult = (event: any) => {
+        const transcript = event.results?.[0]?.[0]?.transcript;
+        this.escuchandoVoz.set(false);
+        if (transcript) {
+          this.consulta.set(transcript);
+          this.buscar();
+        }
+      };
+
+      rec.onerror = (event: any) => {
+        this.escuchandoVoz.set(false);
+        const err = event.error;
+        if (err === 'not-allowed') {
+          this.error.set('Permiso de micrófono denegado. Permite el acceso al micrófono en tu navegador.');
+          this.abierto.set(true);
+        } else if (err === 'audio-capture') {
+          this.error.set('No se detectó ningún micrófono en tu dispositivo.');
+          this.abierto.set(true);
+        } else if (err === 'network') {
+          this.error.set('Error de red al procesar el reconocimiento de voz.');
+          this.abierto.set(true);
+        }
+      };
+
+      rec.onend = () => {
+        this.escuchandoVoz.set(false);
+        this.recognition = null;
+      };
+
+      this.recognition = rec;
+      rec.start();
+    } catch {
+      this.escuchandoVoz.set(false);
+      this.recognition = null;
+      this.error.set('No se pudo iniciar el reconocimiento de voz.');
+      this.abierto.set(true);
+    }
+  }
+
+  detenerVoz() {
+    if (this.recognition) {
+      try {
+        this.recognition.abort();
+      } catch {}
+      this.recognition = null;
+    }
+    this.escuchandoVoz.set(false);
   }
 
   /** El admin agrega la canción a la cola del backend */
@@ -68,5 +158,8 @@ export class Buscador {
   }
 
   @HostListener('document:keydown.escape')
-  cerrar() { this.abierto.set(false); }
+  cerrar() {
+    this.detenerVoz();
+    this.abierto.set(false);
+  }
 }

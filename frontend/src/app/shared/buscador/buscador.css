@@ -21,3 +21,30 @@
 .datos small { color: var(--c-text2); font-size: 11px; }
 .tag { align-self: flex-start; font-size: 9px; color: var(--c-gold); border: 1px solid var(--c-gold-dark); border-radius: 4px; padding: 1px 6px; }
 .add { display: inline-flex; gap: 4px; align-items: center; color: var(--c-gold); font-size: 12px; font-weight: 600; white-space: nowrap; }
+
+/* Micrófono y animación de escucha activa */
+.pill-input.escuchando {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.45) !important;
+}
+
+.mic-btn.escuchando {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  animation: pulse-mic 1.2s infinite ease-in-out;
+}
+
+@keyframes pulse-mic {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+  }
+}
