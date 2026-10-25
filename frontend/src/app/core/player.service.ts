@@ -38,10 +38,6 @@ export class PlayerService {
   private apiLoadedPromise: Promise<void> | null = null;
   private channel: BroadcastChannel | null = null;
   private role: PlayerRole = 'admin';
-  private loadingWatchdog: any = null;
-  private autoSkipTimer: any = null;
-  private intentosAlternativas = 0;
-  private videosFallidos = new Set<string>();
 
   progreso = signal<number>(0);
   tiempoSegundos = signal<number>(0);
@@ -62,11 +58,6 @@ export class PlayerService {
       const cancion = this.state.sonando();
       if (!cancion) {
         this.detenerTicker();
-        this.limpiarLoadingWatchdog();
-        this.limpiarAutoSkip();
-        this.intentosAlternativas = 0;
-        this.videosFallidos.clear();
-        this.error.set('');
         this.progreso.set(0);
         this.tiempoFormateado.set('0:00');
         this.currentVideoId = '';
@@ -82,8 +73,6 @@ export class PlayerService {
       const vId = cancion.videoId;
       if (this.listo()) {
         if (!vId || vId !== this.currentVideoId) {
-          this.intentosAlternativas = 0;
-          this.videosFallidos.clear();
           this.cargarCancion(cancion, true);
         }
       } else {
@@ -282,7 +271,6 @@ export class PlayerService {
         const originUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
         const playerConfig: any = {
-          host: 'https://www.youtube-nocookie.com',
           width: '100%',
           height: '100%',
           playerVars: {
@@ -299,7 +287,6 @@ export class PlayerService {
             cc_lang_pref: 'none',
             mute: (this.role === 'pantalla' || muted) ? 1 : 0,
             origin: originUrl,
-            widget_referrer: originUrl,
           },
           events: {
             onReady: (event: any) => {
@@ -307,7 +294,6 @@ export class PlayerService {
               this.cargando.set(false);
               if (hayCancionReal) {
                 this.currentVideoId = videoId;
-                this.iniciarLoadingWatchdog(5000);
               }
 
               try {
@@ -318,7 +304,6 @@ export class PlayerService {
                     'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
                   );
                   iframe.setAttribute('allowfullscreen', 'true');
-                  iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
                 }
               } catch { }
 
@@ -329,6 +314,7 @@ export class PlayerService {
                   this.necesitaInteraccion.set(false);
                   if (hayCancionReal) {
                     event.target.playVideo();
+                    this.state.reproduciendo.set(true);
                   }
                 } catch { }
               } else if (!hayCancionReal) {
@@ -344,11 +330,9 @@ export class PlayerService {
                   this.muteado.set(false);
                   event.target.setVolume(this.volumen());
                   event.target.playVideo();
+                  this.state.reproduciendo.set(true);
                   this.necesitaInteraccion.set(false);
-                } catch (err) {
-                  console.warn('Autoplay con audio bloqueado por navegador:', err);
-                  this.necesitaInteraccion.set(true);
-                }
+                } catch { }
               }
 
               this.desactivarSubtitulos();
@@ -386,143 +370,52 @@ export class PlayerService {
     });
   }
 
-  private iniciarLoadingWatchdog(timeoutMs = 4500) {
-    this.limpiarLoadingWatchdog();
-    this.loadingWatchdog = setTimeout(async () => {
-      if (this.cargando() || !this.state.reproduciendo()) {
-        console.warn(`[PlayerService] Watchdog: el video no comenzó tras ${timeoutMs}ms`);
-
-        if (this.player && typeof this.player.getPlayerState === 'function') {
-          try {
-            const st = this.player.getPlayerState();
-            if (st === 1) {
-              this.cargando.set(false);
-              this.state.reproduciendo.set(true);
-              this.iniciarTicker();
-              return;
-            }
-            this.player.playVideo();
-            await new Promise(r => setTimeout(r, 800));
-            if (this.player.getPlayerState() === 1) {
-              this.cargando.set(false);
-              this.state.reproduciendo.set(true);
-              this.iniciarTicker();
-              return;
-            }
-          } catch { }
-        }
-
-        this.cargando.set(false);
-
-        const cancion = this.state.sonando();
-        if (cancion && cancion.videoId && this.role === 'admin') {
-          console.warn('[PlayerService] El video no responde o está bloqueado:', cancion.videoId);
-          this.handlePlayerError(150);
-        } else {
-          this.necesitaInteraccion.set(true);
-        }
-      }
-    }, timeoutMs);
-  }
-
-  private limpiarLoadingWatchdog() {
-    if (this.loadingWatchdog) {
-      clearTimeout(this.loadingWatchdog);
-      this.loadingWatchdog = null;
-    }
-  }
-
-  private limpiarAutoSkip() {
-    if (this.autoSkipTimer) {
-      clearTimeout(this.autoSkipTimer);
-      this.autoSkipTimer = null;
-    }
-  }
-
   private onPlayerStateChange(stateCode: number) {
+    
     if (stateCode === 1) { // PLAYING
-      this.limpiarLoadingWatchdog();
-      this.limpiarAutoSkip();
       this.desactivarSubtitulos();
       this.state.reproduciendo.set(true);
       this.cargando.set(false);
-      this.necesitaInteraccion.set(false);
-      this.error.set('');
       this.iniciarTicker();
     } else if (stateCode === 2) { // PAUSED
-      this.limpiarLoadingWatchdog();
       this.state.reproduciendo.set(false);
       this.cargando.set(false);
       this.detenerTicker();
     } else if (stateCode === 0) { // ENDED
-      this.limpiarLoadingWatchdog();
-      this.limpiarAutoSkip();
       this.detenerTicker();
       this.state.reproduciendo.set(false);
       this.cargando.set(false);
       this.next();
     } else if (stateCode === 3) { // BUFFERING
       this.cargando.set(true);
-      this.iniciarLoadingWatchdog(5000);
     } else if (stateCode === 5) { // CUED
-      this.limpiarLoadingWatchdog();
       this.cargando.set(false);
-    } else if (stateCode === -1) { // UNSTARTED
-      this.iniciarLoadingWatchdog(5000);
     }
   }
 
   private async handlePlayerError(code: number) {
-    this.limpiarLoadingWatchdog();
     this.cargando.set(false);
-    this.detenerTicker();
     console.warn(`YouTube Player error (${code})`);
 
-    const cancion = this.state.sonando();
-    if (!cancion) return;
-
-    if (cancion.videoId) {
-      this.videosFallidos.add(cancion.videoId);
-    }
-
-    const esRestringido = code === 150 || code === 101 || code === 100 || code === 2 || code === 5;
-
-    if (esRestringido) {
-      if (this.intentosAlternativas < 3) {
-        this.intentosAlternativas++;
-        this.error.set('Este video no permite reproducción embebida. Buscando versión alternativa...');
-
+    
+    if (code === 150 || code === 101) {
+      this.error.set('Este video tiene restricciones de reproducción embebida en YouTube. Buscando versión alternativa...');
+      const cancion = this.state.sonando();
+      if (cancion) {
         try {
-          const esKaraoke = cancion.tipo === 'karaoke' || /karaoke/i.test(cancion.titulo);
-          const consulta = esKaraoke
-            ? `${cancion.titulo} ${cancion.artista} karaoke`.trim()
-            : `${cancion.titulo} ${cancion.artista}`.trim();
-
-          const alts = await this.yt.buscar(consulta);
-          // Filtrar TODOS los videos que ya fallaron anteriormente
-          const alt = alts.find(a => a.id && !this.videosFallidos.has(a.id));
-
+          const alts = await this.yt.buscar(`${cancion.titulo} ${cancion.artista} karaoke`);
+          const alt = alts.find(a => a.id !== cancion.videoId);
           if (alt) {
-            this.error.set(`Versión alternativa encontrada: "${alt.titulo}". Cargando...`);
             cancion.videoId = alt.id;
             cancion.miniatura = alt.miniatura;
-            setTimeout(async () => {
-              this.error.set('');
-              await this.cargarCancion(cancion, true);
-            }, 800);
+            await this.cargarCancion(cancion, true);
             return;
           }
-        } catch (err) {
-          console.warn('Error buscando alternativa:', err);
-        }
+        } catch { }
       }
-
-      this.error.set(`No se pudo reproducir "${cancion.titulo}". Pasando al siguiente tema en 3s...`);
-      this.limpiarAutoSkip();
-      this.autoSkipTimer = setTimeout(() => {
-        this.error.set('');
-        this.next();
-      }, 3000);
+      setTimeout(() => this.next(), 3500);
+    } else if (code === 2) {
+      this.error.set('El identificador del video de YouTube es inválido.');
     } else {
       this.error.set(`Error de YouTube (${code}). Intenta reproducir otra canción.`);
     }
@@ -623,7 +516,6 @@ export class PlayerService {
     this.loadingVideoId = vId;
     this.cargando.set(true);
     this.error.set('');
-    this.iniciarLoadingWatchdog(5000);
 
     if (this.player && typeof this.player.loadVideoById === 'function' && this.listo()) {
       try {
@@ -779,13 +671,6 @@ export class PlayerService {
   }
 
   next() {
-    this.limpiarLoadingWatchdog();
-    this.limpiarAutoSkip();
-    this.error.set('');
-    this.cargando.set(false);
-    this.intentosAlternativas = 0;
-    this.videosFallidos.clear();
-
     const actual = this.state.sonando();
     if (actual?.uuid) {
       if (this.role === 'admin') {
@@ -867,8 +752,6 @@ export class PlayerService {
   }
 
   destruir() {
-    this.limpiarLoadingWatchdog();
-    this.limpiarAutoSkip();
     this.detenerTicker();
     if (this.player) {
       try { this.player.destroy(); } catch { }

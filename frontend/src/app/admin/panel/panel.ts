@@ -38,27 +38,9 @@ export class Panel {
   onStageClick(event: MouseEvent) {
     if (this.state.estado() === 'cerrado') return;
     const target = event.target as HTMLElement;
-    if (target.closest('.stage-top-actions, .stage-overlay, .stage-error-banner, button, a, app-buscador')) {
-      return;
-    }
-    if (this.player.necesitaInteraccion()) {
-      this.player.desbloquearAudio();
+    if (target.closest('.stage-top-actions, .stage-overlay, button, a, app-buscador')) {
       return;
     }
     this.player.togglePlay();
-  }
-
-  skipError(event: MouseEvent) {
-    event.stopPropagation();
-    this.player.next();
-  }
-
-  onPlayPromptClick(event: MouseEvent) {
-    event.stopPropagation();
-    if (this.player.necesitaInteraccion()) {
-      this.player.desbloquearAudio();
-    } else {
-      this.player.play();
-    }
   }
 }
