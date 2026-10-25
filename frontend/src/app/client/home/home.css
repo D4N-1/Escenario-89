@@ -421,17 +421,11 @@
 }
 
 .vacio-card p {
-    margin: 0 0 8px;
+    margin: 0;
     font-size: 12.5px;
     color: var(--c-text2);
     line-height: 1.4;
     max-width: 280px;
-}
-
-.vacio-btn {
-    font-size: 12.5px;
-    padding: 8px 16px;
-    border-radius: 999px;
 }
 
 /* =========================================================
