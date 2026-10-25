@@ -26,25 +26,24 @@ export class BarMonitorService {
     const closingDate = new Date();
     closingDate.setHours(closingHour, closingMinute, 0, 0);
 
-    if (closingDate.getTime() <= now.getTime()) {
+    // Si la hora de cierre ya pasó hoy por más de 2 minutos, asumimos que es para mañana
+    const pastDiffMs = now.getTime() - closingDate.getTime();
+    if (pastDiffMs > 2 * 60 * 1000) {
       closingDate.setDate(closingDate.getDate() + 1);
     }
 
     const diffInMs = closingDate.getTime() - now.getTime();
-    const diffInMinutes = Math.floor(diffInMs / 1000 / 60);
+    const diffInMinutes = Math.round(diffInMs / 1000 / 60);
 
-
-    if (diffInMinutes === 0 && bar.status === BarStatus.CLOSING) {
+    if (diffInMinutes <= 0 && bar.status === BarStatus.CLOSING) {
       this.logger.warn(`¡El local ha cerrado oficialmente (${bar.closeHour})!`);
-      
-      const updatedRes = await this.barService.updateBar({ status: BarStatus.CLOSED });
+      await this.barService.updateBar({ status: BarStatus.CLOSED });
       return;
     }
 
-    if (diffInMinutes <= 30 && bar.status === BarStatus.OPEN) {
+    if (diffInMinutes <= 30 && diffInMinutes > 0 && bar.status === BarStatus.OPEN) {
       this.logger.warn(`¡Faltan 30 minutos para el cierre (${bar.closeHour})!`);
-      
-      const updatedRes = await this.barService.updateBar({ status: BarStatus.CLOSING });
+      await this.barService.updateBar({ status: BarStatus.CLOSING });
     }
   }
 }

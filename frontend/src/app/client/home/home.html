@@ -1,19 +1,43 @@
 <main class="screen">
   <app-client-header></app-client-header>
 
+  @if (state.estado() === 'cerrado') {
+    <div class="estado-alerta cerrado">
+      <app-icon name="alert" [size]="20" />
+      <div class="alerta-texto">
+        <b>Local Cerrado</b>
+        <p>El local se encuentra cerrado. No se pueden pedir canciones.</p>
+      </div>
+    </div>
+  } @else if (state.estado() === 'cerrando') {
+    <div class="estado-alerta cerrando">
+      <app-icon name="alert" [size]="20" />
+      <div class="alerta-texto">
+        <b>Local Cerrando</b>
+        <p>Solo se reproducen las canciones en cola. Pedidos cerrados.</p>
+      </div>
+    </div>
+  }
+
   <section class="buscar-section">
-    <div class="pill-input">
-      <input #q placeholder="Busca canción, artista o karaoke..." enterkeyhint="search" autocomplete="off" (keydown.enter)="irABuscar(q.value)">
+    <div class="pill-input" [class.disabled]="state.estado() === 'cerrado'">
+      <input #q [placeholder]="state.estado() === 'cerrado' ? 'Local cerrado' : (state.estado() === 'cerrando' ? 'Local cerrando - Solo cola activa' : 'Busca canción, artista o karaoke...')"
+             [disabled]="state.estado() === 'cerrado'"
+             enterkeyhint="search"
+             autocomplete="off"
+             (keydown.enter)="irABuscar(q.value)">
       @if (q.value) {
         <button type="button" class="clear-btn" (click)="q.value = ''" aria-label="Limpiar"><app-icon name="close" [size]="16" /></button>
       }
-      <button type="button" class="pill-btn" aria-label="Buscar" (click)="irABuscar(q.value)"><app-icon name="search" /></button>
+      <button type="button" class="pill-btn" [disabled]="state.estado() === 'cerrado'" aria-label="Buscar" (click)="irABuscar(q.value)"><app-icon name="search" /></button>
     </div>
 
-    <button type="button" class="voz-btn" [class.escuchando]="escuchandoVoz()" (click)="buscarPorVoz()">
-      <span class="mic-circle"><app-icon name="mic" [size]="18" /></span>
-      <span>{{ escuchandoVoz() ? 'Escuchando... di el nombre de la canción' : 'Toca para pedir por voz' }}</span>
-    </button>
+    @if (state.estado() === 'abierto') {
+      <button type="button" class="voz-btn" [class.escuchando]="escuchandoVoz()" (click)="buscarPorVoz()">
+        <span class="mic-circle"><app-icon name="mic" [size]="18" /></span>
+        <span>{{ escuchandoVoz() ? 'Escuchando... di el nombre de la canción' : 'Toca para pedir por voz' }}</span>
+      </button>
+    }
   </section>
 
   @if (state.sonando(); as ahora) {

@@ -1,15 +1,23 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
+import { environment } from '../../environments/environment';
 import { SessionService } from './session.service';
 
 export type SocketRol = 'admin' | 'mesa';
 
-function obtenerSocketUrl(): string {
-
-    return `https://escenario89.danidev.top`;
-  
+function obtenerSocketConfig(): { url: string; path: string } {
+  try {
+    const api = environment.apiUrl || 'http://localhost:3000';
+    if (api.includes('localhost') || api.includes('127.0.0.1')) {
+      const u = new URL(api);
+      return { url: `${u.protocol}//${u.host}`, path: '/socket.io' };
+    }
+    const cleanUrl = api.replace(/\/api\/?$/, '');
+    return { url: cleanUrl || 'https://escenario89.danidev.top', path: '/api/socket.io' };
+  } catch {
+    return { url: 'http://localhost:3000', path: '/socket.io' };
+  }
 }
-
 
 @Injectable({ providedIn: 'root' })
 export class SocketService {
@@ -24,7 +32,7 @@ export class SocketService {
 
   private listenersCola: Array<(datos: any[]) => void> = [];
   private listenersIntermission: Array<(datos: any) => void> = [];
-
+  private listenersBar: Array<(bar: any) => void> = [];
 
   conectar(rol: SocketRol): Socket | null {
     const token = rol === 'admin' ? this.session.tokenAdmin() : this.session.tokenMesa();
@@ -41,10 +49,10 @@ export class SocketService {
 
     this.rolActual = rol;
     this.tokenActual = token;
-    const url = obtenerSocketUrl();
+    const cfg = obtenerSocketConfig();
 
-    this.socket = io(url ?? '', {
-      path: '/api/socket.io',
+    this.socket = io(cfg.url, {
+      path: cfg.path,
       auth: {
         authorization: token,
       },
@@ -90,9 +98,16 @@ export class SocketService {
       }
     });
 
+    this.socket.on('bar', (bar: any) => {
+      for (const cb of this.listenersBar) {
+        try {
+          cb(bar);
+        } catch { }
+      }
+    });
+
     return this.socket;
   }
-
 
   onQueue(callback: (datos: any[]) => void): () => void {
     this.listenersCola.push(callback);
@@ -101,11 +116,17 @@ export class SocketService {
     };
   }
 
-
   onIntermission(callback: (datos: any) => void): () => void {
     this.listenersIntermission.push(callback);
     return () => {
       this.listenersIntermission = this.listenersIntermission.filter(cb => cb !== callback);
+    };
+  }
+
+  onBar(callback: (bar: any) => void): () => void {
+    this.listenersBar.push(callback);
+    return () => {
+      this.listenersBar = this.listenersBar.filter(cb => cb !== callback);
     };
   }
 

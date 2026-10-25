@@ -7,8 +7,6 @@ import { Splash } from './splash/splash';
 import { Login } from './admin/login/login';
 import { Layout } from './admin/layout/layout';
 import { Panel } from './admin/panel/panel';
-import { PanelCerrando } from './admin/panel-cerrando/panel-cerrando';
-import { PanelCerrado } from './admin/panel-cerrado/panel-cerrado';
 import { Anuncios } from './admin/anuncios/anuncios';
 import { Audios } from './admin/audios/audios';
 import { Pantalla } from './pantalla/pantalla';
@@ -37,8 +35,8 @@ export const routes: Routes = [
     canActivate: [adminGuard],
     children: [
       { path: '', component: Panel },
-      { path: 'cerrando', component: PanelCerrando },
-      { path: 'cerrado', component: PanelCerrado },
+      { path: 'cerrando', component: Panel },
+      { path: 'cerrado', component: Panel },
       { path: 'anuncios', component: Anuncios },
       { path: 'anuncios/nuevo', component: Anuncios, data: { modal: true } },
       { path: 'audios', component: Audios },

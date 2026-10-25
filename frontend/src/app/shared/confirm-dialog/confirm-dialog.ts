@@ -25,6 +25,15 @@ export class ConfirmDialog {
   error = signal('');
 
   async confirmar() {
+    if (this.state.estado() === 'cerrado') {
+      this.error.set('El local está cerrado. No se pueden pedir canciones.');
+      return;
+    }
+    if (this.state.estado() === 'cerrando') {
+      this.error.set('El local está cerrando. Solo se reproducen las canciones que ya están en cola.');
+      return;
+    }
+
     const v = this.video();
     if (!v) {
       this.router.navigate(['/agregado']);

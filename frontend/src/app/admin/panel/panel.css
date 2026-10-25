@@ -3,6 +3,8 @@
 .crumb { font-size: 11px; color: var(--c-text2); display: flex; align-items: center; gap: 6px; }
 .state-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
 .state-badge.abierto { color: var(--c-green-light); background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.35); }
+.state-badge.cerrando { color: var(--c-yellow-light); background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); }
+.state-badge.cerrado { color: var(--c-red-light); background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); }
 .search { width: 260px; }
 .clock { color: var(--c-gold); font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .stage { flex: 1; padding: 0 36px 16px; position: relative; display: flex; flex-direction: column; }
@@ -10,6 +12,8 @@
 .dup { font-size: 12px; padding: 8px 14px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .video { flex: 1; border-radius: 12px; min-height: 380px; position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); background: #000; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6); padding: 0; cursor: pointer; }
 .video-abierto { background: radial-gradient(circle at 70% 30%, #3e301d 0%, #1c1822 45%, #101014 100%); }
+.video-cerrando { background: radial-gradient(circle at 70% 30%, #3d2c12 0%, #201a14 45%, #141210 100%) !important; border-color: rgba(245, 158, 11, 0.3) !important; }
+.video-cerrado { background: radial-gradient(circle at 70% 30%, #351313 0%, #1c1010 45%, #120e0e 100%) !important; border-color: rgba(239, 68, 68, 0.3) !important; }
 
 /* Capturador de clics sobre el iframe */
 .stage-click-catcher { position: absolute; inset: 0; z-index: 2; }
@@ -112,4 +116,9 @@
 .stage-overlay { position: absolute; bottom: 20px; left: 24px; background: rgba(10, 10, 12, 0.85); backdrop-filter: blur(10px); padding: 12px 20px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.12); z-index: 4; pointer-events: none; }
 .status-pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; margin-bottom: 4px; background: rgba(255, 255, 255, 0.1); color: var(--c-subtext); border: 1px solid rgba(255, 255, 255, 0.15); }
 .status-pill.abierto { background: rgba(34, 197, 94, 0.2); color: var(--c-green-light); border: 1px solid rgba(34, 197, 94, 0.3); }
+.status-pill.cerrando { background: rgba(245, 158, 11, 0.2); color: var(--c-yellow-light); border: 1px solid rgba(245, 158, 11, 0.35); }
+.status-pill.cerrado { background: rgba(239, 68, 68, 0.2); color: var(--c-red-light); border: 1px solid rgba(239, 68, 68, 0.35); }
 .status-msg { margin: 0; font-size: 13px; color: var(--c-text2); }
+
+.empty-stage.closed-stage { background: radial-gradient(circle at 70% 30%, #351313 0%, #1c1010 45%, #120e0e 100%); }
+.closed-icon { color: var(--c-red-light); opacity: 0.85; }

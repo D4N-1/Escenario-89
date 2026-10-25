@@ -1,5 +1,5 @@
 <div class="top">
-  <span class="crumb">Panel principal › <b class="state-badge abierto">Abierto</b></span>
+  <span class="crumb">Panel principal › <b class="state-badge" [class]="state.estado()">{{ stateLabel(state.estado()) }}</b></span>
   <app-buscador />
   <span class="clock">{{ state.hora() }}</span>
 </div>
@@ -13,51 +13,79 @@
     </a>
   </div>
 
-  <div class="video video-abierto" ytSlot [class.con-video]="!!state.sonando()?.videoId" (click)="onStageClick($event)">
+  <div class="video"
+       [class.video-abierto]="state.estado() === 'abierto'"
+       [class.video-cerrando]="state.estado() === 'cerrando'"
+       [class.video-cerrado]="state.estado() === 'cerrado'"
+       ytSlot
+       [class.con-video]="!!state.sonando()?.videoId && state.estado() !== 'cerrado'"
+       (click)="onStageClick($event)">
     <div class="stage-click-catcher" title="Haz clic en el escenario para reproducir o pausar"></div>
 
-    @if (!state.sonando()) {
-    <div class="empty-stage">
-      <div class="empty-icon"><app-icon name="clapper" [size]="48" /></div>
-      <p class="empty-title">Sin canción sonando</p>
-      <span class="empty-sub">Selecciona una canción en el buscador arriba para empezar la música</span>
-    </div>
-    }
-
-    @if (state.sonando() && !state.reproduciendo() && !player.cargando()) {
-    <div class="stage-play-prompt">
-      <div class="stage-play-circle" title="Haz clic para reproducir">
-        <app-icon name="play" [size]="38" />
+    @if (state.estado() === 'cerrado') {
+      <div class="empty-stage closed-stage">
+        <div class="empty-icon closed-icon"><app-icon name="alert" [size]="48" /></div>
+        <p class="empty-title">Local Cerrado</p>
+        <span class="empty-sub">El local se encuentra cerrado. Todas las canciones han sido finalizadas y no se aceptan nuevos pedidos.</span>
       </div>
-      <span class="stage-play-label">Haz clic para reproducir</span>
-    </div>
+    } @else if (!state.sonando()) {
+      <div class="empty-stage">
+        <div class="empty-icon"><app-icon name="clapper" [size]="48" /></div>
+        <p class="empty-title">{{ state.estado() === 'cerrando' ? 'No hay más canciones en cola' : 'Sin canción sonando' }}</p>
+        <span class="empty-sub">
+          {{ state.estado() === 'cerrando' ? 'El local está cerrando y la cola ha finalizado.' : 'Selecciona una canción en el buscador arriba para empezar la música' }}
+        </span>
+      </div>
     }
 
-    @if (player.cargando()) {
-    <div class="stage-status-overlay">
-      <div class="stage-spinner"></div>
-      <span>Cargando video de YouTube...</span>
-    </div>
+    @if (state.estado() !== 'cerrado' && state.sonando() && !state.reproduciendo() && !player.cargando()) {
+      <div class="stage-play-prompt">
+        <div class="stage-play-circle" title="Haz clic para reproducir">
+          <app-icon name="play" [size]="38" />
+        </div>
+        <span class="stage-play-label">Haz clic para reproducir</span>
+      </div>
     }
 
-    @if (player.error(); as err) {
-    <div class="stage-error-banner">
-      <app-icon name="alert" [size]="18" />
-      <span>{{ err }}</span>
-    </div>
+    @if (state.estado() !== 'cerrado' && player.cargando()) {
+      <div class="stage-status-overlay">
+        <div class="stage-spinner"></div>
+        <span>Cargando video de YouTube...</span>
+      </div>
+    }
+
+    @if (state.estado() !== 'cerrado' && player.error(); as err) {
+      <div class="stage-error-banner">
+        <app-icon name="alert" [size]="18" />
+        <span>{{ err }}</span>
+      </div>
     }
 
     <div class="stage-overlay">
-      <span class="status-pill" [class.abierto]="state.reproduciendo()">
-        {{ state.reproduciendo() ? 'En Vivo · Reproduciendo' : (state.sonando() ? 'En Pausa' : 'En Espera') }}
-      </span>
-      <p class="status-msg">
-        @if (state.sonando(); as s) {
-        {{ s.titulo }} · {{ s.artista }} @if (s.mesa > 0) { (Mesa #{{ s.mesa }}) }
-        } @else {
-        Sin canción sonando · Esperando pedidos
-        }
-      </p>
+      @if (state.estado() === 'cerrado') {
+        <span class="status-pill cerrado">● Estado: Cerrado</span>
+        <p class="status-msg">Local cerrado · No se aceptan nuevos pedidos de canciones</p>
+      } @else if (state.estado() === 'cerrando') {
+        <span class="status-pill cerrando">● Estado: Cerrando</span>
+        <p class="status-msg">
+          @if (state.sonando(); as s) {
+            {{ s.titulo }} · {{ s.artista }} @if (s.mesa > 0) { (Mesa #{{ s.mesa }}) } · Reproduciendo cola restante
+          } @else {
+            Cola finalizada · Preparando cierre
+          }
+        </p>
+      } @else {
+        <span class="status-pill" [class.abierto]="state.reproduciendo()">
+          {{ state.reproduciendo() ? 'En Vivo · Reproduciendo' : (state.sonando() ? 'En Pausa' : 'En Espera') }}
+        </span>
+        <p class="status-msg">
+          @if (state.sonando(); as s) {
+            {{ s.titulo }} · {{ s.artista }} @if (s.mesa > 0) { (Mesa #{{ s.mesa }}) }
+          } @else {
+            Sin canción sonando · Esperando pedidos
+          }
+        </p>
+      }
     </div>
   </div>
 </div>

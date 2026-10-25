@@ -1,13 +1,36 @@
 <main class="screen">
   <app-client-header atras="/" />
 
+  @if (state.estado() === 'cerrado') {
+    <div class="estado-alerta cerrado">
+      <app-icon name="alert" [size]="20" />
+      <div class="alerta-texto">
+        <b>Local Cerrado</b>
+        <p>El local se encuentra cerrado. No se pueden pedir canciones.</p>
+      </div>
+    </div>
+  } @else if (state.estado() === 'cerrando') {
+    <div class="estado-alerta cerrando">
+      <app-icon name="alert" [size]="20" />
+      <div class="alerta-texto">
+        <b>Local Cerrando</b>
+        <p>Solo se reproducen las canciones en cola. Pedidos cerrados.</p>
+      </div>
+    </div>
+  }
+
   <div class="buscar-sticky">
-    <div class="pill-input">
-      <input #q [value]="state.busqueda()" placeholder="Busca canción, artista o karaoke..." enterkeyhint="search" autocomplete="off" (keydown.enter)="buscar(q.value)">
+    <div class="pill-input" [class.disabled]="state.estado() === 'cerrado'">
+      <input #q [value]="state.busqueda()"
+             [placeholder]="state.estado() === 'cerrado' ? 'Local cerrado' : 'Busca canción, artista o karaoke...'"
+             [disabled]="state.estado() === 'cerrado'"
+             enterkeyhint="search"
+             autocomplete="off"
+             (keydown.enter)="buscar(q.value)">
       @if (q.value) {
         <button type="button" class="clear-btn" (click)="q.value = ''; state.busqueda.set('')" aria-label="Limpiar"><app-icon name="close" [size]="16" /></button>
       }
-      <button type="button" class="pill-btn" aria-label="Buscar" (click)="buscar(q.value)"><app-icon name="search" /></button>
+      <button type="button" class="pill-btn" [disabled]="state.estado() === 'cerrado'" aria-label="Buscar" (click)="buscar(q.value)"><app-icon name="search" /></button>
     </div>
 
     <div class="filtros-tabs">
@@ -29,7 +52,9 @@
     } @else if (error()) {
       <div class="estado-mensaje">
         <p style="color: var(--c-red-light); margin: 0 0 10px;">{{ error() }}</p>
-        <button type="button" class="btn-gold" (click)="buscar(state.busqueda())">Intentar de nuevo</button>
+        @if (state.estado() !== 'cerrado') {
+          <button type="button" class="btn-gold" (click)="buscar(state.busqueda())">Intentar de nuevo</button>
+        }
       </div>
     } @else if (!busquedaRealizada() && !resultados().length) {
       <div class="estado-mensaje">
@@ -45,7 +70,7 @@
       </div>
     } @else {
       @for (v of resultadosFiltrados(); track v.id) {
-        <app-video-card [video]="v" (click)="seleccion.set(v)" />
+        <app-video-card [video]="v" (click)="seleccionar(v)" />
       } @empty {
         <div class="estado-mensaje">
           <app-icon name="close" [size]="32" style="color: var(--c-subtext);" />

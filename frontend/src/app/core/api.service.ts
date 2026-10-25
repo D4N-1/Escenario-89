@@ -21,6 +21,29 @@ export class ApiService {
     return this.enviar<T>(rol, metodo, url, cuerpo, true);
   }
 
+  async pedirPublico<T = any>(metodo: 'GET' | 'POST' | 'PATCH' | 'DELETE', url: string, cuerpo?: unknown): Promise<T> {
+    const isFormData = typeof FormData !== 'undefined' && cuerpo instanceof FormData;
+    const headers: Record<string, string> = {};
+    if (cuerpo !== undefined && !isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    let r: Response;
+    try {
+      r = await fetch(environment.apiUrl + url, {
+        method: metodo,
+        headers,
+        body: cuerpo !== undefined ? (isFormData ? cuerpo : JSON.stringify(cuerpo)) : undefined,
+      });
+    } catch {
+      throw new ErrorApi(0, 'No se pudo conectar con el servidor.');
+    }
+
+    const datos = await r.json().catch(() => null);
+    if (!r.ok) throw new ErrorApi(r.status, mensajeDeError(datos, `Error ${r.status}`));
+    return datos as T;
+  }
+
   private async enviar<T>(rol: Rol, metodo: string, url: string, cuerpo: unknown, reintentar: boolean): Promise<T> {
     const token = rol === 'admin' ? this.session.tokenAdmin() : this.session.tokenMesa();
     if (!token) {

@@ -27,6 +27,10 @@ export class Buscador {
   onInput(e: Event) { this.consulta.set((e.target as HTMLInputElement).value); }
 
   async buscar() {
+    if (this.state.estado() === 'cerrado') {
+      this.error.set('El local está cerrado. No se pueden pedir canciones.');
+      return;
+    }
     const q = this.consulta().trim();
     if (!q) return;
     this.ultima.set(q);
@@ -45,6 +49,14 @@ export class Buscador {
 
   /** El admin agrega la canción a la cola del backend */
   async agregar(v: Video) {
+    if (this.state.estado() === 'cerrado') {
+      this.error.set('El local está cerrado. No se pueden pedir canciones.');
+      return;
+    }
+    if (this.state.estado() === 'cerrando') {
+      this.error.set('El local está cerrando. Solo se reproducen las canciones que ya están en cola.');
+      return;
+    }
     try {
       await this.queue.agregar(v, 'admin');
       this.cerrar();

@@ -16,6 +16,14 @@ export class Panel {
   state = inject(AppState);
   player = inject(PlayerService);
 
+  stateLabel(s: 'abierto' | 'cerrando' | 'cerrado'): string {
+    switch (s) {
+      case 'abierto': return 'Abierto';
+      case 'cerrando': return 'Cerrando';
+      case 'cerrado': return 'Cerrado';
+    }
+  }
+
   toggleFullscreen() {
     // El video está en el reproductor del layout, no dentro del recuadro .video
     const videoEl = document.getElementById('admin-player-container');
@@ -28,6 +36,7 @@ export class Panel {
   }
 
   onStageClick(event: MouseEvent) {
+    if (this.state.estado() === 'cerrado') return;
     const target = event.target as HTMLElement;
     if (target.closest('.stage-top-actions, .stage-overlay, button, a, app-buscador')) {
       return;

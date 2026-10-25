@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import type { DataSource, FindOptionsRelations } from 'typeorm';
@@ -6,6 +6,8 @@ import { Repository } from 'typeorm';
 import { TypeRequest } from '../../common/enums/typeRequest.enum.js';
 import { ResAllInterface } from '../../common/interfaces/resAll.interface.js';
 import { AnyRequest } from '../../common/types/payload.type.js';
+import { BarService } from '../bar/bar.service.js';
+import { BarStatus } from '../bar/enum/bar-status.enum.js';
 import { IntermissionService } from '../intermission/intermission.service.js';
 import { QueueSocketService } from '../queue-socket/queue-socket.service.js';
 import { SongEntity } from '../song/entities/song.entity.js';
@@ -36,7 +38,8 @@ export class QueueService implements OnModuleInit {
         private readonly tableService: TableService,
         private readonly userService: UserService,
         private readonly queueSocketService: QueueSocketService,
-        private readonly intermissionService: IntermissionService
+        private readonly intermissionService: IntermissionService,
+        private readonly barService: BarService
 
     ) { }
 
@@ -149,6 +152,17 @@ export class QueueService implements OnModuleInit {
     }
 
     async create(createQueueDto: CreateQueueDto, anyRequest: AnyRequest): Promise<QueueResCreateInterface> {
+
+        const barRes = await this.barService.getBar();
+        const barStatus = barRes?.data?.status;
+
+        if (barStatus === BarStatus.CLOSED) {
+            throw new BadRequestException('El local está cerrado. No se pueden pedir canciones.');
+        }
+
+        if (barStatus === BarStatus.CLOSING) {
+            throw new BadRequestException('El local está cerrando. Solo se reproducen las canciones que ya están en cola.');
+        }
 
         const { songId, tableCode, uuid } = createQueueDto;
 

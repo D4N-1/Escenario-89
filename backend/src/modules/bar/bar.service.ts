@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { In, Repository } from "typeorm";
 import { ResCreateInterface } from "../../common/interfaces/resCreate.interface";
 import { ResUpdateInterface } from "../../common/interfaces/resUpdate.interface";
+import { QueueEntity, SongStatus } from "../queue/entities/queue.entity";
 import { QueueSocketService } from "../queue-socket/queue-socket.service";
 import { CreateBarDto } from "./dto/create-bar.dto";
 import { UpdateBarDto } from "./dto/update-bar.dto";
 import { BarEntity } from "./entities/bar.entity";
+import { BarStatus } from "./enum/bar-status.enum";
 
 
 @Injectable()
@@ -21,6 +23,9 @@ export class BarService {
         @InjectRepository(BarEntity)
         private readonly barRepository: Repository<BarEntity>,
 
+        @InjectRepository(QueueEntity)
+        private readonly queueRepository: Repository<QueueEntity>,
+
         private readonly queueSocketService: QueueSocketService
         
     ) { }
@@ -29,10 +34,10 @@ export class BarService {
     async getBar(cached?: boolean): Promise<ResCreateInterface|null> {
         const now = Date.now();
 
-        if ( (now - this.lastFetchTime > this.CACHE_TTL ) || cached == false) {
+        if ( (now - this.lastFetchTime > this.CACHE_TTL ) || cached == false || !this.cachedBar) {
 
             const bar = await this.barRepository.find()
-            if (!bar) return null
+            if (!bar || bar.length === 0) return null
 
             this.cachedBar = bar[0]
             this.lastFetchTime = now;
@@ -56,20 +61,31 @@ export class BarService {
 
         const newData: Partial<BarEntity> = {};
 
-        this.cachedBar = bar;
-        this.lastFetchTime = Date.now();
-
         if (status) newData.status = status
         if (close) newData.closeHour = close
 
         const editBar = this.barRepository.merge(bar, newData)
+        const savedBar = await this.barRepository.save(editBar)
 
-        this.queueSocketService.updateBar(editBar)
+        this.cachedBar = savedBar;
+        this.lastFetchTime = Date.now();
+
+        // Notificar actualización de estado a través del socket
+        await this.queueSocketService.updateBar(savedBar)
+
+        // Cuando está CERRADO: se cancelan todas las canciones en cola y sonando
+        if (savedBar.status === BarStatus.CLOSED) {
+            await this.queueRepository.update(
+                { status: In([SongStatus.PLAYING, SongStatus.WAITING]) },
+                { status: SongStatus.CANCELLED, position: null as any, value: null as any }
+            );
+            await this.queueSocketService.updateQueue([]);
+        }
         
         return {
            message: 'Bar actualizado con exito',
            change: newData,
-           data: await this.barRepository.save(editBar)
+           data: savedBar
         }
 
 

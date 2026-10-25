@@ -1,7 +1,15 @@
 <div class="tv">
-  <div id="tv-player-container" class="tv-player" [class.oculto]="!state.sonando()?.videoId">
+  <div id="tv-player-container" class="tv-player" [class.oculto]="!state.sonando()?.videoId || state.estado() === 'cerrado'">
     <div id="tv-yt-player"></div>
   </div>
   <div class="tv-shield"></div>
+
+  @if (state.estado() === 'cerrado') {
+    <div class="tv-cerrado">
+      <img src="logo.png" class="tv-cerrado-logo" alt="Escenario 89">
+      <h1 class="tv-cerrado-title">Local Cerrado</h1>
+      <p class="tv-cerrado-sub">Gracias por su visita · Nos vemos pronto</p>
+    </div>
+  }
 </div>
 

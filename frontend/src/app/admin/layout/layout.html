@@ -13,14 +13,14 @@
         <small>El local cerrará a las:</small>
         <div class="hour-selector">
           <button type="button" class="hour" (click)="toggleHourMenu()">
-            {{ selectedHour }} <app-icon name="chevron" [size]="16" [class.rotated]="hourMenuOpen" />
+            {{ state.horaCierre() }} <app-icon name="chevron" [size]="16" [class.rotated]="hourMenuOpen" />
           </button>
           @if (hourMenuOpen) {
             <div class="hour-dropdown">
               @for (h of hoursList; track h) {
-                <button type="button" class="hour-item" [class.active]="h === selectedHour" (click)="selectHour(h)">
+                <button type="button" class="hour-item" [class.active]="h === state.horaCierre()" (click)="selectHour(h)">
                   <span>{{ h }}</span>
-                  @if (h === selectedHour) {
+                  @if (h === state.horaCierre()) {
                     <app-icon name="check" [size]="13" />
                   }
                 </button>
@@ -82,13 +82,13 @@
       }
     </div>
     <div class="ctrl">
-      <button type="button" class="ctrl-btn" title="Anterior (reiniciar)" (click)="player.prev()">
+      <button type="button" class="ctrl-btn" [disabled]="state.estado() === 'cerrado'" title="Anterior (reiniciar)" (click)="player.prev()">
         <app-icon name="prev" [size]="24" />
       </button>
-      <button type="button" class="play" [title]="state.reproduciendo() ? 'Pausar' : 'Reproducir'" (click)="player.togglePlay()">
+      <button type="button" class="play" [disabled]="state.estado() === 'cerrado'" [title]="state.reproduciendo() ? 'Pausar' : 'Reproducir'" (click)="player.togglePlay()">
         <app-icon [name]="state.reproduciendo() ? 'pause' : 'play'" [size]="22" />
       </button>
-      <button type="button" class="ctrl-btn" title="Siguiente canción" (click)="player.next()">
+      <button type="button" class="ctrl-btn" [disabled]="state.estado() === 'cerrado'" title="Siguiente canción" (click)="player.next()">
         <app-icon name="next" [size]="24" />
       </button>
     </div>

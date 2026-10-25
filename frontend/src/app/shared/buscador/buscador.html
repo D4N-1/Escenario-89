@@ -1,7 +1,11 @@
-<div class="pill-input">
-  <input placeholder="Busca tu proxima canción" [value]="consulta()" (input)="onInput($event)" (keydown.enter)="buscar()">
-  <button class="pill-btn" type="button" title="Buscar" (click)="buscar()"><app-icon name="search" /></button>
-  <button class="pill-btn" type="button" title="Buscar por voz"><app-icon name="mic" /></button>
+<div class="pill-input" [class.disabled]="state.estado() === 'cerrado'">
+  <input [placeholder]="state.estado() === 'cerrado' ? 'Local cerrado - Pedidos no permitidos' : (state.estado() === 'cerrando' ? 'Local cerrando - Solo cola activa' : 'Busca tu proxima canción')"
+         [disabled]="state.estado() === 'cerrado'"
+         [value]="consulta()"
+         (input)="onInput($event)"
+         (keydown.enter)="buscar()">
+  <button class="pill-btn" type="button" [disabled]="state.estado() === 'cerrado'" title="Buscar" (click)="buscar()"><app-icon name="search" /></button>
+  <button class="pill-btn" type="button" [disabled]="state.estado() === 'cerrado'" title="Buscar por voz"><app-icon name="mic" /></button>
 </div>
 
 @if (abierto()) {
