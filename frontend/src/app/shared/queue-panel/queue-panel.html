@@ -13,7 +13,20 @@
        [style.cursor]="player.intermissionActual() ? 'not-allowed' : 'pointer'">
     <div class="num">
       <app-icon [name]="state.reproduciendo() ? 'pause' : 'play'" [size]="18" />
-      <span class="mesa">{{ s.mesa > 0 ? '#' + s.mesa : 'Admin' }}</span>
+      <span class="mesa">
+        @if (s.mesa > 0) {
+          #{{ s.mesa }}
+        } @else {
+          <svg class="admin-crown" viewBox="0 0 500 400" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+            <g fill="currentColor">
+              <path d="M 90 280 C 90 270 100 260 110 260 L 115 130 L 180 200 L 250 90 L 320 200 L 385 130 L 390 260 C 400 260 410 270 410 280 C 410 300 395 315 380 315 L 120 315 C 105 315 90 300 90 280 Z" />
+              <circle cx="115" cy="115" r="10" />
+              <circle cx="250" cy="75" r="12" />
+              <circle cx="385" cy="115" r="10" />
+            </g>
+          </svg>
+        }
+      </span>
     </div>
     <div class="thumb now-thumb">
       @if (obtenerMiniatura(s); as img) {
@@ -45,7 +58,22 @@
        [style.cursor]="player.intermissionActual() ? 'not-allowed' : (it.tipo === 'anuncio' ? 'default' : 'pointer')">
     <div class="num">
       <span class="n" [class.big]="it.tipo === 'anuncio'">{{ $index + 1 }}</span>
-      @if (it.tipo !== 'anuncio') { <span class="mesa">{{ it.mesa > 0 ? '#' + it.mesa : 'Admin' }}</span> }
+      @if (it.tipo !== 'anuncio') { 
+        <span class="mesa">
+          @if (it.mesa > 0) {
+            #{{ it.mesa }}
+          } @else {
+            <svg class="admin-crown" viewBox="0 0 500 400" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+              <g fill="currentColor">
+                <path d="M 90 280 C 90 270 100 260 110 260 L 115 130 L 180 200 L 250 90 L 320 200 L 385 130 L 390 260 C 400 260 410 270 410 280 C 410 300 395 315 380 315 L 120 315 C 105 315 90 300 90 280 Z" />
+                <circle cx="115" cy="115" r="10" />
+                <circle cx="250" cy="75" r="12" />
+                <circle cx="385" cy="115" r="10" />
+              </g>
+            </svg>
+          }
+        </span> 
+      }
     </div>
     <div class="thumb" [class.ad-thumb]="it.tipo === 'anuncio'">
       @if (it.tipo !== 'anuncio' && obtenerMiniatura(it); as img) {
