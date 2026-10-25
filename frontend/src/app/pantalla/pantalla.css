@@ -49,6 +49,50 @@
   pointer-events: none;
 }
 
+.tv-player #tv-yt-player.oculto-intermission {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Intermission overlay on TV */
+.tv-intermission-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 30;
+  pointer-events: auto;
+}
+
+.tv-intermission-video {
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+  background: #000;
+}
+
+.tv-intermission-badge {
+  position: absolute;
+  top: 28px;
+  right: 32px;
+  background: rgba(14, 14, 18, 0.85);
+  border: 1px solid var(--c-gold, #f2ce64);
+  color: var(--c-gold, #f2ce64);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 8px 18px;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+  z-index: 35;
+}
+
 .tv-shield {
   position: absolute;
   inset: 0;

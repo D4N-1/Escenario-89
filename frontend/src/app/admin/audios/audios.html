@@ -17,7 +17,7 @@
       <p>Selecciona un audio o cuña para reproducir en tiempo real o programarlo entre canciones.</p>
     </div>
     <button type="button" class="btn-gold" (click)="abrirModal()" id="btn-subir-audio">
-      <app-icon name="add" [size]="16" /> Subir audio o cuña
+      <app-icon name="add" [size]="16" /> Subir audio o anuncio
     </button>
   </div>
 
@@ -30,7 +30,7 @@
         </div>
         <div class="preview-text">
           <b>{{ s.title }}</b>
-          <small>{{ s.description || 'Pausa publicitaria / Cuña del local' }}</small>
+          <small>{{ s.description || 'Audio del local / Efecto en vivo' }}</small>
         </div>
       </div>
 
@@ -49,41 +49,6 @@
   }
 
   <div class="card">
-    <div class="tabs">
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="filtroActivo() === 'todos'"
-        (click)="filtroActivo.set('todos')"
-      >
-        Todos <sup>{{ total() }}</sup>
-      </button>
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="filtroActivo() === 'activos'"
-        (click)="filtroActivo.set('activos')"
-      >
-        Activos <sup>{{ activos() }}</sup>
-      </button>
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="filtroActivo() === 'programados'"
-        (click)="filtroActivo.set('programados')"
-      >
-        Programados <sup>{{ programados() }}</sup>
-      </button>
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="filtroActivo() === 'inactivos'"
-        (click)="filtroActivo.set('inactivos')"
-      >
-        Inactivos <sup>{{ inactivos() }}</sup>
-      </button>
-    </div>
-
     <div class="tools">
       <div class="search">
         <app-icon name="search" [size]="16" />
@@ -102,19 +67,19 @@
       <button
         type="button"
         class="filter"
-        (click)="intermissions.cargar()"
-        [disabled]="intermissions.cargando()"
+        (click)="cargar()"
+        [disabled]="cargando()"
         title="Actualizar lista del servidor"
       >
         <app-icon name="swap" [size]="14" />
-        <span>{{ intermissions.cargando() ? 'Cargando...' : 'Actualizar' }}</span>
+        <span>{{ cargando() ? 'Cargando...' : 'Actualizar' }}</span>
       </button>
     </div>
 
-    @if (intermissions.error()) {
+    @if (error()) {
       <div class="error-box">
         <app-icon name="close" [size]="16" />
-        <span>{{ intermissions.error() }}</span>
+        <span>{{ error() }}</span>
       </div>
     }
 
@@ -132,30 +97,26 @@
           <tr [class.sonando]="reproduciendoUuid() === a.uuid">
             <td>
               <div class="who">
-                @if (a.image) {
-                  <img [src]="a.image" alt="" class="img-thumb" (error)="a.image = ''" />
-                } @else {
-                  <div class="icon-thumb">
-                    <app-icon name="mic" [size]="20" />
-                  </div>
-                }
+                <div class="icon-thumb">
+                  <app-icon name="mic" [size]="20" />
+                </div>
                 <div class="who-text">
                   <b>{{ a.title }}</b>
-                  <small>{{ a.description || 'Pausa publicitaria / Cuña del local' }}</small>
+                  <small>{{ a.description || 'Audio del local / Sonido en cabina' }}</small>
                 </div>
               </div>
             </td>
             <td>
-              <b class="p">{{ a.startTime.substring(0, 5) }} - {{ a.endTime.substring(0, 5) }}</b>
-              <small>{{ a.everySongs ? ('Cada ' + a.everySongs + ' canciones') : 'Reproducción manual' }}</small>
+              <b class="p">{{ formatearFechaHora(a.createdAt) }}</b>
+              <small>Reproducción manual en cabina</small>
             </td>
             <td>
-              @if (!a.active) {
-                <span class="chip off cursor-pointer" (click)="alternarEstado(a)" title="Clic para activar">
-                  ● Inactivo
+              @if (reproduciendoUuid() === a.uuid) {
+                <span class="chip ok sonando-chip" title="Sonando actualmente">
+                  ● Sonando en vivo
                 </span>
               } @else {
-                <span class="chip ok cursor-pointer" (click)="alternarEstado(a)" title="Clic para pausar">
+                <span class="chip ok" title="Listo para reproducir">
                   ● Activo
                 </span>
               }
@@ -173,10 +134,18 @@
               <button
                 type="button"
                 class="act-btn play-next"
-                title="Poner en la siguiente pausa de canciones"
-                (click)="reproducirEnSiguientePausa(a)"
+                title="Programar para emitir entre canciones"
+                (click)="prepararEnCabina(a)"
               >
                 <app-icon name="clapper" [size]="16" />
+              </button>
+              <button
+                type="button"
+                class="act-btn edit-btn"
+                title="Editar audio"
+                (click)="abrirModalEditar(a)"
+              >
+                <app-icon name="edit" [size]="16" />
               </button>
               <button
                 type="button"
@@ -191,10 +160,10 @@
         } @empty {
           <tr>
             <td colspan="4" class="vacio">
-              @if (intermissions.cargando()) {
+              @if (cargando()) {
                 Cargando audios...
               } @else {
-                No hay elementos registrados todavía en intermission. Usa el botón "Subir audio o cuña" para agregar uno.
+                No hay audios registrados todavía. Usa el botón "Subir audio o anuncio" para agregar uno.
               }
             </td>
           </tr>
@@ -217,13 +186,13 @@
   </div>
 </div>
 
-<!-- MODAL: SUBIR AUDIO O CUÑA A INTERMISSION -->
+<!-- MODAL: SUBIR AUDIO O ANUNCIO -->
 @if (modalSubir()) {
   <div class="modal-overlay" (click)="cerrarModal()">
     <div class="modal-card" (click)="$event.stopPropagation()">
       <div class="modal-head">
         <h2>
-          <app-icon name="upload" [size]="18" /> Subir audio o cuña
+          <app-icon name="upload" [size]="18" /> Subir audio o anuncio
         </h2>
         <button type="button" class="btn-icon" (click)="cerrarModal()" title="Cerrar">
           <app-icon name="close" [size]="16" />
@@ -240,12 +209,12 @@
 
         <!-- Archivo -->
         <div class="form-group">
-          <label>Archivo (.mp3, .wav, .ogg, .mp4, etc.):</label>
+          <label>Archivo de audio (.mp3, .wav, .ogg, .m4a, .flac):</label>
           <label class="dropzone" [class.has-file]="!!formFile()">
             <input
               type="file"
               class="file-hidden"
-              accept="audio/*,video/*,.mp3,.wav,.ogg,.aac,.m4a,.flac,.mp4,.webm"
+              accept="audio/*,.mp3,.wav,.ogg,.aac,.m4a,.flac"
               (change)="onFileChange($event)"
             />
             @if (formFile(); as f) {
@@ -257,8 +226,8 @@
               <small class="file-hint">Clic para cambiar de archivo</small>
             } @else {
               <div class="drop-icon"><app-icon name="upload" [size]="22" /></div>
-              <b>Selecciona o arrastra el archivo aquí</b>
-              <small>Admite audio y video para pausas publicitarias</small>
+              <b>Selecciona o arrastra el archivo de audio aquí</b>
+              <small>Admite archivos MP3, WAV, OGG, FLAC de hasta 50MB</small>
             }
           </label>
         </div>
@@ -270,7 +239,7 @@
             class="input-dark"
             [ngModel]="formTitle()"
             (ngModelChange)="formTitle.set($event)"
-            placeholder="Ej. La hora del brindis / Promoción 2x1"
+            placeholder="Ej. Anuncio Principal Noche / La hora del brindis"
             required
           />
         </div>
@@ -282,67 +251,8 @@
             class="input-dark"
             [ngModel]="formDescription()"
             (ngModelChange)="formDescription.set($event)"
-            placeholder="Ej. Cuña oficial del bar para la medianoche"
+            placeholder="Ej. Publicidad de la casa de bebidas"
           />
-        </div>
-
-        <div class="form-row-2">
-          <div class="form-group">
-            <label>Hora de inicio:</label>
-            <input
-              type="time"
-              class="input-dark"
-              [ngModel]="formStartTime()"
-              (ngModelChange)="formStartTime.set($event)"
-              required
-            />
-          </div>
-          <div class="form-group">
-            <label>Hora de fin:</label>
-            <input
-              type="time"
-              class="input-dark"
-              [ngModel]="formEndTime()"
-              (ngModelChange)="formEndTime.set($event)"
-              required
-            />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="check-row">
-            <input
-              type="checkbox"
-              [ngModel]="formConFrecuencia()"
-              (ngModelChange)="formConFrecuencia.set($event)"
-            />
-            <span>Emitir periódicamente entre canciones</span>
-          </label>
-          @if (formConFrecuencia()) {
-            <div class="freq-box">
-              <span>Cada</span>
-              <input
-                type="number"
-                min="1"
-                max="50"
-                class="input-dark input-num"
-                [ngModel]="formEverySongs()"
-                (ngModelChange)="formEverySongs.set($event)"
-              />
-              <span>canciones finalizadas</span>
-            </div>
-          }
-        </div>
-
-        <div class="form-group">
-          <label class="check-row">
-            <input
-              type="checkbox"
-              [ngModel]="formActive()"
-              (ngModelChange)="formActive.set($event)"
-            />
-            <span>Activar inmediatamente al subir</span>
-          </label>
         </div>
       </div>
 
@@ -353,6 +263,64 @@
         <button type="button" class="btn-gold" (click)="guardarAudio()" [disabled]="subiendo()">
           <app-icon name="check" [size]="16" />
           <span>{{ subiendo() ? 'Subiendo...' : 'Guardar y Publicar' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL: EDITAR AUDIO -->
+@if (modalEditar()) {
+  <div class="modal-overlay" (click)="cerrarModalEditar()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <h2>
+          <app-icon name="edit" [size]="18" /> Editar audio
+        </h2>
+        <button type="button" class="btn-icon" (click)="cerrarModalEditar()" title="Cerrar">
+          <app-icon name="close" [size]="16" />
+        </button>
+      </div>
+
+      <div class="modal-body">
+        @if (editError()) {
+          <div class="error-box">
+            <app-icon name="close" [size]="14" />
+            <span>{{ editError() }}</span>
+          </div>
+        }
+
+        <div class="form-group">
+          <label>Título:</label>
+          <input
+            type="text"
+            class="input-dark"
+            [ngModel]="editTitle()"
+            (ngModelChange)="editTitle.set($event)"
+            placeholder="Ej. Título del audio"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Descripción (opcional):</label>
+          <input
+            type="text"
+            class="input-dark"
+            [ngModel]="editDescription()"
+            (ngModelChange)="editDescription.set($event)"
+            placeholder="Ej. Descripción del audio"
+          />
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn-cancel" (click)="cerrarModalEditar()" [disabled]="guardandoEdicion()">
+          Cancelar
+        </button>
+        <button type="button" class="btn-gold" (click)="guardarEdicion()" [disabled]="guardandoEdicion()">
+          <app-icon name="check" [size]="16" />
+          <span>{{ guardandoEdicion() ? 'Guardando...' : 'Guardar cambios' }}</span>
         </button>
       </div>
     </div>

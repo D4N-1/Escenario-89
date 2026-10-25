@@ -1,6 +1,7 @@
 import { AfterViewInit, Component, OnDestroy, effect, inject, signal } from '@angular/core';
 import { AppState } from '../../core/app-state';
 import { PlayerService } from '../../core/player.service';
+import { Icon } from '../icon/icon';
 import { PlayerSlot } from './yt-slot';
 
 interface Caja { top: number; left: number; width: number; height: number; clip: string; }
@@ -12,12 +13,13 @@ interface Caja { top: number; left: number; width: number; height: number; clip:
  */
 @Component({
   selector: 'app-yt-player',
+  imports: [Icon],
   templateUrl: './yt-player.html',
   styleUrl: './yt-player.css',
 })
 export class YtPlayer implements AfterViewInit, OnDestroy {
   state = inject(AppState);
-  private player = inject(PlayerService);
+  player = inject(PlayerService);
   private slot = inject(PlayerSlot);
 
   caja = signal<Caja | null>(null);
@@ -46,6 +48,14 @@ export class YtPlayer implements AfterViewInit, OnDestroy {
     this.observador.disconnect();
     window.removeEventListener('resize', this.alMedir);
     document.removeEventListener('scroll', this.alMedir, { capture: true } as EventListenerOptions);
+  }
+
+  saltarAnuncio(event?: Event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    this.player.saltarIntermission();
   }
 
   /** Posición del recuadro; se recorta a la zona visible de .main para que no se salga al hacer scroll. */

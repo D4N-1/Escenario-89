@@ -51,6 +51,17 @@ export interface AudioItem {
   url?: string;
 }
 
+export interface AudioEntity {
+  id?: number;
+  uuid: string;
+  title: string;
+  description?: string | null;
+  url: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+
 export interface IntermissionItem {
   id?: number;
   uuid: string;

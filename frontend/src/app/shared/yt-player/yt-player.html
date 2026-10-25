@@ -3,12 +3,48 @@
   id="admin-player-container"
   class="caja"
   [class.mini]="!c"
-  [class.oculto]="!state.sonando()"
+  [class.con-intermission]="!!player.intermissionActual()"
+  [class.oculto]="!state.sonando() && !player.intermissionActual()"
   [style.top.px]="c?.top"
   [style.left.px]="c?.left"
   [style.width.px]="c?.width"
   [style.height.px]="c?.height"
-  [style.clip-path]="c?.clip"
+  [style.clip-path]="player.intermissionActual() ? 'none' : c?.clip"
 >
-  <div id="admin-yt-player"></div>
+  <div id="admin-yt-player" [class.oculto-intermission]="!!player.intermissionActual()"></div>
+
+  @if (player.intermissionActual(); as inter) {
+    <div class="intermission-overlay">
+      <video
+        #adminInterVideo
+        class="intermission-video"
+        [src]="inter.url"
+        autoplay
+        playsinline
+        (ended)="player.onIntermissionVideoEnded()"
+        (timeupdate)="player.onIntermissionTimeUpdate(adminInterVideo)"
+      ></video>
+      <div class="intermission-hud">
+        <div class="intermission-tag">
+          <span class="intermission-dot"></span>
+          <span>PAUSA PUBLICITARIA</span>
+        </div>
+        <div class="intermission-title-box">
+          <b class="intermission-title">{{ inter.title }}</b>
+          <small class="intermission-desc">
+            {{ player.formatearTiempoIntermission() }}{{ inter.description ? ' · ' + inter.description : '' }}
+          </small>
+        </div>
+        <button
+          type="button"
+          class="btn-skip-ad"
+          (click)="saltarAnuncio($event)"
+          title="Saltar anuncio"
+        >
+          <span>Saltar</span>
+          <app-icon name="next" [size]="14" />
+        </button>
+      </div>
+    </div>
+  }
 </div>

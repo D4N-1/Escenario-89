@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Icon } from '../../shared/icon/icon';
 import { AppState } from '../../core/app-state';
 import { IntermissionService, NuevoAnuncioDto } from '../../core/intermission.service';
+import { PlayerService } from '../../core/player.service';
 import { IntermissionItem } from '../../core/models';
 
 type TabFiltro = 'todos' | 'activos' | 'programados' | 'inactivos';
@@ -17,6 +18,7 @@ type TabFiltro = 'todos' | 'activos' | 'programados' | 'inactivos';
 export class Anuncios implements OnInit {
   state = inject(AppState);
   intermissions = inject(IntermissionService);
+  player = inject(PlayerService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
@@ -115,6 +117,12 @@ export class Anuncios implements OnInit {
     } catch (e: any) {
       this.formError.set(e?.message || 'Error al guardar el anuncio.');
     }
+  }
+
+  probarEnPantalla(item: IntermissionItem) {
+    const urlResuelta = this.intermissions.resolverUrl(item.url);
+    this.player.reproducirIntermission([{ ...item, url: urlResuelta }]);
+    this.mostrarToast(`Emitiendo "${item.title}" en pantalla`);
   }
 
   async reproducirEnSiguientePausa(item: IntermissionItem) {

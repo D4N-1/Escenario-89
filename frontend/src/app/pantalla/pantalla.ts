@@ -24,6 +24,26 @@ export class Pantalla implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  @HostListener('click')
+  desbloquearAudio() {
+    const v = document.querySelector('.tv-intermission-video') as HTMLVideoElement;
+    if (v && v.muted) {
+      v.muted = false;
+    }
+  }
+
+  onVideoLoaded(video: HTMLVideoElement) {
+    if (!video) return;
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        console.warn('Autoplay bloqueado en TV, reproduciendo silenciado con fallback:', err);
+        video.muted = true;
+        video.play().catch(() => {});
+      });
+    }
+  }
+
   ngOnInit() {
     this.bar.iniciarSincronizacion();
     this.queue.iniciarPolling();

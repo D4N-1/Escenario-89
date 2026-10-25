@@ -1,8 +1,10 @@
 import { effect, inject, Injectable, signal } from '@angular/core';
+import { environment } from '../../environments/environment';
 import { AppState } from './app-state';
-import { Cancion } from './models';
+import { Cancion, IntermissionItem } from './models';
 import { YoutubeService } from './youtube.service';
 import { QueueService } from './queue.service';
+import { SocketService } from './socket.service';
 
 declare global {
   interface Window {
@@ -14,11 +16,13 @@ declare global {
 export type PlayerRole = 'admin' | 'pantalla';
 
 export interface PlayerBroadcastMessage {
-  type: 'PLAY' | 'PAUSE' | 'CHANGE_SONG' | 'SEEK' | 'SYNC_STATE' | 'REQUEST_SYNC' | 'TIME_SYNC';
+  type: 'PLAY' | 'PAUSE' | 'CHANGE_SONG' | 'SEEK' | 'SYNC_STATE' | 'REQUEST_SYNC' | 'TIME_SYNC' | 'INTERMISSION_START' | 'INTERMISSION_END';
   song?: Cancion | null;
   time?: number;
   playing?: boolean;
   sentAt?: number;
+  intermission?: IntermissionItem | null;
+  resumeSong?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -26,6 +30,7 @@ export class PlayerService {
   private state = inject(AppState);
   private yt = inject(YoutubeService);
   private queue = inject(QueueService);
+  private socket = inject(SocketService);
 
   private player: any = null;
   private currentElementId = 'admin-yt-player';
@@ -59,8 +64,23 @@ export class PlayerService {
   necesitaInteraccion = signal<boolean>(false);
   error = signal<string>('');
 
+  // Pausas publicitarias / Intermissions
+  intermissionActual = signal<IntermissionItem | null>(null);
+  intermissionCola = signal<IntermissionItem[]>([]);
+  intermissionTiempo = signal<number>(0);
+  intermissionDuracion = signal<number>(0);
+  intermissionPausadaYoutube = signal<boolean>(false);
+
   constructor() {
     this.iniciarBroadcastChannel();
+
+    // Escuchar pausas publicitarias emitidas por el backend vía WebSocket
+    this.socket.onIntermission((payload: any) => {
+      const data = payload?.data ?? (Array.isArray(payload) ? payload : []);
+      if (Array.isArray(data) && data.length > 0) {
+        this.reproducirIntermission(data);
+      }
+    });
     
     effect(() => {
       const cancion = this.state.sonando();
@@ -136,6 +156,7 @@ export class PlayerService {
             this.player.stopVideo();
           }
         } else if (msg.type === 'PLAY') {
+          if (this.intermissionActual()) return;
           this.setSpeed(1.0);
           if (typeof msg.time === 'number') {
             let curTime = this.tiempoSegundos();
@@ -153,6 +174,7 @@ export class PlayerService {
           }
           this.play(false);
         } else if (msg.type === 'PAUSE') {
+          if (this.intermissionActual()) return;
           this.setSpeed(1.0);
           if (typeof msg.time === 'number') {
             this.lastSyncSeekTime = Date.now();
@@ -160,19 +182,45 @@ export class PlayerService {
           }
           this.pause(false);
         } else if (msg.type === 'SEEK' && typeof msg.time === 'number') {
+          if (this.intermissionActual()) return;
           this.lastSyncSeekTime = Date.now();
           this.setSpeed(1.0);
           this.seekTo(msg.time, false);
         } else if (msg.type === 'SYNC_STATE') {
+          if (msg.intermission !== undefined) {
+            this.intermissionActual.set(msg.intermission);
+            if (msg.intermission) {
+              if (this.player && typeof this.player.pauseVideo === 'function') {
+                try { this.player.pauseVideo(); } catch { }
+              }
+              this.state.reproduciendo.set(false);
+              this.detenerTicker();
+            }
+          }
           if (msg.song) {
             this.lastAdminTime = msg.time ?? 0;
             this.lastAdminTimeAt = Date.now();
             this.initialSyncDone = false;
             this.setSpeed(1.0);
             this.state.sonando.set(msg.song);
-            this.cargarCancion(msg.song, msg.playing ?? true, msg.time ?? 0);
+            if (!this.intermissionActual()) {
+              this.cargarCancion(msg.song, msg.playing ?? true, msg.time ?? 0);
+            }
+          }
+        } else if (msg.type === 'INTERMISSION_START') {
+          if (this.player && typeof this.player.pauseVideo === 'function') {
+            try { this.player.pauseVideo(); } catch { }
+          }
+          this.state.reproduciendo.set(false);
+          this.detenerTicker();
+          this.intermissionActual.set(msg.intermission ?? null);
+        } else if (msg.type === 'INTERMISSION_END') {
+          this.intermissionActual.set(null);
+          if (msg.resumeSong && this.state.sonando()) {
+            this.play(false);
           }
         } else if (msg.type === 'TIME_SYNC') {
+          if (this.intermissionActual()) return;
           if (typeof msg.time === 'number') {
             const now = Date.now();
             this.lastAdminTime = msg.time;
@@ -232,6 +280,7 @@ export class PlayerService {
             time: this.tiempoSegundos(),
             playing: this.state.reproduciendo(),
             sentAt: Date.now(),
+            intermission: this.intermissionActual(),
           });
         }
       }
@@ -862,6 +911,11 @@ export class PlayerService {
   }
 
   next() {
+    if (this.intermissionActual()) {
+      this.saltarIntermission();
+      return;
+    }
+
     const actual = this.state.sonando();
     if (actual?.uuid) {
       if (this.role === 'admin') {
@@ -958,5 +1012,138 @@ export class PlayerService {
     this.loadingVideoId = '';
     this.currentPlaybackRate = 1.0;
     this.initialSyncDone = false;
+  }
+
+  // ---- Control de Pausas Publicitarias (Intermissions) ----
+
+  resolverUrl(path: string | undefined): string {
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:') || path.startsWith('data:')) return path;
+
+    const baseApi = (environment?.apiUrl || 'http://localhost:3000').replace(/\/+$/, '');
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+
+    if (baseApi.endsWith('/api') && cleanPath.startsWith('/api/')) {
+      return `${baseApi.slice(0, -4)}${cleanPath}`;
+    }
+
+    return `${baseApi}${cleanPath}`;
+  }
+
+  reproducirIntermission(items: IntermissionItem[]) {
+    if (!items || items.length === 0) return;
+
+    // Si YouTube estaba sonando o en cola activa, marcar para reanudar al terminar
+    const habiaMusica = this.state.reproduciendo() || !!this.state.sonando();
+    this.intermissionPausadaYoutube.set(habiaMusica);
+
+    // Pausar YouTube inmediatamente en Admin
+    if (this.player && typeof this.player.pauseVideo === 'function') {
+      try { this.player.pauseVideo(); } catch { }
+    }
+    this.state.reproduciendo.set(false);
+    this.detenerTicker();
+
+    const itemsResueltos = items.map(it => ({
+      ...it,
+      url: this.resolverUrl(it.url),
+    }));
+
+    const [primero, ...resto] = itemsResueltos;
+    this.intermissionCola.set(resto);
+    this.intermissionActual.set(primero);
+    this.intermissionTiempo.set(0);
+    this.intermissionDuracion.set(0);
+
+    if (this.role === 'admin') {
+      this.broadcast({
+        type: 'INTERMISSION_START',
+        intermission: primero,
+      });
+    }
+  }
+
+  onIntermissionVideoEnded() {
+    if (this.role === 'pantalla') return; // Admin controla la secuencia y notifica a la TV
+
+    const cola = this.intermissionCola();
+    if (cola.length > 0) {
+      const [siguiente, ...resto] = cola;
+      this.intermissionCola.set(resto);
+      this.intermissionActual.set(siguiente);
+      this.intermissionTiempo.set(0);
+      this.intermissionDuracion.set(0);
+
+      if (this.role === 'admin') {
+        this.broadcast({
+          type: 'INTERMISSION_START',
+          intermission: siguiente,
+        });
+      }
+    } else {
+      this.terminarIntermission();
+    }
+  }
+
+  saltarIntermission() {
+    const cola = this.intermissionCola();
+    if (cola.length > 0) {
+      const [siguiente, ...resto] = cola;
+      this.intermissionCola.set(resto);
+      this.intermissionActual.set(siguiente);
+      this.intermissionTiempo.set(0);
+      this.intermissionDuracion.set(0);
+
+      if (this.role === 'admin') {
+        this.broadcast({
+          type: 'INTERMISSION_START',
+          intermission: siguiente,
+        });
+      }
+    } else {
+      this.terminarIntermission();
+    }
+  }
+
+  terminarIntermission() {
+    this.intermissionActual.set(null);
+    this.intermissionCola.set([]);
+    this.intermissionTiempo.set(0);
+    this.intermissionDuracion.set(0);
+
+    const reanudar = this.intermissionPausadaYoutube();
+    this.intermissionPausadaYoutube.set(false);
+
+    if (this.role === 'admin') {
+      this.broadcast({
+        type: 'INTERMISSION_END',
+        resumeSong: reanudar,
+      });
+    }
+
+    // Reanudar YouTube si estaba sonando antes de la pausa publicitaria
+    if (reanudar && this.state.sonando()) {
+      this.play();
+    } else if (this.state.cola().length > 0 && !this.state.sonando()) {
+      // Si la canción previa había concluido y hay cola, pasar a la siguiente
+      this.next();
+    }
+  }
+
+  onIntermissionTimeUpdate(videoEl: HTMLVideoElement) {
+    if (!videoEl) return;
+    this.intermissionTiempo.set(videoEl.currentTime || 0);
+    this.intermissionDuracion.set(videoEl.duration || 0);
+  }
+
+  formatearTiempoIntermission(): string {
+    const cur = Math.max(0, Math.floor(this.intermissionTiempo()));
+    const dur = Math.max(0, Math.floor(this.intermissionDuracion()));
+    const curM = Math.floor(cur / 60);
+    const curS = (cur % 60).toString().padStart(2, '0');
+    if (!dur || isNaN(dur)) return `${curM}:${curS}`;
+    const durM = Math.floor(dur / 60);
+    const durS = (dur % 60).toString().padStart(2, '0');
+    return `${curM}:${curS} / ${durM}:${durS}`;
   }
 }

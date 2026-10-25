@@ -1,15 +1,39 @@
 <div class="tv">
-  <div id="tv-player-container" class="tv-player" [class.oculto]="!state.sonando()?.videoId || state.estado() === 'cerrado'">
-    <div id="tv-yt-player"></div>
+  <!-- Reproductor de YouTube de la TV -->
+  <div
+    id="tv-player-container"
+    class="tv-player"
+    [class.oculto]="!state.sonando()?.videoId || state.estado() === 'cerrado' || !!player.intermissionActual()"
+  >
+    <div id="tv-yt-player" [class.oculto-intermission]="!!player.intermissionActual()"></div>
   </div>
+
   <div class="tv-shield"></div>
 
-  @if (state.estado() === 'cerrado') {
+  <!-- Pantalla de Local Cerrado solo cuando no hay anuncio activo -->
+  @if (state.estado() === 'cerrado' && !player.intermissionActual()) {
     <div class="tv-cerrado">
       <img src="logo.png" class="tv-cerrado-logo" alt="Escenario 89">
       <h1 class="tv-cerrado-title">Local Cerrado</h1>
       <p class="tv-cerrado-sub">Gracias por su visita · Nos vemos pronto</p>
     </div>
   }
-</div>
 
+  <!-- Overlay publicitario independiente a pantalla completa en la TV -->
+  @if (player.intermissionActual(); as inter) {
+    <div class="tv-intermission-overlay">
+      <video
+        #tvInterVideo
+        class="tv-intermission-video"
+        [src]="inter.url"
+        autoplay
+        playsinline
+        (loadedmetadata)="onVideoLoaded(tvInterVideo)"
+        (ended)="player.onIntermissionVideoEnded()"
+      ></video>
+      <div class="tv-intermission-badge">
+        <span>ESPACIO PUBLICITARIO</span>
+      </div>
+    </div>
+  }
+</div>

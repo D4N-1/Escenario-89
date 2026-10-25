@@ -118,10 +118,18 @@
               <button
                 type="button"
                 class="act-btn play-next"
+                title="Emitir video ahora mismo en pantalla"
+                (click)="probarEnPantalla(a)"
+              >
+                <app-icon name="play" [size]="16" />
+              </button>
+              <button
+                type="button"
+                class="act-btn"
                 title="Poner en la siguiente pausa de canciones"
                 (click)="reproducirEnSiguientePausa(a)"
               >
-                <app-icon name="play" [size]="16" />
+                <app-icon name="clapper" [size]="16" />
               </button>
               <button
                 type="button"

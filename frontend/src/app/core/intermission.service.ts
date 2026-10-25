@@ -171,19 +171,5 @@ export class IntermissionService {
       duracion: item.everySongs ? `Cada ${item.everySongs} cancs.` : 'Pausa',
     }));
     this.state.anuncios.set(anuncios);
-
-    // Sincronizar audios
-    const audios: AudioItem[] = lista
-      .filter(item => this.esAudio(item))
-      .map((item, idx) => ({
-        id: item.id ?? idx + 1,
-        uuid: item.uuid,
-        titulo: item.title,
-        detalle: item.description || `${item.startTime.substring(0, 5)} - ${item.endTime.substring(0, 5)}`,
-        duracion: 'Audio',
-        sonando: false,
-        url: item.url,
-      }));
-    this.state.audios.set(audios);
   }
 }
