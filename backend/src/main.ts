@@ -29,10 +29,13 @@ async function bootstrap() {
 
   app.useGlobalInterceptors(new ClassSerializerInterceptor( app.get(Reflector) ) );
 
-  const publicPath = join(process.cwd(), 'uploads')
-  console.log(publicPath)
+  const publicPath = join(process.cwd(), 'uploads');
+  console.log(publicPath);
   app.useStaticAssets(publicPath, {
     prefix: '/uploads',
+  });
+  app.useStaticAssets(publicPath, {
+    prefix: '/api/uploads',
   });
   
 

@@ -57,16 +57,15 @@ export class IntermissionService {
   resolverUrl(path: string | undefined): string {
     if (!path) return '';
     if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:') || path.startsWith('data:')) return path;
-    let base = 'http://localhost:3000';
-    try {
-      if (environment?.apiUrl) {
-        const u = new URL(environment.apiUrl);
-        base = u.origin;
-      }
-    } catch {
-      base = environment?.apiUrl ? environment.apiUrl.replace(/\/api\/?$/, '') : base;
+
+    const baseApi = (environment?.apiUrl || 'http://localhost:3000').replace(/\/+$/, '');
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+
+    if (baseApi.endsWith('/api') && cleanPath.startsWith('/api/')) {
+      return `${baseApi.slice(0, -4)}${cleanPath}`;
     }
-    return `${base}${path.startsWith('/') ? '' : '/'}${path}`;
+
+    return `${baseApi}${cleanPath}`;
   }
 
   async cargar(): Promise<IntermissionItem[]> {

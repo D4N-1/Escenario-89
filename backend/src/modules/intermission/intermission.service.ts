@@ -18,7 +18,15 @@ import { PlayIntermissionDto } from './dto/play-intermission.dto';
 import { UpdateIntermissionDto } from './dto/update-intermission.dto';
 import { IntermissionErrorCode } from './intermission.constant';
 
-if (ffmpegInstaller) ffmpeg.setFfmpegPath(ffmpegInstaller);
+const ffmpegPath =
+  (typeof ffmpegInstaller === 'string' ? ffmpegInstaller : null) ||
+  (ffmpegInstaller as any)?.default ||
+  (ffmpegInstaller as any)?.path ||
+  '';
+
+if (ffmpegPath) {
+  ffmpeg.setFfmpegPath(ffmpegPath);
+}
 
 
 
@@ -83,16 +91,30 @@ export class IntermissionService {
         order: { index: 'ASC' }
     })
 
-    return {
-        data,
-        meta: {
-            total,
-            count: data.length,
-            perPage: limit,
-            totalPages: Math.ceil(total / limit),
-            currentPage: page
+    const sanitizedData = await Promise.all(
+      data.map(async (item) => {
+        if (item.image) {
+          const localFilePath = path.join(process.cwd(), item.image.replace(/^\//, ''));
+          try {
+            await fs.access(localFilePath);
+          } catch {
+            item.image = '';
+          }
         }
-    }
+        return item;
+      })
+    );
+
+    return {
+      data: sanitizedData,
+      meta: {
+        total,
+        count: sanitizedData.length,
+        perPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      },
+    };
         
   }
   
@@ -172,13 +194,18 @@ export class IntermissionService {
     const fileNameWithoutExt = path.parse(file.filename).name;
     const thumbnailFilename = `thumb-${fileNameWithoutExt}.jpg`;
 
+    const ext = path.extname(file.filename).toLowerCase();
+    const isVideo = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v'].includes(ext);
+
     let imageUrl = '';
-    try {
-      await this.generateThumbnail(newVideoPath, targetDir, thumbnailFilename);
-      imageUrl = `/uploads/intermissions/${finalUuid}/${thumbnailFilename}`;
-    } catch {
-      // Formato sin pista de video (ej. audio) o fallo de extracción
-      imageUrl = '';
+    if (isVideo) {
+      try {
+        await this.generateThumbnail(newVideoPath, targetDir, thumbnailFilename);
+        imageUrl = `/uploads/intermissions/${finalUuid}/${thumbnailFilename}`;
+      } catch (err) {
+        console.warn('No se pudo generar miniatura para el video:', err);
+        imageUrl = '';
+      }
     }
 
     const videoUrl = `/uploads/intermissions/${finalUuid}/${file.filename}`;
@@ -217,7 +244,7 @@ export class IntermissionService {
     return new Promise((resolve, reject) => {
       ffmpeg(videoPath)
         .screenshots({
-          timestamps: ['00:00:01'],
+          timestamps: ['00:00:00.1'],
           filename: filename,
           folder: outputDir,
           size: '320x?',

@@ -79,7 +79,7 @@
             <td>
               <div class="who">
                 @if (a.image) {
-                  <img [src]="a.image" alt="" class="img-thumb" />
+                  <img [src]="a.image" alt="" class="img-thumb" (error)="a.image = ''" />
                 } @else if (intermissions.esAudio(a)) {
                   <div class="img icon-thumb">
                     <app-icon name="mic" [size]="18" />
