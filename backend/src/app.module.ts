@@ -9,6 +9,7 @@ import { DatabaseModule } from './database/database.module.js';
 import AuthNGuard from './guards/auth-n.guard.js';
 import AuthZGuard from './guards/auth-z.guard.js';
 import { LoggerMiddleware } from './middlewares/logger.middleware.js';
+import { AudioModule } from './modules/audio/audio.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { BarModule } from './modules/bar/bar.module.js';
 import { IntermissionModule } from './modules/intermission/intermission.module.js';
@@ -31,6 +32,7 @@ import { UserModule } from './modules/user/user.module.js';
     TableModule,
     UserModule,
     IntermissionModule,
+    AudioModule,
     BarModule,
 
     ConfigModule.forRoot({

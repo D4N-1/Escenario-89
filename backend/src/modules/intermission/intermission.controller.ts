@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import * as fs from 'fs';
@@ -12,7 +12,7 @@ import { CreateIntermissionDto } from './dto/create-intermission.dto';
 import { PlayIntermissionDto } from './dto/play-intermission.dto';
 import { UpdateIntermissionDto } from './dto/update-intermission.dto';
 import { IntermissionEntity } from './entities/intermission.entity';
-import { IntermissionOk, IntermissionSummary } from './intermission.constant';
+import { IntermissionErrorCode, IntermissionOk, IntermissionSummary } from './intermission.constant';
 import { IntermissionService } from './intermission.service';
 
 
@@ -43,6 +43,23 @@ export class IntermissionController {
           callback(null, `video-${uniqueSuffix}${extname(file.originalname)}`);
         },
       }),
+      fileFilter: (req, file, callback) => {
+
+        const allowedExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.webm'];
+        const ext = extname(file.originalname).toLowerCase();
+
+        if (!file.mimetype.startsWith('video/') && !allowedExtensions.includes(ext)) {
+          return callback(
+            new BadRequestException( IntermissionErrorCode.BAD_REQUEST('BODY', '¡Solo se permiten archivos de video (MP4, MKV, AVI, etc.)!') ),
+            false,
+          );
+        }
+
+        callback(null, true);
+      },
+      limits: {
+        fileSize: 1024 * 1024 * 100,
+      },
     }),
   )
   @ApiOperation({ summary: IntermissionSummary.CREATE() })

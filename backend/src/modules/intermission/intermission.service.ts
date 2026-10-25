@@ -259,7 +259,7 @@ export class IntermissionService {
     const { uuid } = updateIntermissionDto;
   
     if (!uuid) throw new BadRequestException({
-        message: 'Se debe especificar el uuid de la canción a editar junto a los cambios',
+        message: 'Se debe especificar el uuid del video a editar junto a los cambios',
         example: { uuid: EXAMPLE.UUID, title: 'Hora del brindis!!!' }
     })
   
@@ -272,7 +272,7 @@ export class IntermissionService {
     this.syncCounters(uuid)
 
     return {
-        message: "La cancion ha sido modificada con exito",
+        message: "El video ha sido modificado con exito",
         change: updateIntermissionDto,
         data: await this.intermissionRepository.save(editIntermission)
     }
