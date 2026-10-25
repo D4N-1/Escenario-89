@@ -12,19 +12,78 @@
       <div class="close-at">
         <small>El local cerrará a las:</small>
         <div class="hour-selector">
-          <button type="button" class="hour" (click)="toggleHourMenu()">
-            {{ state.horaCierre() }} <app-icon name="chevron" [size]="16" [class.rotated]="hourMenuOpen" />
-          </button>
+          <div class="hour-pill" [class.open]="hourMenuOpen">
+            <input type="text"
+                   class="hour-pill-input"
+                   [value]="inputHoraTexto"
+                   (focus)="onPillFocus()"
+                   (input)="onInputHoraTexto($event)"
+                   (blur)="onPillBlur()"
+                   (keydown.enter)="guardarHoraPersonalizada()"
+                   placeholder="11:31 am"
+                   title="Escribe la hora directamente (ej: 11:31 am)">
+            <button type="button" class="hour-chevron-btn" (click)="toggleHourMenu()" title="Selector de hora">
+              <app-icon name="chevron" [size]="14" [class.rotated]="hourMenuOpen" />
+            </button>
+          </div>
+
           @if (hourMenuOpen) {
             <div class="hour-dropdown">
-              @for (h of hoursList; track h) {
-                <button type="button" class="hour-item" [class.active]="h === state.horaCierre()" (click)="selectHour(h)">
-                  <span>{{ h }}</span>
-                  @if (h === state.horaCierre()) {
-                    <app-icon name="check" [size]="13" />
-                  }
-                </button>
-              }
+              <!-- Selector AM / PM -->
+              <div class="ampm-switch">
+                <button type="button"
+                        class="ampm-opt"
+                        [class.active]="editAmPm === 'am'"
+                        (click)="setAmPm('am')">AM</button>
+                <button type="button"
+                        class="ampm-opt"
+                        [class.active]="editAmPm === 'pm'"
+                        (click)="setAmPm('pm')">PM</button>
+              </div>
+
+              <!-- Steppers digitales de hora y minuto -->
+              <div class="time-display">
+                <div class="digit-col">
+                  <button type="button" class="arrow-btn" (click)="stepHour(1)" title="Subir hora">▲</button>
+                  <input type="text"
+                         inputmode="numeric"
+                         class="time-digit"
+                         [value]="editHora"
+                         (input)="onHoraInput($event)"
+                         (keydown.enter)="guardarHoraPersonalizada()">
+                  <button type="button" class="arrow-btn" (click)="stepHour(-1)" title="Bajar hora">▼</button>
+                </div>
+
+                <span class="time-colon">:</span>
+
+                <div class="digit-col">
+                  <button type="button" class="arrow-btn" (click)="stepMinute(1)" title="Subir minuto">▲</button>
+                  <input type="text"
+                         inputmode="numeric"
+                         class="time-digit"
+                         [value]="editMinutoFormatted"
+                         (input)="onMinutoInput($event)"
+                         (keydown.enter)="guardarHoraPersonalizada()">
+                  <button type="button" class="arrow-btn" (click)="stepMinute(-1)" title="Bajar minuto">▼</button>
+                </div>
+              </div>
+
+              <!-- Botón Fijar hora -->
+              <button type="button" class="btn-save-time" (click)="guardarHoraPersonalizada()">
+                Fijar hora
+              </button>
+
+              <!-- Presets rápidos -->
+              <div class="preset-grid">
+                @for (h of quickPresets; track h) {
+                  <button type="button"
+                          class="preset-chip"
+                          [class.active]="h === state.horaCierre()"
+                          (click)="selectHour(h)">
+                    {{ h }}
+                  </button>
+                }
+              </div>
             </div>
           }
         </div>
