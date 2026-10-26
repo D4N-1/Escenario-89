@@ -70,7 +70,13 @@ export class QueueService {
                 description: '',
                 type: video.tipo === 'karaoke' ? 'KARAOKE' : 'SINGLE',
             });
-        } catch {}
+        } catch {
+            if (video.tipo === 'karaoke') {
+                try {
+                    await this.api.pedir(rol, 'PATCH', '/song', { id: video.id, type: 'KARAOKE' });
+                } catch {}
+            }
+        }
 
         const r = await this.api.pedir<{ position: number; status: string }>(rol, 'POST', '/queue', {
             songId: video.id,

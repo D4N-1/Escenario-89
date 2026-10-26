@@ -83,7 +83,6 @@ export class PlayerService {
   constructor() {
     this.iniciarBroadcastChannel();
 
-    // Escuchar pausas publicitarias emitidas por el backend vía WebSocket
     this.socket.onIntermission((payload: any) => {
       const data = payload?.data ?? (Array.isArray(payload) ? payload : []);
       if (Array.isArray(data) && data.length > 0) {
@@ -752,14 +751,11 @@ export class PlayerService {
   }
 
   async cargarCancion(cancion: Cancion, autoplay = true, startSeconds = 0) {
-    // Si viene una canción de karaoke tras una canción normal (o inicio sin karaoke previo),
-    // se muestra la pantalla de fondo con logo y se reproduce uno de los 3 audios aleatoriamente
     const esTransicionKaraoke =
       this.role === 'admin' &&
       autoplay &&
       startSeconds === 0 &&
       cancion.tipo === 'karaoke' &&
-      (!this.cancionPrevia || this.cancionPrevia.tipo !== 'karaoke') &&
       !this.karaokeIntroActivo() &&
       !this.intermissionActual();
 
@@ -782,12 +778,10 @@ export class PlayerService {
     this.state.reproduciendo.set(false);
     this.detenerTicker();
 
-    // Pausar inmediatamente cualquier video previo que estuviera en pantalla
     if (this.player && typeof this.player.pauseVideo === 'function') {
       try { this.player.pauseVideo(); } catch { }
     }
 
-    // Pre-buscar videoId si no está resuelto para no demorar cuando termine el audio
     if (!cancion.videoId) {
       const query = `${cancion.titulo} ${cancion.artista}`.trim();
       this.yt.buscar(query).then((resultados) => {
@@ -798,7 +792,6 @@ export class PlayerService {
       }).catch(() => {});
     }
 
-    // Elegir aleatoriamente uno de los 3 audios: karaoke_01, karaoke_02, karaoke_03
     const audioIndex = Math.floor(Math.random() * 3) + 1;
     const audioUrl = `/karaoke_0${audioIndex}.mp3`;
 
@@ -809,8 +802,16 @@ export class PlayerService {
     });
 
     try {
+      if (this.role === 'admin') {
+        this.muteado.set(false);
+        if (this.player && typeof this.player.unMute === 'function') {
+          try { this.player.unMute(); } catch { }
+        }
+      }
+      const vol = Math.max(0.1, (this.volumen() || 100) / 100);
+
       this.audioIntro = new Audio(audioUrl);
-      this.audioIntro.volume = this.muteado() ? 0 : (this.volumen() || 100) / 100;
+      this.audioIntro.volume = vol;
 
       let finalizado = false;
       const finalizar = () => {
@@ -822,24 +823,23 @@ export class PlayerService {
       this.audioIntro.onended = finalizar;
       this.audioIntro.onerror = (e) => {
         console.warn('Error al reproducir audio intro karaoke:', e);
-        finalizar();
+        setTimeout(() => finalizar(), 3500);
       };
 
       const playPromise = this.audioIntro.play();
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
           console.warn('Autoplay de audio intro bloqueado por el navegador:', err);
-          finalizar();
+          setTimeout(() => finalizar(), 3500);
         });
       }
 
-      // Timeout de seguridad en caso de que ended no se dispare
       this.timeoutIntro = setTimeout(() => {
         finalizar();
-      }, 25000);
+      }, 15000);
     } catch (e) {
       console.warn('Fallo al inicializar Audio intro:', e);
-      this.finalizarKaraokeIntro(cancion);
+      setTimeout(() => this.finalizarKaraokeIntro(cancion), 3500);
     }
   }
 
