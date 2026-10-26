@@ -17,7 +17,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: none;
+  cursor: default;
   user-select: none;
 }
 
@@ -100,7 +100,8 @@
   height: 100vh;
   z-index: 10;
   background: transparent;
-  cursor: none;
+  cursor: default;
+  pointer-events: auto;
 }
 
 .tv-cerrado {
