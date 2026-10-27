@@ -1,6 +1,6 @@
 <div class="shell">
   <aside class="side">
-    <a class="logo" routerLink="/admin"><img src="logo.png" alt=""><span class="brand">{{ state.nombreLocal() }}</span></a>
+    <a class="logo" routerLink="/admin"><img src="logohd.png" alt=""><span class="brand">{{ state.nombreLocal() }}</span></a>
 
     <nav>
       @if (!isPanel) { <a class="btn-gold" routerLink="/admin"><app-icon name="back" [size]="14" /> Panel principal</a> }
@@ -120,9 +120,14 @@
   <section class="main"><router-outlet /></section>
 
   <footer class="player">
-    <div class="bar" (click)="onSeek($event)">
-      <div class="bar-fill" [style.width.%]="player.progreso()"></div>
-      <i [style.left.%]="player.progreso()"></i>
+    <div
+      class="bar"
+      [class.is-dragging]="isDraggingBar"
+      [class.is-disabled]="!player.reproductorDesbloqueado()"
+      (mousedown)="onBarMouseDown($event)"
+      (touchstart)="onBarTouchStart($event)">
+      <div class="bar-fill" [style.width.%]="displayProgreso"></div>
+      <i [style.left.%]="displayProgreso"></i>
     </div>
     <div class="np">
       @if (state.sonando(); as s) {
@@ -145,7 +150,12 @@
       <button type="button" class="ctrl-btn" [disabled]="state.estado() === 'cerrado' || !!player.intermissionActual()" [title]="player.intermissionActual() ? 'Pausa publicitaria en curso' : 'Anterior (reiniciar)'" (click)="player.prev()">
         <app-icon name="prev" [size]="24" />
       </button>
-      <button type="button" class="play" [disabled]="state.estado() === 'cerrado' || !!player.intermissionActual()" [title]="player.intermissionActual() ? 'Pausa publicitaria en curso' : (state.reproduciendo() ? 'Pausar' : 'Reproducir')" (click)="player.togglePlay()">
+      <button
+        type="button"
+        class="play"
+        [disabled]="state.estado() === 'cerrado' || !!player.intermissionActual() || !player.reproductorDesbloqueado()"
+        [title]="!player.navegadorActivo() ? 'El navegador de video no está activo (usa Duplicar TV)' : (!player.reproductorDesbloqueado() ? 'Conectando con el navegador (espera 3 segundos)...' : (player.intermissionActual() ? 'Pausa publicitaria en curso' : (state.reproduciendo() ? 'Pausar' : 'Reproducir')))"
+        (click)="player.togglePlay()">
         <app-icon [name]="state.reproduciendo() ? 'pause' : 'play'" [size]="22" />
       </button>
       <button type="button" class="ctrl-btn" [disabled]="state.estado() === 'cerrado' || !!player.intermissionActual()" [title]="player.intermissionActual() ? 'Pausa publicitaria en curso' : 'Siguiente canción'" (click)="player.next()">

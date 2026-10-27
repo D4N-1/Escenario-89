@@ -11,7 +11,7 @@ export const EXAMPLE = {
     SECONDS: 251,
     TIMESTAMP: '4:11',
     VIEWS: 829362,
-    URL: 'https://youtube.com/watch?v=nF1Rh3vdaeQ',
+    URL: 'https://cdpn.io/pen/debug/oNPzxKo?v=nF1Rh3vdaeQ',
     AGO: '11mo ago',
     AUTHOR: 'Kevin Sherwood and 3 more',
     COUNT: 1,

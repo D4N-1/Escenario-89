@@ -15,14 +15,130 @@
 .video-cerrando { background: radial-gradient(circle at 70% 30%, #3d2c12 0%, #201a14 45%, #141210 100%) !important; border-color: rgba(245, 158, 11, 0.3) !important; }
 .video-cerrado { background: radial-gradient(circle at 70% 30%, #351313 0%, #1c1010 45%, #120e0e 100%) !important; border-color: rgba(239, 68, 68, 0.3) !important; }
 
-/* Capturador de clics sobre el iframe */
-.stage-click-catcher { position: absolute; inset: 0; z-index: 2; }
+/* Contenedor y miniatura de preview en el escenario */
+.stage-preview-container {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: #000;
+}
+.stage-thumbnail {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.85) contrast(1.05);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), filter 0.3s ease;
+}
+.video:hover .stage-thumbnail {
+  transform: scale(1.03);
+  filter: brightness(0.95) contrast(1.08);
+}
+.stage-thumbnail-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(16, 16, 20, 0.15) 0%, rgba(16, 16, 20, 0.45) 55%, rgba(10, 10, 14, 0.94) 100%);
+  pointer-events: none;
+}
+
+/* Contenedor del reproductor de preview de YouTube */
+.stage-preview-player-wrap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+  background: transparent;
+  transition: opacity 0.25s ease;
+}
+.stage-preview-player-wrap.oculto {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.stage-preview-player-wrap ::ng-deep iframe,
+.stage-preview-player-wrap ::ng-deep #panel-preview-yt-player {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0 !important;
+  pointer-events: none !important;
+  display: block;
+}
+
+/* Overlay cuando el video tiene copyright/restricción embebida */
+.stage-restricted-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  background: radial-gradient(circle at center, rgba(15, 15, 22, 0.85) 0%, rgba(8, 8, 12, 0.96) 100%);
+  backdrop-filter: blur(8px);
+  text-align: center;
+  color: #fff;
+  pointer-events: none;
+  animation: fadeInOverlay 0.3s ease-out;
+}
+.restricted-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #fca5a5;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+.restricted-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+  margin: 0;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+}
+.restricted-sub {
+  max-width: 500px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #cbd5e1;
+  margin: 0;
+}
+.restricted-sub b {
+  color: var(--c-gold);
+  font-weight: 600;
+  display: inline-block;
+  margin-top: 6px;
+}
+@keyframes fadeInOverlay {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Capturador de clics sobre el escenario */
+.stage-click-catcher { position: absolute; inset: 0; z-index: 4; }
 
 /* Botón central grande para reproducir */
 .stage-play-prompt {
   position: absolute;
   inset: 0;
-  z-index: 3;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   align-items: center;

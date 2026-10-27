@@ -127,6 +127,10 @@ export class QueueSocketService {
     
   }
 
-
+  updatePlayerStatus(status: any) {
+    if (this.server) {
+      this.server.emit(Events.PLAYER, status);
+    }
+  }
 
 }

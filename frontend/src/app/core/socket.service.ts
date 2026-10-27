@@ -33,6 +33,7 @@ export class SocketService {
   private listenersCola: Array<(datos: any[]) => void> = [];
   private listenersIntermission: Array<(datos: any) => void> = [];
   private listenersBar: Array<(bar: any) => void> = [];
+  private listenersPlayer: Array<(status: any) => void> = [];
 
   conectar(rol: SocketRol): Socket | null {
     const token = rol === 'admin' ? this.session.tokenAdmin() : this.session.tokenMesa();
@@ -106,7 +107,22 @@ export class SocketService {
       }
     });
 
+    this.socket.on('player', (status: any) => {
+      for (const cb of this.listenersPlayer) {
+        try {
+          cb(status);
+        } catch { }
+      }
+    });
+
     return this.socket;
+  }
+
+  onPlayer(callback: (status: any) => void): () => void {
+    this.listenersPlayer.push(callback);
+    return () => {
+      this.listenersPlayer = this.listenersPlayer.filter(cb => cb !== callback);
+    };
   }
 
   onQueue(callback: (datos: any[]) => void): () => void {

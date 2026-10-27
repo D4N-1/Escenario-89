@@ -39,6 +39,7 @@ export class Layout implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    document.body.classList.remove('is-scrubbing');
     this.bar.detenerSincronizacion();
     this.queue.detenerPolling();
     this.player.destruir();
@@ -354,12 +355,91 @@ export class Layout implements OnInit, OnDestroy {
     this.estadoMenuOpen = false;
   }
 
+  isDraggingBar = false;
+  dragProgreso = 0;
+
+  get displayProgreso(): number {
+    return this.isDraggingBar ? this.dragProgreso : this.player.progreso();
+  }
+
+  onBarMouseDown(event: MouseEvent) {
+    if (this.state.estado() === 'cerrado' || this.player.intermissionActual() || !this.player.reproductorDesbloqueado()) return;
+    // Prevenir la selección de texto en la página al hacer click y arrastrar
+    event.preventDefault();
+    event.stopPropagation();
+
+    this.isDraggingBar = true;
+    document.body.classList.add('is-scrubbing');
+
+    const pct = this.calcularPorcentaje(event.clientX);
+    this.dragProgreso = pct;
+    this.player.actualizarProgresoVisual(pct);
+  }
+
+  onBarTouchStart(event: TouchEvent) {
+    if (this.state.estado() === 'cerrado' || this.player.intermissionActual() || !this.player.reproductorDesbloqueado()) return;
+    if (event.touches.length === 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    this.isDraggingBar = true;
+    document.body.classList.add('is-scrubbing');
+
+    const pct = this.calcularPorcentaje(event.touches[0].clientX);
+    this.dragProgreso = pct;
+    this.player.actualizarProgresoVisual(pct);
+  }
+
+  @HostListener('window:mousemove', ['$event'])
+  onWindowMouseMove(event: MouseEvent) {
+    if (!this.isDraggingBar) return;
+    event.preventDefault();
+    const pct = this.calcularPorcentaje(event.clientX);
+    this.dragProgreso = pct;
+    this.player.actualizarProgresoVisual(pct);
+  }
+
+  @HostListener('window:touchmove', ['$event'])
+  onWindowTouchMove(event: TouchEvent) {
+    if (!this.isDraggingBar || event.touches.length === 0) return;
+    event.preventDefault();
+    const pct = this.calcularPorcentaje(event.touches[0].clientX);
+    this.dragProgreso = pct;
+    this.player.actualizarProgresoVisual(pct);
+  }
+
+  @HostListener('window:mouseup', ['$event'])
+  onWindowMouseUp(event: MouseEvent) {
+    if (!this.isDraggingBar) return;
+    event.preventDefault();
+    this.isDraggingBar = false;
+    document.body.classList.remove('is-scrubbing');
+
+    const pct = this.calcularPorcentaje(event.clientX);
+    this.player.seekPorcentaje(pct);
+  }
+
+  @HostListener('window:touchend', ['$event'])
+  onWindowTouchEnd(event: TouchEvent) {
+    if (!this.isDraggingBar) return;
+    this.isDraggingBar = false;
+    document.body.classList.remove('is-scrubbing');
+
+    this.player.seekPorcentaje(this.dragProgreso);
+  }
+
+  private calcularPorcentaje(clientX: number): number {
+    const barEl = document.querySelector('.player .bar') as HTMLElement;
+    if (!barEl) return 0;
+    const rect = barEl.getBoundingClientRect();
+    if (rect.width <= 0) return 0;
+    const clickX = clientX - rect.left;
+    return Math.max(0, Math.min(100, (clickX / rect.width) * 100));
+  }
+
   onSeek(event: MouseEvent) {
-    if (this.state.estado() === 'cerrado' || this.player.intermissionActual()) return;
-    const el = event.currentTarget as HTMLElement;
-    const rect = el.getBoundingClientRect();
-    const clickX = event.clientX - rect.left;
-    const pct = Math.max(0, Math.min(100, (clickX / rect.width) * 100));
+    if (this.state.estado() === 'cerrado' || this.player.intermissionActual() || !this.player.reproductorDesbloqueado()) return;
+    const pct = this.calcularPorcentaje(event.clientX);
     this.player.seekPorcentaje(pct);
   }
 }

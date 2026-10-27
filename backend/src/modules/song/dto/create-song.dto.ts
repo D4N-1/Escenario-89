@@ -39,7 +39,8 @@ export class CreateSongDto {
     
     @ApiProperty({ description: DESCRIPTION.VIEWS, example: EXAMPLE.VIEWS })
     @IsNumber()
-    views: number;
+    @IsOptional()
+    views?: number;
 
     @ApiProperty({ description: DESCRIPTION.URL, example: EXAMPLE.URL })
     @IsString()

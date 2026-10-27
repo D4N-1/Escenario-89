@@ -18,7 +18,7 @@ export class SongEntity extends BaseEntity {
     id: string;
 
     @ApiProperty({ description: DESCRIPTION.TITLE, example: EXAMPLE.TITLE })
-    @Column({ type: 'varchar' })
+    @Column({ type: 'varchar', length: 500 })
     title: string;
 
     @ApiProperty({ description: DESCRIPTION.DESCRIPTION, example: EXAMPLE.DESCRIPTION, required: false })
@@ -30,7 +30,7 @@ export class SongEntity extends BaseEntity {
     type: SongType;
 
     @ApiProperty({ description: DESCRIPTION.IMAGE, example: EXAMPLE.IMAGE })
-    @Column({ type: 'varchar' })
+    @Column({ type: 'varchar', length: 500 })
     image: string;
 
     @ApiProperty({ description: DESCRIPTION.SECONDS, example: EXAMPLE.SECONDS })
@@ -42,11 +42,18 @@ export class SongEntity extends BaseEntity {
     timestamp: string;
 
     @ApiProperty({ description: DESCRIPTION.VIEWS, example: EXAMPLE.VIEWS })
-    @Column({ type: 'int' })
+    @Column({
+        type: 'bigint',
+        default: 0,
+        transformer: {
+            to: (value: number) => value ?? 0,
+            from: (value: string | number) => Number(value) || 0,
+        }
+    })
     views: number;
 
     @ApiProperty({ description: DESCRIPTION.URL, example: EXAMPLE.URL })
-    @Column({ type: 'varchar' })
+    @Column({ type: 'varchar', length: 500 })
     url: string;
 
     @ApiProperty({ description: DESCRIPTION.AGO, example: EXAMPLE.AGO })
@@ -54,7 +61,7 @@ export class SongEntity extends BaseEntity {
     ago?: string|null;
 
     @ApiProperty({ description: DESCRIPTION.AUTHOR, example: EXAMPLE.AUTHOR })
-    @Column({ type: 'varchar' })
+    @Column({ type: 'varchar', length: 255 })
     author: string;
 
     @ApiProperty({ description: DESCRIPTION.COUNT, example: EXAMPLE.COUNT })

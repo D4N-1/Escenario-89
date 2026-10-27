@@ -20,9 +20,10 @@ export interface Cancion {
   duracion: string;            // "5:27"
   mesa: number;                // 0 = no viene de una mesa (anuncio)
   tipo: TipoPista | 'anuncio';
-  videoId?: string;            // para reproducirla en el iframe de YouTube
+  videoId?: string;            // para reproducirla en el iframe (CodePen / YouTube)
   uuid?: string;               // identificador del elemento en la cola del backend
   miniatura?: string;          // imagen de portada / miniatura de YouTube
+  segundos?: number;           // duración en segundos
 }
 
 /** Resultado de búsqueda de YouTube */

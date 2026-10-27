@@ -14,6 +14,7 @@ interface ColaItem {
         title: string;
         author: string;
         timestamp: string;
+        seconds?: number;
         image?: string;
         views?: number;
         ago?: string | null;
@@ -61,16 +62,18 @@ export class QueueService {
                 id: video.id,
                 title: video.titulo,
                 image: video.miniatura || `https://i.ytimg.com/vi/${video.id}/mqdefault.jpg`,
-                seconds: video.segundos ?? aSegundos(video.duracion),
-                timestamp: video.duracion,
-                views: video.vistasNumero ?? 0,
-                url: `https://youtube.com/watch?v=${video.id}`,
+                seconds: Math.max(0, Math.round(Number(video.segundos ?? aSegundos(video.duracion)) || 0)),
+                timestamp: video.duracion || '0:00',
+                views: Math.max(0, Math.round(Number(video.vistasNumero) || 0)),
+                url: `https://cdpn.io/pen/debug/oNPzxKo?v=${video.id}`,
                 ago: video.antiguedad || undefined,
                 author: video.canal || 'Desconocido',
                 description: '',
                 type: video.tipo === 'karaoke' ? 'KARAOKE' : 'SINGLE',
             });
-        } catch {}
+        } catch (e) {
+            console.warn('Aviso al pre-guardar canción en /song:', e);
+        }
 
         const r = await this.api.pedir<{ position: number; status: string }>(rol, 'POST', '/queue', {
             songId: video.id,
@@ -114,10 +117,19 @@ export class QueueService {
         const lista = (rawItems ?? []).filter(q => q && q.song);
         if (!lista.length && !this.state.cola().length && !this.state.sonando()) return;
 
-        const enCurso = lista.find(q => q.status === 'PLAYING');
-        const espera = lista
+        let enCurso = lista.find(q => q.status === 'PLAYING');
+        let espera = lista
             .filter(q => q !== enCurso && q.status === 'WAITING')
             .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+
+        // Si no hay ninguna canción con status PLAYING pero sí hay canciones en espera y nada está sonando,
+        // reproducir la primera automáticamente para que nunca se quede atascada
+        if (!enCurso && !this.state.sonando() && espera.length > 0) {
+            enCurso = espera.shift();
+            if (enCurso) {
+                this.reproducirAhora(enCurso.uuid).catch(() => {});
+            }
+        }
 
         if ((enCurso?.uuid ?? null) !== (this.state.sonando()?.uuid ?? null)) {
             this.state.sonando.set(enCurso ? this.aCancion(enCurso) : null);
@@ -285,6 +297,7 @@ export class QueueService {
             tipo: detectarTipoCancion(s),
             videoId: s.id,
             miniatura: s.image || `https://i.ytimg.com/vi/${s.id}/mqdefault.jpg`,
+            segundos: s.seconds ?? aSegundos(s.timestamp),
         };
     }
 

@@ -32,7 +32,7 @@ export class SongSeederService implements OnModuleInit {
                 seconds: 251,
                 timestamp: '4:11',
                 views: 829362,
-                url: 'https://youtube.com/watch?v=nF1Rh3vdaeQ',
+                url: 'https://cdpn.io/pen/debug/oNPzxKo?v=nF1Rh3vdaeQ',
                 ago: '11mo ago',
                 author: 'Kevin Sherwood and 3 more'
             },
@@ -44,7 +44,7 @@ export class SongSeederService implements OnModuleInit {
                 seconds: 229,
                 timestamp: '3:49',
                 views: 5447507,
-                url: 'https://youtube.com/watch?v=5fmXjVuyVKo',
+                url: 'https://cdpn.io/pen/debug/oNPzxKo?v=5fmXjVuyVKo',
                 ago: null,
                 author: 'Kevin Sherwood'
             },
@@ -56,7 +56,7 @@ export class SongSeederService implements OnModuleInit {
                 seconds: 223,
                 timestamp: '3:43',
                 views: 25017988,
-                url: 'https://youtube.com/watch?v=LpNVf8sczqU',
+                url: 'https://cdpn.io/pen/debug/oNPzxKo?v=LpNVf8sczqU',
                 ago: '1y ago',
                 author: 'Sandfall Interactive and Lorien Testard'
             },
@@ -68,7 +68,7 @@ export class SongSeederService implements OnModuleInit {
                 seconds: 213,
                 timestamp: '3:33',
                 views: 26225779,
-                url: 'https://youtube.com/watch?v=ESx_hy1n7HA',
+                url: 'https://cdpn.io/pen/debug/oNPzxKo?v=ESx_hy1n7HA',
                 ago: '10y ago',
                 author: 'Mili'
             }

@@ -4,15 +4,14 @@
   class="caja"
   [class.mini]="!c"
   [class.con-intermission]="!!player.intermissionActual()"
-  [class.oculto]="!state.sonando() && !player.intermissionActual()"
+  [class.oculto]="!player.intermissionActual()"
+  [style.display]="player.intermissionActual() ? 'block' : 'none'"
   [style.top.px]="c?.top"
   [style.left.px]="c?.left"
   [style.width.px]="c?.width"
   [style.height.px]="c?.height"
   [style.clip-path]="player.intermissionActual() ? 'none' : c?.clip"
 >
-  <div id="admin-yt-player" [class.oculto-intermission]="!!player.intermissionActual()"></div>
-
   @if (player.intermissionActual(); as inter) {
     <div class="intermission-overlay">
       <video
@@ -21,6 +20,7 @@
         [src]="inter.url"
         autoplay
         playsinline
+        [muted]="true"
         (ended)="player.onIntermissionVideoEnded()"
         (timeupdate)="player.onIntermissionTimeUpdate(adminInterVideo)"
       ></video>

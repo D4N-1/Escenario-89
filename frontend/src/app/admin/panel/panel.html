@@ -5,12 +5,12 @@
 </div>
 <div class="stage">
   <div class="stage-top-actions">
-    <button type="button" class="btn-gold dup" (click)="toggleFullscreen()" title="Pantalla completa en este monitor">
+    <button type="button" class="btn-gold dup" (click)="toggleFullscreen()" title="Pantalla completa en el navegador de la TV">
       Pantalla completa <app-icon name="share" [size]="14" />
     </button>
-    <a class="btn-gold dup" routerLink="/pantalla" target="_blank" title="Abrir ventana para TV o segundo monitor">
+    <button type="button" class="btn-gold dup" (click)="duplicarTv()" title="Abrir navegador en la TV / segundo monitor">
       Duplicar TV <app-icon name="share" [size]="14" />
-    </a>
+    </button>
   </div>
 
   <div class="video"
@@ -20,6 +20,38 @@
        ytSlot
        [class.con-video]="!!state.sonando()?.videoId && state.estado() !== 'cerrado' && !player.karaokeIntroActivo()"
        (click)="onStageClick($event)">
+    @if (state.sonando(); as cancion) {
+      @if (state.estado() !== 'cerrado' && !player.karaokeIntroActivo() && !player.intermissionActual()) {
+        <div class="stage-preview-container">
+          <img
+            class="stage-thumbnail"
+            [src]="cancion.miniatura || (cancion.videoId ? 'https://i.ytimg.com/vi/' + cancion.videoId + '/hqdefault.jpg' : 'logohd.png')"
+            [alt]="cancion.titulo"
+          />
+          <div class="stage-thumbnail-gradient"></div>
+
+          <div class="stage-preview-player-wrap" [class.oculto]="previewRestringido()">
+            <div id="panel-preview-yt-player"></div>
+          </div>
+
+          @if (previewRestringido()) {
+            <div class="stage-restricted-overlay">
+              <div class="restricted-badge">
+                <app-icon name="alert" [size]="18" />
+                <span>Restricción de derechos de autor</span>
+              </div>
+              <p class="restricted-title">No se puede mirar aquí</p>
+              <span class="restricted-sub">
+                Este video tiene restricciones de copyright para reproducción en este sitio web.
+                <br>
+                <b>El video se reproduce normalmente en la pantalla de la TV.</b>
+              </span>
+            </div>
+          }
+        </div>
+      }
+    }
+
     @if (!player.intermissionActual() && !player.karaokeIntroActivo()) {
       <div class="stage-click-catcher" title="Haz clic en el escenario para reproducir o pausar"></div>
     }
@@ -33,7 +65,7 @@
     } @else if (player.karaokeIntroActivo()) {
       <div class="stage-karaoke-intro">
         <div class="stage-intro-glow"></div>
-        <img src="logo.png" class="stage-intro-logo" alt="Escenario 89" />
+        <img src="logohd.png" class="stage-intro-logo" alt="Escenario 89" />
         <button type="button" class="btn-skip-intro" (click)="player.saltarKaraokeIntro()" title="Omitir audio e iniciar canción inmediatamente">
           Omitir intro ⏭
         </button>

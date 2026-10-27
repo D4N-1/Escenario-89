@@ -7,7 +7,7 @@
   <span class="clock">{{ state.hora() }}</span>
 </div>
 <div class="stage">
-  <a class="btn-gold dup" routerLink="/pantalla" target="_blank">Duplicar video <app-icon name="share" [size]="16" /></a>
+  <button type="button" class="btn-gold dup" (click)="duplicarTv()">Duplicar TV <app-icon name="share" [size]="16" /></button>
   <div class="video video-cerrado">
     <div class="stage-overlay">
       <span class="status-pill cerrado">● Estado: Cerrado</span>

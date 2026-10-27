@@ -16,6 +16,7 @@ import { IntermissionModule } from './modules/intermission/intermission.module.j
 import { QueueSocketModule } from './modules/queue-socket/queue-socket.module.js';
 import { QueueModule } from './modules/queue/queue.module.js';
 import { SearchModule } from './modules/search/search.module.js';
+import { PlayerModule } from './modules/player/player.module.js';
 import { SongModule } from './modules/song/song.module.js';
 import { TableModule } from './modules/table/table.module.js';
 import { UserModule } from './modules/user/user.module.js';
@@ -34,6 +35,7 @@ import { UserModule } from './modules/user/user.module.js';
     IntermissionModule,
     AudioModule,
     BarModule,
+    PlayerModule,
 
     ConfigModule.forRoot({
       isGlobal: true,

@@ -1,19 +1,11 @@
 <div class="tv">
-  <!-- Reproductor de YouTube de la TV -->
-  <div
-    id="tv-player-container"
-    class="tv-player"
-    [class.oculto]="!state.sonando()?.videoId || state.estado() === 'cerrado' || !!player.intermissionActual() || player.karaokeIntroActivo()"
-  >
-    <div id="tv-yt-player" [class.oculto-intermission]="!!player.intermissionActual() || player.karaokeIntroActivo()"></div>
-  </div>
-
+  <!-- Pantalla TV (el video de YouTube se reproduce a pantalla completa en Chromium independiente) -->
   <div class="tv-shield"></div>
 
   <!-- Pantalla de Local Cerrado solo cuando no hay anuncio activo -->
   @if (state.estado() === 'cerrado' && !player.intermissionActual()) {
     <div class="tv-cerrado">
-      <img src="logo.png" class="tv-cerrado-logo" alt="Escenario 89">
+      <img src="logohd.png" class="tv-cerrado-logo" alt="Escenario 89">
       <h1 class="tv-cerrado-title">Local Cerrado</h1>
       <p class="tv-cerrado-sub">Gracias por su visita · Nos vemos pronto</p>
     </div>
@@ -24,7 +16,7 @@
     <div class="tv-fondo-logo intro-activa">
       <div class="tv-fondo-glow"></div>
       <div class="tv-fondo-center">
-        <img src="logo.png" class="tv-logo-main" alt="Escenario 89 Karaoke Bar" />
+        <img src="logohd.png" class="tv-logo-main" alt="Escenario 89 Karaoke Bar" />
       </div>
     </div>
   }
@@ -38,6 +30,7 @@
         [src]="inter.url"
         autoplay
         playsinline
+        [muted]="true"
         (loadedmetadata)="onVideoLoaded(tvInterVideo)"
         (ended)="player.onIntermissionVideoEnded()"
       ></video>

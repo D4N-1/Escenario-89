@@ -21,28 +21,30 @@ export class SearchService {
 
     const results = await yt.search(query)
 
-    let search = results.all.filter( (p) => p.type === 'video' )
+    let search = (results?.all ?? []).filter( (p) => p.type === 'video' )
 
-    let songs: SearchEntity[] = search.map( (s, index) => {
+    let songs: SearchEntity[] = search.map( (s) => {
+      const videoId = s.videoId || (s as any).id || '';
+      const seconds = Number(s.seconds ?? (s as any).duration?.seconds) || 0;
+      const timestamp = s.timestamp || (s as any).duration?.timestamp || '0:00';
+      const authorName = typeof s.author === 'object' && s.author?.name ? s.author.name : (typeof s.author === 'string' ? s.author : 'Desconocido');
 
-    return {
-      title: s.title,
-      author: s.author.name,
-      description: s.description,
-      id: s.videoId,
-      image: s.thumbnail || s.image,
-      seconds: s.seconds || s.duration.seconds,
-      timestamp: s.timestamp || s.duration.timestamp,
-      type: this.isKaraoke(s.title) ? SongType.KARAOKE : SongType.SINGLE,
-      url: s.url,
-      views: s.views,
-      ago: s.ago
+      return {
+        title: s.title || 'Sin título',
+        author: authorName,
+        description: s.description || '',
+        id: videoId,
+        image: s.thumbnail || s.image || (videoId ? `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg` : ''),
+        seconds,
+        timestamp,
+        type: this.isKaraoke(s.title || '') ? SongType.KARAOKE : SongType.SINGLE,
+        url: `https://cdpn.io/pen/debug/oNPzxKo?v=${videoId}`,
+        views: Math.max(0, Math.round(Number(s.views) || 0)),
+        ago: s.ago || null
+      }
+    }).filter(s => !!s.id)
 
-    }
-    })
-
-    this.songService.insertBulk(songs)
-
+    await this.songService.insertBulk(songs)
 
     return {
 
