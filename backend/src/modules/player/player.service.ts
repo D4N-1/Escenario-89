@@ -178,7 +178,7 @@ const YOUTUBE_ADBLOCK_INJECTION_CODE = `
     if (yt && typeof yt.getVideoData === 'function') {
       try { vId = yt.getVideoData()?.video_id || ''; } catch (e) {}
     }
-    (window as any).__escenario_playback = {
+    window.__escenario_playback = {
       currentTime: v.currentTime || 0,
       duration: v.duration || 0,
       paused: v.paused,
@@ -312,9 +312,12 @@ export class PlayerService implements OnModuleDestroy {
 
   getChromiumPath(): string | null {
     const possiblePaths = [
+      path.join(process.env.LOCALAPPDATA || '', 'BraveSoftware\\Brave-Browser\\Application\\brave.exe'),
+      'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
+      'C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
       'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
       'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-      (process.env.LOCALAPPDATA || '') + '\\Google\\Chrome\\Application\\chrome.exe',
+      path.join(process.env.LOCALAPPDATA || '', 'Google\\Chrome\\Application\\chrome.exe'),
       'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
       'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
     ];
@@ -579,9 +582,9 @@ export class PlayerService implements OnModuleDestroy {
         }
         const isEnded = ytEnded || (v ? (!!v.ended || (duration > 0 && currentTime >= duration - 0.8) || !!window.__adEnded) : false);
 
-        const isFs = !!((document as any).fullscreenElement || (document as any).webkitFullscreenElement) ||
+        const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement) ||
                      (yt && yt.classList && yt.classList.contains('ytp-fullscreen')) ||
-                     (yt && typeof (yt as any).isFullscreen === 'function' && (yt as any).isFullscreen());
+                     (yt && typeof yt.isFullscreen === 'function' && yt.isFullscreen());
 
         return {
           found: true,
@@ -746,12 +749,12 @@ export class PlayerService implements OnModuleDestroy {
         const v = document.querySelector('video');
 
         // 1. Verificación nativa de Fullscreen API
-        let isFs = !!((document as any).fullscreenElement || (document as any).webkitFullscreenElement || (document as any).mozFullScreenElement);
+        let isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
 
         // 2. Clase interna de YouTube .ytp-fullscreen o método isFullscreen()
         if (!isFs && player) {
           if (player.classList && player.classList.contains('ytp-fullscreen')) isFs = true;
-          if (typeof (player as any).isFullscreen === 'function' && (player as any).isFullscreen()) isFs = true;
+          if (typeof player.isFullscreen === 'function' && player.isFullscreen()) isFs = true;
         }
 
         // 3. Inspección del botón de pantalla completa de YouTube
@@ -813,8 +816,8 @@ export class PlayerService implements OnModuleDestroy {
     // Desenfocar cualquier input (ej. buscador de YouTube) para que la pulsación no escriba texto
     await this.evaluateInActiveTab(`
       (() => {
-        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || (document.activeElement as any).isContentEditable)) {
-          (document.activeElement as HTMLElement).blur();
+        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable)) {
+          if (typeof document.activeElement.blur === "function") document.activeElement.blur();
         }
         const p = document.getElementById('movie_player') || document.querySelector('.html5-video-player') || document.querySelector('video');
         if (p && typeof p.focus === 'function') {
@@ -987,30 +990,37 @@ export class PlayerService implements OnModuleDestroy {
   launchVideoFullscreen(targetUrl: string, isAd = false, startSeconds = 0): boolean {
     const finalUrl = isAd ? targetUrl : this.sanitizeVideoUrl(targetUrl, startSeconds);
     const browserPath = this.getChromiumPath();
-    const tempProfileDir = path.join(os.tmpdir(), 'chroplayer_video_profile');
+    const isBrave = Boolean(browserPath && browserPath.toLowerCase().includes('brave'));
+    const tempProfileDir = path.join(os.tmpdir(), isBrave ? 'brave_video_profile' : 'chroplayer_video_profile');
+    const browserName = isBrave ? 'Brave' : 'Chromium/Chrome';
 
     const flags = [
       `--app=${finalUrl}`,
       '--start-fullscreen',
       '--start-maximized',
       `--remote-debugging-port=${CDP_PORT}`,
+      '--remote-debugging-address=127.0.0.1',
       `--user-data-dir=${tempProfileDir}`,
-      '--enable-extensions',
       '--disable-features=Translate',
       '--no-first-run',
       '--no-default-browser-check',
       '--autoplay-policy=no-user-gesture-required'
     ];
 
-    const extPath = this.getLoadedExtensions();
-    if (extPath) {
-      this.logger.log(`uBlock Origin activado desde: ${extPath}`);
-      flags.push(`--disable-extensions-except=${extPath}`);
-      flags.push(`--load-extension=${extPath}`);
+    if (!isBrave) {
+      flags.push('--enable-extensions');
+      const extPath = this.getLoadedExtensions();
+      if (extPath) {
+        this.logger.log(`Extensiones activadas: ${extPath}`);
+        flags.push(`--disable-extensions-except=${extPath}`);
+        flags.push(`--load-extension=${extPath}`);
+      }
+    } else {
+      this.logger.log('Brave Shields activo (bloqueo nativo C++ de anuncios de YouTube).');
     }
 
     if (browserPath) {
-      this.logger.log(`Abriendo Chromium en Pantalla Completa: ${finalUrl}`);
+      this.logger.log(`Abriendo ${browserName} en Pantalla Completa: ${finalUrl}`);
       const proc = spawn(browserPath, flags, { detached: false, stdio: 'ignore' });
       this.currentVideoProcess = proc;
       this.currentVideoState.active = true;
