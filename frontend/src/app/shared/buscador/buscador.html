@@ -12,7 +12,7 @@
   <div class="resultados">
     <div class="cab">
       <span>{{ ultima() ? 'Resultados de «' + ultima() + '»' : 'Búsqueda de canciones' }}</span>
-      <button type="button" title="Cerrar" (click)="cerrar()"><app-icon name="close" [size]="16" /></button>
+      <button type="button" title="Cerrar" (click)="cerrar()"><app-icon name="close" [size]="20" /></button>
     </div>
 
 
@@ -33,7 +33,7 @@
             <small>{{ v.canal }} · {{ v.vistas }} vistas · {{ v.antiguedad }}</small>
             @if (v.tipo === 'karaoke') { <span class="tag">Karaoke</span> }
           </div>
-          <span class="add"><app-icon name="add" [size]="16" /> Agregar</span>
+          <span class="add"><app-icon name="add" [size]="20" /> Agregar</span>
         </button>
       } @empty {
         <p class="msg">Sin resultados.</p>

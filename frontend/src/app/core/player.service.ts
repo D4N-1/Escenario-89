@@ -84,7 +84,6 @@ export class PlayerService {
     this.iniciarBroadcastChannel();
     this.consultarEstadoNavegador();
 
-    // Escuchar pausas publicitarias emitidas por el backend vía WebSocket
     this.socket.onIntermission((payload: any) => {
       const data = payload?.data ?? (Array.isArray(payload) ? payload : []);
       if (Array.isArray(data) && data.length > 0) {
@@ -115,7 +114,7 @@ export class PlayerService {
         this.cancionIntroPendiente = null;
         // NO CERRAR EL NAVEGADOR: si Chromium está abierto, mostrar la vista idle en la TV
         const baseApi = (environment?.apiUrl || 'http://localhost:3000').replace(/\/+$/, '');
-        this.callPlayerApi('/play', 'POST', { url: `${baseApi}/player/idle-view`, startSeconds: 0 }).catch(() => {});
+        this.callPlayerApi('/play', 'POST', { url: `${baseApi}/player/idle-view`, startSeconds: 0 }).catch(() => { });
         if (this.role === 'admin') {
           this.broadcast({ type: 'CHANGE_SONG', song: null, playing: false });
         }
@@ -303,7 +302,6 @@ export class PlayerService {
       autoplay &&
       startSeconds === 0 &&
       cancion.tipo === 'karaoke' &&
-      (!this.cancionPrevia || this.cancionPrevia.tipo !== 'karaoke') &&
       !this.karaokeIntroActivo() &&
       !this.intermissionActual();
 
@@ -332,7 +330,7 @@ export class PlayerService {
           cancion.videoId = resultados[0].id;
           cancion.miniatura = resultados[0].miniatura;
         }
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     const audioIndex = Math.floor(Math.random() * 3) + 1;
@@ -345,8 +343,16 @@ export class PlayerService {
     });
 
     try {
+      if (this.role === 'admin') {
+        this.muteado.set(false);
+        if (this.player && typeof this.player.unMute === 'function') {
+          try { this.player.unMute(); } catch { }
+        }
+      }
+      const vol = Math.max(0.1, (this.volumen() || 100) / 100);
+
       this.audioIntro = new Audio(audioUrl);
-      this.audioIntro.volume = this.muteado() ? 0 : (this.volumen() || 100) / 100;
+      this.audioIntro.volume = vol;
 
       let finalizado = false;
       const finalizar = () => {
@@ -358,23 +364,23 @@ export class PlayerService {
       this.audioIntro.onended = finalizar;
       this.audioIntro.onerror = (e) => {
         console.warn('Error al reproducir audio intro karaoke:', e);
-        finalizar();
+        setTimeout(() => finalizar(), 3500);
       };
 
       const playPromise = this.audioIntro.play();
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
           console.warn('Autoplay de audio intro bloqueado por el navegador:', err);
-          finalizar();
+          setTimeout(() => finalizar(), 3500);
         });
       }
 
       this.timeoutIntro = setTimeout(() => {
         finalizar();
-      }, 25000);
+      }, 15000);
     } catch (e) {
       console.warn('Fallo al inicializar Audio intro:', e);
-      this.finalizarKaraokeIntro(cancion);
+      setTimeout(() => this.finalizarKaraokeIntro(cancion), 3500);
     }
   }
 
@@ -750,7 +756,7 @@ export class PlayerService {
       this.currentVideoId = '';
       // NO CERRAR EL NAVEGADOR: si Chromium está abierto, mostrar la vista idle en la TV
       const baseApi = (environment?.apiUrl || 'http://localhost:3000').replace(/\/+$/, '');
-      this.callPlayerApi('/play', 'POST', { url: `${baseApi}/player/idle-view`, startSeconds: 0 }).catch(() => {});
+      this.callPlayerApi('/play', 'POST', { url: `${baseApi}/player/idle-view`, startSeconds: 0 }).catch(() => { });
       if (this.role === 'admin') {
         this.broadcast({ type: 'CHANGE_SONG', song: null, playing: false });
       }

@@ -17,7 +17,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: none;
+  cursor: default;
   user-select: none;
 }
 
@@ -100,7 +100,8 @@
   height: 100vh;
   z-index: 10;
   background: transparent;
-  cursor: none;
+  cursor: default;
+  pointer-events: auto;
 }
 
 .tv-cerrado {
@@ -179,6 +180,18 @@
   object-fit: contain;
   filter: drop-shadow(0 0 35px rgba(229, 169, 59, 0.45)) drop-shadow(0 0 75px rgba(229, 169, 59, 0.22));
   transition: transform 0.4s ease, filter 0.4s ease;
+  animation: tv-logo-idle 5s ease-in-out infinite alternate;
+}
+
+@keyframes tv-logo-idle {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 30px rgba(229, 169, 59, 0.35)) drop-shadow(0 0 60px rgba(229, 169, 59, 0.15));
+  }
+  100% {
+    transform: scale(1.04);
+    filter: drop-shadow(0 0 50px rgba(229, 169, 59, 0.6)) drop-shadow(0 0 90px rgba(229, 169, 59, 0.3));
+  }
 }
 
 .tv-fondo-logo.intro-activa .tv-logo-main {

@@ -83,7 +83,7 @@ export class QueueService {
         return { posicion: r.position, estado: r.status };
     }
 
-    
+
     async refrescar(): Promise<void> {
         if (this.actualizando) return;
         this.actualizando = true;
@@ -127,7 +127,7 @@ export class QueueService {
         if (!enCurso && !this.state.sonando() && espera.length > 0) {
             enCurso = espera.shift();
             if (enCurso) {
-                this.reproducirAhora(enCurso.uuid).catch(() => {});
+                this.reproducirAhora(enCurso.uuid).catch(() => { });
             }
         }
 
@@ -166,7 +166,7 @@ export class QueueService {
             this.state.misCanciones.set(mias);
         }
 
-       
+
         const enCurso = items.find(q => q.status === 'PLAYING');
         if (enCurso) {
             const cancionActual = this.aCancion(enCurso);
@@ -210,12 +210,12 @@ export class QueueService {
         }
     }
 
-    
+
     async finalizar(uuid: string): Promise<void> {
         await this.api.pedir('admin', 'PATCH', '/queue', { uuid, status: 'FINISHED' });
     }
 
-   
+
     async reproducirAhora(uuid: string): Promise<void> {
         await this.api.pedir('admin', 'PATCH', '/queue', { uuid, position: 0 });
     }
@@ -240,7 +240,7 @@ export class QueueService {
 
     async cargarMasEscuchadas(): Promise<Video[]> {
         try {
-           
+
             const r = await this.api.pedir<{ data: any[] }>('mesa', 'GET', '/song/popular');
             let lista = r?.data ?? [];
 
@@ -277,12 +277,12 @@ export class QueueService {
             miniaturaTitulo: '',
             miniaturaSub: '',
             inicialesCanal: canal.slice(0, 2).toUpperCase() || 'YT',
-                segundos: s.seconds,
+            segundos: s.seconds,
             vistasNumero: views,
         };
     }
 
-    
+
 
 
     private aCancion(q: ColaItem): Cancion {

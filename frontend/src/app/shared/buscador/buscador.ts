@@ -173,4 +173,13 @@ export class Buscador {
     this.detenerVoz();
     this.abierto.set(false);
   }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (!this.abierto()) return;
+    const target = event.target as HTMLElement;
+    if (!target.closest('app-buscador')) {
+      this.cerrar();
+    }
+  }
 }

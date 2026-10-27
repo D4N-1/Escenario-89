@@ -11,9 +11,8 @@
     </div>
   }
 
-  <!-- Fondo con el logo en el medio SOLO en la vista previa antes de iniciar el karaoke -->
-  @if (state.estado() !== 'cerrado' && !player.intermissionActual() && player.karaokeIntroActivo()) {
-    <div class="tv-fondo-logo intro-activa">
+  @if (state.estado() !== 'cerrado' && !player.intermissionActual() && (!state.sonando()?.videoId || player.karaokeIntroActivo())) {
+    <div class="tv-fondo-logo" [class.intro-activa]="player.karaokeIntroActivo()">
       <div class="tv-fondo-glow"></div>
       <div class="tv-fondo-center">
         <img src="logohd.png" class="tv-logo-main" alt="Escenario 89 Karaoke Bar" />
