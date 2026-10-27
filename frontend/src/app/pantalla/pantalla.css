@@ -55,6 +55,25 @@
   pointer-events: none !important;
 }
 
+.tv-native-video {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+  background: #000;
+  border: 0;
+  display: block;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.tv-native-video.oculto-intermission {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 /* Intermission overlay on TV */
 .tv-intermission-overlay {
   position: absolute;

@@ -51,6 +51,24 @@
     pointer-events: none !important;
 }
 
+.native-video-player {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+    border: 0;
+    display: block;
+    z-index: 2;
+}
+
+.native-video-player.oculto-intermission {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
 .caja.con-intermission {
     z-index: 50 !important;
     pointer-events: auto !important;

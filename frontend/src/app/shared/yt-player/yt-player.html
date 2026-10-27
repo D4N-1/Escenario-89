@@ -11,7 +11,24 @@
   [style.height.px]="c?.height"
   [style.clip-path]="player.intermissionActual() ? 'none' : c?.clip"
 >
-  <div id="admin-yt-player" [class.oculto-intermission]="!!player.intermissionActual()"></div>
+  <div id="admin-yt-player" [class.oculto-intermission]="!!player.intermissionActual() || player.modoNativo()"></div>
+
+  @if (player.modoNativo() && player.streamUrl()) {
+    <video
+      #adminNativeVideo
+      class="native-video-player"
+      [class.oculto-intermission]="!!player.intermissionActual()"
+      [src]="player.streamUrl()"
+      playsinline
+      (play)="player.onNativePlay()"
+      (pause)="player.onNativePause()"
+      (timeupdate)="player.onNativeTimeUpdate(adminNativeVideo)"
+      (loadedmetadata)="player.onNativeLoadedMetadata(adminNativeVideo)"
+      (canplay)="player.onNativeCanPlay(adminNativeVideo)"
+      (ended)="player.onNativeEnded()"
+      (error)="player.onNativeError($event)"
+    ></video>
+  }
 
   @if (player.intermissionActual(); as inter) {
     <div class="intermission-overlay">

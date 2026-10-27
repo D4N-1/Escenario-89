@@ -19,6 +19,7 @@ import { SearchModule } from './modules/search/search.module.js';
 import { SongModule } from './modules/song/song.module.js';
 import { TableModule } from './modules/table/table.module.js';
 import { UserModule } from './modules/user/user.module.js';
+import { StreamModule } from './modules/stream/stream.module.js';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { UserModule } from './modules/user/user.module.js';
     IntermissionModule,
     AudioModule,
     BarModule,
+    StreamModule,
 
     ConfigModule.forRoot({
       isGlobal: true,

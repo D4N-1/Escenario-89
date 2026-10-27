@@ -120,10 +120,19 @@ export class QueueService {
         const lista = (rawItems ?? []).filter(q => q && q.song);
         if (!lista.length && !this.state.cola().length && !this.state.sonando()) return;
 
-        const enCurso = lista.find(q => q.status === 'PLAYING');
+        let enCurso = lista.find(q => q.status === 'PLAYING');
         const espera = lista
             .filter(q => q !== enCurso && q.status === 'WAITING')
             .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+
+        // Si no hay ninguna canción con status PLAYING pero sí hay canciones en espera y nada está sonando,
+        // reproducir la primera automáticamente para que arranque sola
+        if (!enCurso && !this.state.sonando() && espera.length > 0) {
+            enCurso = espera.shift();
+            if (enCurso) {
+                this.reproducirAhora(enCurso.uuid).catch(() => { });
+            }
+        }
 
         if ((enCurso?.uuid ?? null) !== (this.state.sonando()?.uuid ?? null)) {
             this.state.sonando.set(enCurso ? this.aCancion(enCurso) : null);

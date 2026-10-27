@@ -8,6 +8,18 @@
     <button type="button" class="btn-gold dup" (click)="toggleFullscreen()" title="Pantalla completa en este monitor">
       Pantalla completa <app-icon name="share" [size]="14" />
     </button>
+    @if (state.sonando()?.videoId) {
+      <button
+        type="button"
+        class="btn-gold dup"
+        [class.btn-stream-active]="player.modoNativo()"
+        (click)="player.alternarModoStream()"
+        title="Cambiar entre reproductor de YouTube y Stream Nativo"
+      >
+        {{ player.modoNativo() ? 'Stream Nativo (Activo)' : 'Stream Nativo' }}
+        <app-icon name="play" [size]="14" />
+      </button>
+    }
     <a class="btn-gold dup" routerLink="/pantalla" target="_blank" title="Abrir ventana para TV o segundo monitor">
       Duplicar TV <app-icon name="share" [size]="14" />
     </a>
@@ -94,7 +106,7 @@
           </p>
         } @else {
           <span class="status-pill" [class.abierto]="state.reproduciendo() && !player.muteado()">
-            {{ state.reproduciendo() ? (player.muteado() ? 'En Vivo · Audio en espera' : 'En Vivo · Reproduciendo') : (state.sonando() ? 'En Pausa' : 'En Espera') }}
+            {{ state.reproduciendo() ? (player.modoNativo() ? 'En Vivo · Stream Directo' : (player.muteado() ? 'En Vivo · Audio en espera' : 'En Vivo · Reproduciendo')) : (state.sonando() ? 'En Pausa' : 'En Espera') }}
           </span>
           <p class="status-msg">
             @if (state.sonando(); as s) {

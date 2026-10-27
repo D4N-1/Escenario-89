@@ -5,7 +5,22 @@
     class="tv-player"
     [class.oculto]="!state.sonando()?.videoId || state.estado() === 'cerrado' || !!player.intermissionActual() || player.karaokeIntroActivo()"
   >
-    <div id="tv-yt-player" [class.oculto-intermission]="!!player.intermissionActual() || player.karaokeIntroActivo()"></div>
+    <div id="tv-yt-player" [class.oculto-intermission]="!!player.intermissionActual() || player.karaokeIntroActivo() || player.modoNativo()"></div>
+
+    @if (player.modoNativo() && player.streamUrl()) {
+      <video
+        #tvNativeVideo
+        class="tv-native-video"
+        [class.oculto-intermission]="!!player.intermissionActual() || player.karaokeIntroActivo()"
+        [src]="player.streamUrl()"
+        autoplay
+        playsinline
+        muted
+        (loadedmetadata)="player.onNativeLoadedMetadata(tvNativeVideo)"
+        (timeupdate)="player.onNativeTimeUpdate(tvNativeVideo)"
+        (ended)="player.onNativeEnded()"
+      ></video>
+    }
   </div>
 
   <div class="tv-shield"></div>
