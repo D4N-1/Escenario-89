@@ -169,6 +169,26 @@ const YOUTUBE_ADBLOCK_INJECTION_CODE = `
     }
   };
 
+  // 5. High-precision continuous playback tracking for TV-preview sync
+  const trackPlayback = () => {
+    const v = document.querySelector('video');
+    const yt = document.getElementById('movie_player');
+    if (!v) return;
+    let vId = '';
+    if (yt && typeof yt.getVideoData === 'function') {
+      try { vId = yt.getVideoData()?.video_id || ''; } catch (e) {}
+    }
+    (window as any).__escenario_playback = {
+      currentTime: v.currentTime || 0,
+      duration: v.duration || 0,
+      paused: v.paused,
+      ended: v.ended,
+      playbackRate: v.playbackRate || 1,
+      videoId: vId,
+      timestamp: Date.now()
+    };
+  };
+
   setInterval(skipActiveAds, 50);
   setInterval(injectStyle, 1000);
 
@@ -178,12 +198,17 @@ const YOUTUBE_ADBLOCK_INJECTION_CODE = `
       video.__ytAdSkipBound = true;
       video.addEventListener('timeupdate', skipActiveAds);
       video.addEventListener('play', skipActiveAds);
+      video.addEventListener('timeupdate', trackPlayback);
+      video.addEventListener('play', trackPlayback);
+      video.addEventListener('pause', trackPlayback);
+      video.addEventListener('seeked', trackPlayback);
     }
   };
   setInterval(bindVideoEvents, 500);
   bindVideoEvents();
 
   skipActiveAds();
+  trackPlayback();
 })();
 `;
 
@@ -194,6 +219,10 @@ export interface VideoPlaybackState {
   duration: number;
   title: string;
   ended?: boolean;
+  isFullscreen?: boolean;
+  ytState?: number | null;
+  videoId?: string;
+  timestamp?: number;
 }
 
 export interface CurrentVideoStatus {
@@ -214,23 +243,26 @@ export class PlayerService implements OnModuleDestroy {
     url: '',
     title: '',
     pid: null,
-    playback: { found: false, paused: true, currentTime: 0, duration: 0, title: '' }
+    playback: { found: false, paused: true, currentTime: 0, duration: 0, title: '', isFullscreen: false }
   };
 
   private cdpMsgCounter = 1;
   private currentCdpWs: WebSocket | null = null;
   private currentCdpTargetId: string | null = null;
   private pendingCdpCallbacks = new Map<number, (res: any) => void>();
-  private fullscreenTimer: any = null;
+  private fullscreenCheckTimer: any = null;
+  private isTogglingFullscreen = false;
+  private lastAutoFullscreenEnforce = 0;
   private statusBroadcastInterval: any = null;
 
   constructor(
     @Optional() private readonly queueSocketService?: QueueSocketService
-  ) {}
+  ) { }
 
   onModuleDestroy() {
+    this.stopAutoFullscreenWatcher();
     this.stopStatusBroadcasting();
-    this.closeCurrentVideo().catch(() => {});
+    this.closeCurrentVideo().catch(() => { });
   }
 
   startStatusBroadcasting() {
@@ -238,6 +270,27 @@ export class PlayerService implements OnModuleDestroy {
     this.statusBroadcastInterval = setInterval(async () => {
       const status = await this.getStatus();
       this.broadcastStatus(status);
+
+      // Verificación de respaldo suave: si el video de YouTube está reproduciendo y no está en pantalla completa
+      const p = status?.playback;
+      if (
+        status?.active &&
+        p?.found &&
+        !p.paused &&
+        p.currentTime > 4 &&
+        p.isFullscreen === false &&
+        status.url &&
+        status.url.includes('youtube.com') &&
+        !this.isTogglingFullscreen
+      ) {
+        const now = Date.now();
+        if (now - this.lastAutoFullscreenEnforce > 10000) {
+          this.lastAutoFullscreenEnforce = now;
+          this.logger.log('Detectado que el video en reproducción no está en pantalla completa. Aplicando (1 sola vez)...');
+          this.triggerFullscreenOnActiveTab().catch(() => { });
+        }
+      }
+
       if (!this.currentVideoProcess && !status.active) {
         this.stopStatusBroadcasting();
       }
@@ -484,18 +537,27 @@ export class PlayerService implements OnModuleDestroy {
           isPlaying = (!v.paused && !v.ended && v.readyState >= 2);
         }
 
+        let ytState = null;
+        let videoId = '';
         if (hasYt) {
           try {
             const ytTime = yt.getCurrentTime();
             const ytDur = yt.getDuration();
             const state = yt.getPlayerState();
+            ytState = typeof state === 'number' ? state : null;
             if (ytTime && ytTime > 0) currentTime = ytTime;
             if (ytDur && ytDur > 0) duration = ytDur;
-            // state: 1 = PLAYING, 3 = BUFFERING
-            if (state === 1 || state === 3) {
+            if (typeof yt.getVideoData === 'function') {
+              videoId = yt.getVideoData()?.video_id || '';
+            }
+            // state: 1 = PLAYING, 2 = PAUSED, 3 = BUFFERING
+            if (state === 1) {
               isPlaying = true;
-            } else if (state === 2) {
+            } else if (state === 2 || state === -1 || state === 5) {
               isPlaying = false;
+            } else if (state === 3) {
+              // Si está buffereando al inicio (currentTime === 0), no considerar reproduciendo aún
+              isPlaying = (currentTime > 0);
             }
           } catch (e) {}
         }
@@ -517,13 +579,21 @@ export class PlayerService implements OnModuleDestroy {
         }
         const isEnded = ytEnded || (v ? (!!v.ended || (duration > 0 && currentTime >= duration - 0.8) || !!window.__adEnded) : false);
 
+        const isFs = !!((document as any).fullscreenElement || (document as any).webkitFullscreenElement) ||
+                     (yt && yt.classList && yt.classList.contains('ytp-fullscreen')) ||
+                     (yt && typeof (yt as any).isFullscreen === 'function' && (yt as any).isFullscreen());
+
         return {
           found: true,
           paused: !!paused,
-          currentTime: Math.round(currentTime * 10) / 10,
+          currentTime: Math.round(currentTime * 100) / 100,
           duration: Math.round(duration * 10) / 10,
           title: document.title || '',
-          ended: isEnded
+          ended: isEnded,
+          isFullscreen: !!isFs,
+          ytState: ytState,
+          videoId: videoId,
+          timestamp: Date.now()
         };
       })()
     `, 1200);
@@ -531,7 +601,7 @@ export class PlayerService implements OnModuleDestroy {
     if (res.ok && res.value && res.value.found) {
       return res.value;
     }
-    return { found: false, paused: true, currentTime: 0, duration: 0, title: '', ended: false };
+    return { found: false, paused: true, currentTime: 0, duration: 0, title: '', ended: false, isFullscreen: false, ytState: null };
   }
 
   async controlVideoPlayback(action: string, value?: any): Promise<{ success: boolean; action?: string; value?: any; error?: string }> {
@@ -666,35 +736,103 @@ export class PlayerService implements OnModuleDestroy {
     });
   }
 
-  async triggerFullscreenOnActiveTab(): Promise<boolean> {
-    const checkRes = await this.evaluateInActiveTab(`
+  async isVideoInFullscreen(): Promise<{ isFs: boolean; isYt: boolean; btnCoords?: { x: number; y: number } | null }> {
+    const code = `
       (() => {
         const isYt = window.location.hostname.includes('youtube.com');
-        const player = document.getElementById('movie_player') || document.querySelector('.html5-video-player') || document.querySelector('video');
-        if (player && typeof player.focus === 'function') {
-          player.focus();
-        }
-        const isFs = !!document.fullscreenElement || (player && typeof player.isFullscreen === 'function' && player.isFullscreen());
-        return { isFs, isYt };
-      })()
-    `, 2000);
+        if (!isYt) return { isFs: true, isYt: false, btnCoords: null };
 
-    if (checkRes.ok && checkRes.value) {
-      if (checkRes.value.isFs) {
-        this.logger.log('Ya está en Pantalla Completa. No se envía tecla F.');
-        return true;
-      }
-      if (!checkRes.value.isYt) {
-        // En ad-view o video local, no es necesario enviar tecla F ya que la ventana corre en modo app maximizada/fullscreen
-        return true;
-      }
+        const player = document.getElementById('movie_player') || document.querySelector('.html5-video-player');
+        const v = document.querySelector('video');
+
+        // 1. Verificación nativa de Fullscreen API
+        let isFs = !!((document as any).fullscreenElement || (document as any).webkitFullscreenElement || (document as any).mozFullScreenElement);
+
+        // 2. Clase interna de YouTube .ytp-fullscreen o método isFullscreen()
+        if (!isFs && player) {
+          if (player.classList && player.classList.contains('ytp-fullscreen')) isFs = true;
+          if (typeof (player as any).isFullscreen === 'function' && (player as any).isFullscreen()) isFs = true;
+        }
+
+        // 3. Inspección del botón de pantalla completa de YouTube
+        const btn = document.querySelector('.ytp-fullscreen-button');
+        let btnCoords = null;
+        if (btn) {
+          const title = (btn.getAttribute('title') || '').toLowerCase();
+          const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
+          const dataTitle = (btn.getAttribute('data-title-no-tooltip') || '').toLowerCase();
+          if (
+            title.includes('salir') || title.includes('exit') ||
+            aria.includes('salir') || aria.includes('exit') ||
+            dataTitle.includes('salir') || dataTitle.includes('exit')
+          ) {
+            isFs = true;
+          }
+          const r = btn.getBoundingClientRect();
+          if (r.width > 0 && r.height > 0) {
+            btnCoords = { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+          }
+        }
+
+        // 4. Verificación geométrica: el video ocupa toda la ventana visible
+        if (!isFs && v && window.innerWidth > 0 && window.innerHeight > 0) {
+          const vr = v.getBoundingClientRect();
+          if (Math.abs(vr.width - window.innerWidth) <= 6 && Math.abs(vr.height - window.innerHeight) <= 6) {
+            isFs = true;
+          }
+        }
+
+        return { isFs, isYt, btnCoords };
+      })()
+    `;
+
+    const res = await this.evaluateInActiveTab(code, 1500);
+    if (res.ok && res.value) {
+      return res.value;
+    }
+    return { isFs: false, isYt: true, btnCoords: null };
+  }
+
+  async triggerFullscreenOnActiveTab(force = false): Promise<boolean> {
+    if (this.isTogglingFullscreen) return false;
+
+    const check = await this.isVideoInFullscreen();
+
+    if (!check.isYt) {
+      return true;
     }
 
+    if (check.isFs && !force) {
+      this.logger.log('Ya está en Pantalla Completa. No se envía tecla F.');
+      return true;
+    }
+
+    this.isTogglingFullscreen = true;
+    this.lastAutoFullscreenEnforce = Date.now();
+
+    // Desenfocar cualquier input (ej. buscador de YouTube) para que la pulsación no escriba texto
+    await this.evaluateInActiveTab(`
+      (() => {
+        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || (document.activeElement as any).isContentEditable)) {
+          (document.activeElement as HTMLElement).blur();
+        }
+        const p = document.getElementById('movie_player') || document.querySelector('.html5-video-player') || document.querySelector('video');
+        if (p && typeof p.focus === 'function') {
+          p.focus();
+        }
+      })()
+    `, 800).catch(() => { });
+
     const ws = await this.getCdpConnection();
-    if (!ws) return false;
+    if (!ws) {
+      this.isTogglingFullscreen = false;
+      return false;
+    }
 
     try {
       this.logger.log('Enviando pulsación de tecla F (1 sola vez)...');
+
+      // Enviar ÚNICAMENTE la tecla F (sin clic de ratón que causaría doble toggle y salida de pantalla completa)
       ws.send(JSON.stringify({
         id: ++this.cdpMsgCounter,
         method: 'Input.dispatchKeyEvent',
@@ -705,40 +843,86 @@ export class PlayerService implements OnModuleDestroy {
         method: 'Input.dispatchKeyEvent',
         params: { type: 'keyUp', key: 'f', code: 'KeyF', windowsVirtualKeyCode: 70, unmodifiedText: 'f', text: 'f' }
       }));
+
+      setTimeout(async () => {
+        this.isTogglingFullscreen = false;
+        const after = await this.isVideoInFullscreen();
+        if (after.isFs) {
+          this.logger.log('Pantalla Completa confirmada con éxito.');
+        }
+      }, 2000);
+
       return true;
     } catch {
+      this.isTogglingFullscreen = false;
       return false;
     }
   }
 
   async ensureAdBlockerActive() {
-    await this.evaluateInActiveTab(YOUTUBE_ADBLOCK_INJECTION_CODE, 1000).catch(() => {});
+    await this.evaluateInActiveTab(YOUTUBE_ADBLOCK_INJECTION_CODE, 1000).catch(() => { });
   }
 
   scheduleAutoFullscreen(isAd = false) {
-    if (this.fullscreenTimer) {
-      clearTimeout(this.fullscreenTimer);
-      this.fullscreenTimer = null;
-    }
+    this.stopAutoFullscreenWatcher();
 
     if (isAd) {
       // Para anuncios en ad-view, la ventana ya corre en pantalla completa nativa sin marcos
       return;
     }
 
-    this.logger.log('Video cambiado. Asegurando adblocker y esperando para enviar tecla F...');
+    this.logger.log('Video cambiado. Asegurando adblocker y programando Pantalla Completa...');
     setTimeout(() => this.ensureAdBlockerActive(), 800);
 
-    this.fullscreenTimer = setTimeout(async () => {
+    // Esperar 3.8 segundos para que YouTube termine de cargar e iniciar el video
+    this.fullscreenCheckTimer = setTimeout(async () => {
       await this.ensureAdBlockerActive();
       await this.triggerFullscreenOnActiveTab();
-      this.fullscreenTimer = null;
-    }, 4300);
+      this.fullscreenCheckTimer = null;
+    }, 3800);
+  }
+
+  stopAutoFullscreenWatcher() {
+    if (this.fullscreenCheckTimer) {
+      clearTimeout(this.fullscreenCheckTimer);
+      this.fullscreenCheckTimer = null;
+    }
+    this.isTogglingFullscreen = false;
   }
 
   async playOrChangeVideo(rawUrl: string, startSeconds = 0, forceLaunch = false, startPaused = false): Promise<boolean> {
     const isAd = rawUrl.includes('/player/ad-view') || (!rawUrl.includes('youtube.com') && !rawUrl.includes('youtu.be'));
     const finalUrl = isAd ? (rawUrl || '').trim() : this.sanitizeVideoUrl(rawUrl, startSeconds);
+
+    // 0. Si ya hay una pestaña activa con este mismo video, asegurar reproducción sin recargar desde cero
+    if (!isAd) {
+      const activeTarget = await this.getActivePageTarget();
+      if (activeTarget && activeTarget.url) {
+        const vIdMatch = finalUrl.match(/(?:watch\?v=|embed\/|v\/|shorts\/)([\w-]{11})/);
+        const currentTargetUrl = activeTarget.url;
+        if (vIdMatch && currentTargetUrl.includes(vIdMatch[1])) {
+          this.logger.log(`Video ya presente en pestaña activa de Chromium: ${currentTargetUrl}`);
+          this.currentVideoState.active = true;
+          this.currentVideoState.url = currentTargetUrl;
+          this.scheduleAutoFullscreen(isAd);
+          if (startPaused) {
+            await this.controlVideoPlayback('pause');
+          } else {
+            await this.controlVideoPlayback('play');
+          }
+          if (startSeconds > 0) {
+            const curPb = await this.getVideoPlaybackStatus();
+            if (Math.abs(curPb.currentTime - startSeconds) > 2) {
+              await this.controlVideoPlayback('seek', startSeconds);
+            }
+          }
+          const status = await this.getStatus();
+          this.broadcastStatus(status);
+          this.startStatusBroadcasting();
+          return true;
+        }
+      }
+    }
 
     // 1. Intentar navegar la pestaña activa en la misma ventana de Chromium
     const navigated = await this.navigateExistingTab(finalUrl);
@@ -772,7 +956,7 @@ export class PlayerService implements OnModuleDestroy {
     }
 
     this.logger.log(`Lanzando navegador Chromium para TV: ${finalUrl} (startPaused=${startPaused})`);
-    const launched = this.launchVideoFullscreen(finalUrl, isAd);
+    const launched = this.launchVideoFullscreen(finalUrl, isAd, startSeconds);
     if (launched) {
       this.scheduleAutoFullscreen(isAd);
       if (!isAd) {
@@ -793,15 +977,15 @@ export class PlayerService implements OnModuleDestroy {
     return launched;
   }
 
-  async launchTvBrowser(targetUrl?: string, startSeconds = 0, startPaused = true): Promise<boolean> {
+  async launchTvBrowser(targetUrl?: string, startSeconds = 0, startPaused = false): Promise<boolean> {
     const port = process.env.NEST_PORT || 3000;
     const defaultUrl = `http://localhost:${port}/player/idle-view`;
     const finalUrl = (targetUrl || '').trim() || defaultUrl;
     return this.playOrChangeVideo(finalUrl, startSeconds, true, startPaused);
   }
 
-  launchVideoFullscreen(targetUrl: string, isAd = false): boolean {
-    const finalUrl = isAd ? targetUrl : this.sanitizeVideoUrl(targetUrl);
+  launchVideoFullscreen(targetUrl: string, isAd = false, startSeconds = 0): boolean {
+    const finalUrl = isAd ? targetUrl : this.sanitizeVideoUrl(targetUrl, startSeconds);
     const browserPath = this.getChromiumPath();
     const tempProfileDir = path.join(os.tmpdir(), 'chroplayer_video_profile');
 
@@ -857,6 +1041,7 @@ export class PlayerService implements OnModuleDestroy {
   }
 
   async closeCurrentVideo(): Promise<boolean> {
+    this.stopAutoFullscreenWatcher();
     this.closeCdpConnection();
 
     try {
@@ -886,7 +1071,7 @@ export class PlayerService implements OnModuleDestroy {
     this.currentVideoState.url = '';
     this.currentVideoState.title = '';
     this.currentVideoState.pid = null;
-    this.currentVideoState.playback = { found: false, paused: true, currentTime: 0, duration: 0, title: '' };
+    this.currentVideoState.playback = { found: false, paused: true, currentTime: 0, duration: 0, title: '', isFullscreen: false };
     this.stopStatusBroadcasting();
     this.broadcastStatus(this.currentVideoState);
     return true;

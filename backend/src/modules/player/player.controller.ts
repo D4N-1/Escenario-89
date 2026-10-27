@@ -11,7 +11,7 @@ import { PlayerService } from './player.service.js';
 @Public()
 @Controller('player')
 export class PlayerController {
-  constructor(private readonly playerService: PlayerService) {}
+  constructor(private readonly playerService: PlayerService) { }
 
   @ApiOperation({ summary: 'Obtener estado del reproductor y reproducción' })
   @Get('status')
@@ -37,9 +37,10 @@ export class PlayerController {
     const success = await this.playerService.launchTvBrowser(
       body.url,
       body.startSeconds || 0,
-      body.startPaused ?? true
+      body.startPaused ?? false
     );
-    return { success };
+    const status = await this.playerService.getStatus();
+    return { success, status };
   }
 
   @ApiOperation({ summary: 'Vista de espera cuando no hay canciones sonando' })

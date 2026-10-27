@@ -23,6 +23,11 @@
   overflow: hidden;
   background: #000;
 }
+.stage-preview-container.oculto {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
 .stage-thumbnail {
   position: absolute;
   inset: 0;

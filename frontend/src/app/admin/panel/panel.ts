@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, effect, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, effect, inject, signal, untracked } from '@angular/core';
 import { Icon } from '../../shared/icon/icon';
 import { Buscador } from '../../shared/buscador/buscador';
 import { AppState } from '../../core/app-state';
@@ -21,7 +21,7 @@ export class Panel implements OnInit, OnDestroy {
   private ytPlayer: any = null;
   private ultimoVideoId = '';
   private isDestroyed = false;
-  private syncTimer: any = null;
+  private isCreatingPlayer = false;
   private lastSeekTimestamp = 0;
   private lastPausedTimeApplied = -1;
 
@@ -30,48 +30,85 @@ export class Panel implements OnInit, OnDestroy {
     effect(() => {
       const cancion = this.state.sonando();
       const vId = cancion?.videoId || '';
-      if (vId !== this.ultimoVideoId) {
+      const introActivo = this.player.karaokeIntroActivo();
+      const intermission = !!this.player.intermissionActual();
+      const estado = this.state.estado();
+
+      if (!vId || estado === 'cerrado') {
+        this.ultimoVideoId = '';
+        this.previewRestringido.set(false);
+        this.destruirPlayer();
+        return;
+      }
+
+      // Si hay intro de karaoke o pausa publicitaria, pausar preview y esperar
+      if (introActivo || intermission) {
+        this.pausarODestruir();
+        return;
+      }
+
+      // Si cambió el video o si el reproductor aún no se ha instanciado
+      if (vId !== this.ultimoVideoId || !this.ytPlayer) {
         this.ultimoVideoId = vId;
         this.previewRestringido.set(false);
         this.lastPausedTimeApplied = -1;
-        if (vId && this.state.estado() !== 'cerrado') {
-          this.cargarOActualizarPlayer(vId);
-        } else {
-          this.pausarODestruir();
-        }
+        this.cargarOActualizarPlayer(vId);
       }
     });
 
     // Sincronizar estado Play / Pause con el reproductor principal de la TV
     effect(() => {
       const isPlaying = this.state.reproduciendo();
-      if (this.ytPlayer) {
-        try {
-          if (isPlaying && typeof this.ytPlayer.playVideo === 'function') {
-            this.lastPausedTimeApplied = -1;
-            this.ytPlayer.playVideo();
-          } else if (!isPlaying && typeof this.ytPlayer.pauseVideo === 'function') {
-            this.ytPlayer.pauseVideo();
-            // Al pausar, saltar una sola vez al segundo exacto para congelar el fotograma
-            const t = this.player.tiempoSegundos();
-            if (typeof this.ytPlayer.seekTo === 'function') {
-              this.ytPlayer.seekTo(t, true);
-              this.lastPausedTimeApplied = t;
+      const introActivo = this.player.karaokeIntroActivo();
+      const intermission = !!this.player.intermissionActual();
+      const navActivo = this.player.navegadorActivo();
+      const cargando = this.player.cargando();
+
+      if (!this.ytPlayer || introActivo || intermission) return;
+
+      try {
+        if (isPlaying && navActivo && !cargando) {
+          this.lastPausedTimeApplied = -1;
+          if (typeof this.ytPlayer.mute === 'function') {
+            this.ytPlayer.mute();
+          }
+
+          const pState = typeof this.ytPlayer.getPlayerState === 'function' ? this.ytPlayer.getPlayerState() : -1;
+          // Solo si no está ya reproduciendo o cargando, saltar e iniciar
+          if (pState !== 1 && pState !== 3) {
+            const curTv = untracked(() => this.player.tiempoSegundos());
+            if (curTv > 0 && typeof this.ytPlayer.seekTo === 'function') {
+              this.ytPlayer.seekTo(curTv, true);
               this.lastSeekTimestamp = Date.now();
             }
+            if (typeof this.ytPlayer.playVideo === 'function') {
+              this.ytPlayer.playVideo();
+            }
           }
-        } catch { }
-      }
+        } else if ((!isPlaying || !navActivo || cargando) && typeof this.ytPlayer.pauseVideo === 'function') {
+          this.ytPlayer.pauseVideo();
+          const t = untracked(() => this.player.tiempoSegundos());
+          if (typeof this.ytPlayer.seekTo === 'function') {
+            this.ytPlayer.seekTo(t, true);
+            this.lastPausedTimeApplied = t;
+            this.lastSeekTimestamp = Date.now();
+          }
+        }
+      } catch { }
     });
 
     // Sincronizar tiempo cuando el usuario busca o retrocede/adelanta
     effect(() => {
       const tiempo = this.player.tiempoSegundos();
       const isPlaying = this.state.reproduciendo();
+      const introActivo = this.player.karaokeIntroActivo();
+      const intermission = !!this.player.intermissionActual();
+
+      if (introActivo || intermission || !this.ytPlayer) return;
 
       // Si está en pausa y el usuario arrastró o retrocedió/adelantó en la barra:
-      if (!isPlaying && this.ytPlayer && typeof this.ytPlayer.seekTo === 'function') {
-        if (Math.abs(this.lastPausedTimeApplied - tiempo) > 0.3 && Date.now() - this.lastSeekTimestamp > 300) {
+      if (!isPlaying && typeof this.ytPlayer.seekTo === 'function') {
+        if (Math.abs(this.lastPausedTimeApplied - tiempo) > 0.5 && Date.now() - this.lastSeekTimestamp > 300) {
           try {
             this.ytPlayer.seekTo(tiempo, true);
             this.ytPlayer.pauseVideo();
@@ -82,7 +119,7 @@ export class Panel implements OnInit, OnDestroy {
         return;
       }
 
-      // Si está reproduciendo, verificar y ajustar sincronía
+      // Si está reproduciendo, solo sincronizar si hay un salto grande manual (seek)
       if (isPlaying) {
         this.sincronizarTiempoPreview(tiempo);
       }
@@ -92,26 +129,11 @@ export class Panel implements OnInit, OnDestroy {
   ngOnInit() {
     if (typeof window !== 'undefined') {
       window.addEventListener('message', this.onWindowMessage);
-      const vId = this.state.sonando()?.videoId;
-      if (vId && this.state.estado() !== 'cerrado') {
-        this.cargarOActualizarPlayer(vId);
-      }
-
-      // Comprobación periódica suave de velocidad solo mientras se está reproduciendo
-      this.syncTimer = setInterval(() => {
-        if (!this.isDestroyed && this.state.sonando() && !this.previewRestringido() && this.state.reproduciendo()) {
-          this.sincronizarTiempoPreview(this.player.tiempoSegundos());
-        }
-      }, 1000);
     }
   }
 
   ngOnDestroy() {
     this.isDestroyed = true;
-    if (this.syncTimer) {
-      clearInterval(this.syncTimer);
-      this.syncTimer = null;
-    }
     if (typeof window !== 'undefined') {
       window.removeEventListener('message', this.onWindowMessage);
     }
@@ -119,46 +141,25 @@ export class Panel implements OnInit, OnDestroy {
   }
 
   /**
-   * Sincronizador de alta precisión entre el video de la TV y la preview:
-   * - Saltos grandes (>= 1.2s, al arrastrar o retroceder en la barra): seekTo directo con cooldown para evitar bucles.
-   * - Desfases pequeños (0.2s - 1.2s): ajuste de velocidad continuo sin llamadas repetidas a seekTo.
-   * - En pausa: NUNCA ejecuta bucles de seekTo; queda fijo en el fotograma.
+   * Sincronizador de preview con la TV:
+   * Solo salta si hay un salto manual grande (seek) para evitar que la preview se quede buffereando.
    */
   private sincronizarTiempoPreview(tiempoTv: number) {
-    if (!this.ytPlayer || this.isDestroyed || this.previewRestringido() || !this.state.reproduciendo()) return;
+    if (!this.ytPlayer || this.isDestroyed || this.previewRestringido() || !this.state.reproduciendo() || !this.player.navegadorActivo()) return;
 
-    // Respetar tiempo de asentamiento de YouTube tras un salto previo
-    if (Date.now() - this.lastSeekTimestamp < 1000) return;
+    // Cooldown para no saturar YouTube con llamadas seekTo consecutivas
+    if (Date.now() - this.lastSeekTimestamp < 2500) return;
 
     try {
       const cur = typeof this.ytPlayer.getCurrentTime === 'function' ? this.ytPlayer.getCurrentTime() : null;
       if (typeof cur !== 'number' || isNaN(cur)) return;
 
-      const diff = cur - tiempoTv; // > 0 preview adelantado, < 0 preview retrasado
-      const absDiff = Math.abs(diff);
+      const diff = Math.abs(cur - tiempoTv);
 
-      // Si hay un salto mayor a 1.2 segundos (ej: retroceso o adelanto manual de varios segundos)
-      if (absDiff >= 1.2) {
-        this.ytPlayer.seekTo(tiempoTv + 0.05, true);
+      // Solo saltar si hay un desvío o salto grande manual (ej. usuario adelantó o atrasó en la TV)
+      if (diff >= 3.5) {
+        this.ytPlayer.seekTo(tiempoTv, true);
         this.lastSeekTimestamp = Date.now();
-        if (typeof this.ytPlayer.setPlaybackRate === 'function') {
-          this.ytPlayer.setPlaybackRate(1.0);
-        }
-        return;
-      }
-
-      // Micro-corrección de velocidad fluida sin pausas ni saltos bruscos
-      if (typeof this.ytPlayer.setPlaybackRate === 'function') {
-        if (diff < -0.2) {
-          // El preview va un poco retrasado: acelerar sutilmente para alcanzar la TV
-          this.ytPlayer.setPlaybackRate(1.25);
-        } else if (diff > 0.2) {
-          // El preview va un poco adelantado: ralentizar sutilmente para que la TV lo alcance
-          this.ytPlayer.setPlaybackRate(0.75);
-        } else {
-          // En sincronía óptima (diferencia menor a 200ms)
-          this.ytPlayer.setPlaybackRate(1.0);
-        }
       }
     } catch { }
   }
@@ -170,10 +171,26 @@ export class Panel implements OnInit, OnDestroy {
       return;
     }
 
+    let hasCalled = false;
+    const runOnce = () => {
+      if (hasCalled || this.isDestroyed) return;
+      hasCalled = true;
+      if (checkInterval) clearInterval(checkInterval);
+      callback();
+    };
+
+    const checkInterval = setInterval(() => {
+      if (window.YT && window.YT.Player) {
+        runOnce();
+      }
+    }, 50);
+
     const prevReady = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = () => {
-      if (typeof prevReady === 'function') prevReady();
-      if (!this.isDestroyed) callback();
+      if (typeof prevReady === 'function') {
+        try { prevReady(); } catch { }
+      }
+      runOnce();
     };
 
     if (!document.getElementById('yt-iframe-api-script')) {
@@ -192,98 +209,138 @@ export class Panel implements OnInit, OnDestroy {
 
       const startSec = Math.max(0, Math.floor(this.player.tiempoSegundos() || 0));
 
-      // Si el reproductor ya existe y está activo, reutilizarlo cargando el nuevo video
-      if (this.ytPlayer && typeof this.ytPlayer.loadVideoById === 'function') {
+      // Si el reproductor ya existe, no está restringido y tiene API activa, reutilizarlo
+      if (this.ytPlayer && !this.previewRestringido() && (typeof this.ytPlayer.cueVideoById === 'function' || typeof this.ytPlayer.loadVideoById === 'function')) {
         try {
-          this.ytPlayer.loadVideoById({
-            videoId: vId,
-            startSeconds: startSec,
-          });
-          this.ytPlayer.mute();
-          if (this.state.reproduciendo()) {
-            this.ytPlayer.playVideo();
+          const debeIniciarYa = this.state.reproduciendo() && this.player.navegadorActivo() && !this.player.cargando();
+          if (debeIniciarYa && typeof this.ytPlayer.loadVideoById === 'function') {
+            this.ytPlayer.loadVideoById({
+              videoId: vId,
+              startSeconds: startSec,
+            });
+          } else if (typeof this.ytPlayer.cueVideoById === 'function') {
+            this.ytPlayer.cueVideoById({
+              videoId: vId,
+              startSeconds: startSec,
+            });
           } else {
+            this.ytPlayer.loadVideoById({
+              videoId: vId,
+              startSeconds: startSec,
+            });
             this.ytPlayer.pauseVideo();
           }
+          this.ytPlayer.mute();
           return;
         } catch {
           this.destruirPlayer();
         }
       }
 
-      // Si no existe, crear instancia oficial de YT.Player
-      setTimeout(() => {
-        if (this.isDestroyed) return;
-        this.asegurarContenedorPlayer();
-
-        try {
-          this.ytPlayer = new window.YT.Player('panel-preview-yt-player', {
-            videoId: vId,
-            playerVars: {
-              autoplay: 1,
-              mute: 1,
-              controls: 0,
-              disablekb: 1,
-              fs: 0,
-              rel: 0,
-              playsinline: 1,
-              start: startSec,
-              origin: window.location.origin,
-            },
-            events: {
-              onReady: (e: any) => {
-                if (this.isDestroyed) return;
-                try {
-                  e.target.mute();
-                  const curTv = this.player.tiempoSegundos();
-                  if (curTv > 0) {
-                    e.target.seekTo(curTv + 0.06, true);
-                  }
-                  if (this.state.reproduciendo()) {
-                    e.target.playVideo();
-                  } else {
-                    e.target.pauseVideo();
-                  }
-                } catch { }
-              },
-              onStateChange: (e: any) => {
-                if (this.isDestroyed) return;
-                // Si el preview empieza a reproducirse, sincronizar inmediatamente con el segundo actual de la TV
-                if (e.data === 1) {
-                  const curTv = this.player.tiempoSegundos();
-                  const curPreview = typeof e.target.getCurrentTime === 'function' ? e.target.getCurrentTime() : 0;
-                  if (Math.abs(curPreview - curTv) > 0.3) {
-                    e.target.seekTo(curTv + 0.06, true);
-                  }
-                }
-              },
-              onError: (e: any) => {
-                // Códigos de error de YouTube:
-                // 150 / 101: Derechos de autor / reproducción embebida bloqueada por el autor
-                // 2: ID inválido, 5: Error HTML5, 100: No encontrado
-                console.warn('YouTube preview onError event:', e?.data);
-                this.previewRestringido.set(true);
-              },
-            },
-          });
-        } catch (err) {
-          console.warn('Error inicializando YT.Player preview:', err);
-          this.previewRestringido.set(true);
-        }
-      }, 60);
+      this.crearInstanciaPlayer(vId);
     });
   }
 
-  private asegurarContenedorPlayer() {
-    if (typeof document === 'undefined') return;
+  private crearInstanciaPlayer(vId: string, intento = 0) {
+    if (this.isDestroyed || vId !== this.ultimoVideoId) return;
+
+    // Asegurar que el contenedor DOM esté disponible (reintento si Angular está pintando)
+    if (!this.asegurarContenedorPlayer()) {
+      if (intento < 15) {
+        setTimeout(() => this.crearInstanciaPlayer(vId, intento + 1), 60);
+      }
+      return;
+    }
+
+    if (this.isCreatingPlayer) return;
+    this.isCreatingPlayer = true;
+
+    const startSec = Math.max(0, Math.floor(this.player.tiempoSegundos() || 0));
+
+    try {
+      this.destruirPlayer();
+      this.asegurarContenedorPlayer();
+
+      this.ytPlayer = new window.YT.Player('panel-preview-yt-player', {
+        videoId: vId,
+        playerVars: {
+          autoplay: 1,
+          mute: 1,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          rel: 0,
+          playsinline: 1,
+          start: startSec,
+          origin: window.location.origin,
+        },
+        events: {
+          onReady: (e: any) => {
+            this.isCreatingPlayer = false;
+            if (this.isDestroyed) return;
+            try {
+              e.target.mute();
+              const curTv = this.player.tiempoSegundos();
+              if (curTv > 0) {
+                e.target.seekTo(curTv, true);
+              }
+              if (
+                this.state.reproduciendo() &&
+                this.player.navegadorActivo() &&
+                !this.player.cargando() &&
+                !this.player.karaokeIntroActivo() &&
+                !this.player.intermissionActual()
+              ) {
+                e.target.playVideo();
+              } else {
+                e.target.pauseVideo();
+              }
+            } catch { }
+          },
+          onStateChange: (e: any) => {
+            if (this.isDestroyed) return;
+            // Estado 1 = PLAYING (el video inició correctamente)
+            if (e.data === 1) {
+              this.previewRestringido.set(false);
+              // Si la TV está inactiva o no se está reproduciendo, mantener pausado
+              if (!this.state.reproduciendo() || !this.player.navegadorActivo()) {
+                try { e.target.pauseVideo(); } catch { }
+              }
+            }
+          },
+          onError: (e: any) => {
+            this.isCreatingPlayer = false;
+            // Errores de YouTube: 150 / 101 (copyright / no embebible), 100 (no encontrado), 2 / 5 (inválido / HTML5)
+            console.warn('YouTube preview onError event:', e?.data);
+            this.previewRestringido.set(true);
+          },
+        },
+      });
+    } catch (err) {
+      this.isCreatingPlayer = false;
+      console.warn('Error al crear instancia YT.Player preview (intento ' + intento + '):', err);
+      if (intento < 5) {
+        setTimeout(() => this.crearInstanciaPlayer(vId, intento + 1), 100);
+      } else {
+        this.previewRestringido.set(true);
+      }
+    }
+  }
+
+  private asegurarContenedorPlayer(): boolean {
+    if (typeof document === 'undefined') return false;
     const wrap = document.querySelector('.stage-preview-player-wrap');
-    if (!wrap) return;
+    if (!wrap) return false;
     let el = document.getElementById('panel-preview-yt-player');
-    if (!el) {
+    if (!el || el.tagName.toLowerCase() !== 'div') {
+      if (el) {
+        el.remove();
+      }
       el = document.createElement('div');
       el.id = 'panel-preview-yt-player';
       wrap.appendChild(el);
     }
+    return true;
   }
 
   private pausarODestruir() {
@@ -293,10 +350,6 @@ export class Panel implements OnInit, OnDestroy {
   }
 
   private destruirPlayer() {
-    if (this.syncTimer) {
-      clearInterval(this.syncTimer);
-      this.syncTimer = null;
-    }
     if (this.ytPlayer) {
       try {
         if (typeof this.ytPlayer.destroy === 'function') {
@@ -305,6 +358,7 @@ export class Panel implements OnInit, OnDestroy {
       } catch { }
       this.ytPlayer = null;
     }
+    this.isCreatingPlayer = false;
   }
 
   private onWindowMessage = (event: MessageEvent) => {
@@ -315,8 +369,17 @@ export class Panel implements OnInit, OnDestroy {
       if (typeof data === 'string') {
         try { data = JSON.parse(data); } catch { }
       }
-      if (data && (data.event === 'onError' || data.info === 101 || data.info === 150 || data.data === 150 || data.data === 101)) {
-        this.previewRestringido.set(true);
+      if (data) {
+        const isError =
+          data.event === 'onError' ||
+          data.info === 101 ||
+          data.info === 150 ||
+          data.data === 150 ||
+          data.data === 101 ||
+          (data.info && (data.info.errorCode === 150 || data.info.errorCode === 101));
+        if (isError) {
+          this.previewRestringido.set(true);
+        }
       }
     } catch { }
   };
@@ -335,6 +398,24 @@ export class Panel implements OnInit, OnDestroy {
 
   duplicarTv() {
     this.player.duplicarEnTv();
+    // Iniciar de inmediato la preview si no estaba reproduciendo
+    if (this.ytPlayer) {
+      try {
+        if (typeof this.ytPlayer.mute === 'function') {
+          this.ytPlayer.mute();
+        }
+        const pState = typeof this.ytPlayer.getPlayerState === 'function' ? this.ytPlayer.getPlayerState() : -1;
+        if (pState !== 1 && pState !== 3) {
+          const cur = this.player.tiempoSegundos();
+          if (cur > 0 && typeof this.ytPlayer.seekTo === 'function') {
+            this.ytPlayer.seekTo(cur, true);
+          }
+          if (typeof this.ytPlayer.playVideo === 'function') {
+            this.ytPlayer.playVideo();
+          }
+        }
+      } catch { }
+    }
   }
 
   onStageClick(event: MouseEvent) {

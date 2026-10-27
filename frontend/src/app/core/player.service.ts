@@ -73,12 +73,18 @@ export class PlayerService {
   // Estado del navegador Chromium externo en TV
   navegadorActivo = signal<boolean>(false);
   reproductorDesbloqueado = signal<boolean>(false);
+  esperandoInicioTv = signal<boolean>(false);
   private desbloqueoTimer: any = null;
+  private esperandoTvTimer: any = null;
 
   // Ticker y sincronización vía WebSocket desde el navegador Chromium externo
   private tickerTimer: any = null;
   private lastSeekTime = 0;
   private ultimoSocketTime = 0;
+
+  // Cache del estado de la TV obtenido al cargar la página (antes de que la cola cargue)
+  private estadoInicialTv: any = null;
+  private videoYaSincronizadoConTv = false;
 
   constructor() {
     this.iniciarBroadcastChannel();
@@ -109,6 +115,7 @@ export class PlayerService {
         this.tiempoSegundos.set(0);
         this.tiempoFormateado.set('0:00');
         this.currentVideoId = '';
+        this.videoYaSincronizadoConTv = false;
         this.detenerAudioIntro();
         this.karaokeIntroActivo.set(false);
         this.cancionIntroPendiente = null;
@@ -123,6 +130,58 @@ export class PlayerService {
 
       const vId = cancion.videoId;
       if (!vId || vId !== this.currentVideoId) {
+        // Comprobar si la TV ya está reproduciendo exactamente este video (ej. después de recargar la página admin)
+        const tvStatus = this.estadoInicialTv;
+        if (vId && tvStatus && tvStatus.active && tvStatus.playback?.found && tvStatus.url && tvStatus.url.includes(vId)) {
+          // La TV ya tiene este video - no enviar POST /play que lo reiniciaría
+          this.currentVideoId = vId;
+          this.videoYaSincronizadoConTv = true;
+          this.estadoInicialTv = null;
+          this.cargando.set(false);
+          this.esperandoInicioTv.set(false);
+          this.listo.set(true);
+          this.error.set('');
+
+          const pb = tvStatus.playback;
+          const liveTime = Math.round((pb.currentTime || 0) * 10) / 10;
+          const dur = pb.duration || cancion.segundos || this.stringASegundos(cancion.duracion) || 0;
+
+          this.duracionSegundos.set(dur);
+          this.duracionFormateada.set(cancion.duracion || this.segundosAString(dur));
+          this.tiempoSegundos.set(liveTime);
+          this.tiempoFormateado.set(this.segundosAString(liveTime));
+          this.state.tiempoActual.set(this.segundosAString(liveTime));
+          if (dur > 0) {
+            this.progreso.set(Math.min(100, Math.max(0, (liveTime / dur) * 100)));
+          }
+
+          this.iniciarConteoDesbloqueo();
+
+          const estaReproduciendo = !pb.paused || pb.ytState === 1;
+          this.state.reproduciendo.set(estaReproduciendo);
+          if (estaReproduciendo) {
+            this.iniciarTicker();
+          }
+
+          // Asegurar pantalla completa en la TV después de una recarga de página
+          if (pb.isFullscreen === false) {
+            setTimeout(() => {
+              this.callPlayerApi('/fullscreen', 'POST').catch(() => { });
+            }, 1500);
+          }
+
+          if (this.role === 'admin') {
+            this.broadcast({
+              type: 'CHANGE_SONG',
+              song: cancion,
+              playing: estaReproduciendo,
+            });
+          }
+          return;
+        }
+
+        this.estadoInicialTv = null;
+        this.videoYaSincronizadoConTv = false;
         this.cargarCancion(cancion, true);
       }
     });
@@ -423,6 +482,10 @@ export class PlayerService {
     try {
       const status = await this.callPlayerApi<any>('/status', 'GET');
       if (status) {
+        // Guardar el estado para que el effect de sonando pueda detectar si el video ya está en la TV
+        if (status.active && status.playback?.found) {
+          this.estadoInicialTv = status;
+        }
         this.aplicarEstadoDesdeSocket(status);
         return !!(status.active && status.playback?.found);
       }
@@ -443,6 +506,10 @@ export class PlayerService {
           vId = resultados[0].id;
           cancion.videoId = vId;
           cancion.miniatura = resultados[0].miniatura;
+          const s = this.state.sonando();
+          if (s && s.id === cancion.id) {
+            this.state.sonando.set({ ...cancion });
+          }
         }
       } catch (e) {
         console.warn('No se pudo obtener el videoId para', cancion.titulo, e);
@@ -467,17 +534,41 @@ export class PlayerService {
     this.tiempoFormateado.set(this.segundosAString(startSeconds || 0));
     this.progreso.set(dur > 0 ? ((startSeconds || 0) / dur) * 100 : 0);
 
-    const shouldPlay = autoplay && !this.intermissionActual();
-    this.state.reproduciendo.set(shouldPlay);
+    const navActivo = this.navegadorActivo();
+    const shouldPlay = autoplay && !this.intermissionActual() && navActivo;
 
     // Cargar o cambiar video en Chromium externo (reutiliza la misma pestaña existente)
     const ytUrl = `https://www.youtube.com/watch?v=${vId}`;
-    await this.callPlayerApi('/play', 'POST', { url: ytUrl, startSeconds });
+    const playRes = await this.callPlayerApi('/play', 'POST', { url: ytUrl, startSeconds });
 
-    if (shouldPlay) {
-      this.iniciarTicker();
-    } else {
+    if (!playRes || playRes.success === false || !navActivo) {
+      this.state.reproduciendo.set(false);
       this.detenerTicker();
+      this.cargando.set(false);
+      this.esperandoInicioTv.set(false);
+    } else if (shouldPlay) {
+      // Indicamos que el video está cargando en la TV; la preview y la barra esperarán a que la TV inicie
+      this.cargando.set(true);
+      this.esperandoInicioTv.set(true);
+      this.state.reproduciendo.set(false);
+      this.detenerTicker();
+
+      if (this.esperandoTvTimer) clearTimeout(this.esperandoTvTimer);
+      this.esperandoTvTimer = setTimeout(() => {
+        if (this.esperandoInicioTv()) {
+          this.esperandoInicioTv.set(false);
+          this.cargando.set(false);
+          if (this.navegadorActivo()) {
+            this.state.reproduciendo.set(true);
+            this.iniciarTicker();
+          }
+        }
+      }, 7000);
+    } else {
+      this.state.reproduciendo.set(false);
+      this.detenerTicker();
+      this.cargando.set(false);
+      this.esperandoInicioTv.set(false);
     }
 
     if (this.role === 'admin') {
@@ -493,7 +584,7 @@ export class PlayerService {
     this.detenerTicker();
 
     this.tickerTimer = setInterval(() => {
-      if (!this.state.reproduciendo() || this.intermissionActual() || this.karaokeIntroActivo()) {
+      if (!this.state.reproduciendo() || this.intermissionActual() || this.karaokeIntroActivo() || !this.navegadorActivo()) {
         return;
       }
 
@@ -560,9 +651,15 @@ export class PlayerService {
   bloquearReproductor() {
     this.navegadorActivo.set(false);
     this.reproductorDesbloqueado.set(false);
+    this.esperandoInicioTv.set(false);
+    this.cargando.set(false);
     if (this.desbloqueoTimer) {
       clearTimeout(this.desbloqueoTimer);
       this.desbloqueoTimer = null;
+    }
+    if (this.esperandoTvTimer) {
+      clearTimeout(this.esperandoTvTimer);
+      this.esperandoTvTimer = null;
     }
     this.detenerTicker();
     this.state.reproduciendo.set(false);
@@ -576,10 +673,8 @@ export class PlayerService {
     if (navegadorAbierto) {
       this.iniciarConteoDesbloqueo();
     } else {
-      // Si el navegador se cerró, bloquear y pausar de inmediato
-      if (this.navegadorActivo()) {
-        this.bloquearReproductor();
-      }
+      // Si el navegador no está activo, bloquear y pausar de inmediato
+      this.bloquearReproductor();
       return;
     }
 
@@ -607,7 +702,34 @@ export class PlayerService {
     if (status.playback && status.playback.found) {
       this.ultimoSocketTime = Date.now();
       const pb = status.playback;
-      const liveTime = Math.round(pb.currentTime * 10) / 10;
+      const liveTime = Math.round(pb.currentTime * 100) / 100;
+      const currentSong = this.state.sonando();
+      const vId = currentSong?.videoId;
+      const statusMatchesCurrent = !vId || (status.url && status.url.includes(vId));
+
+      // Si la TV estaba cargando el nuevo video y ya reporta que está listo y corriendo:
+      if (this.esperandoInicioTv()) {
+        const tvIniciada =
+          pb.ytState === 1 ||
+          (!pb.paused && liveTime > 0) ||
+          (!pb.paused && (!vId || !status.url || status.url.includes(vId)));
+
+        if (tvIniciada) {
+          if (this.esperandoTvTimer) {
+            clearTimeout(this.esperandoTvTimer);
+            this.esperandoTvTimer = null;
+          }
+          this.esperandoInicioTv.set(false);
+          this.cargando.set(false);
+          this.state.reproduciendo.set(true);
+          if (!this.tickerTimer) {
+            this.iniciarTicker();
+          }
+        } else {
+          // El video en la TV todavía se está cargando/buffereando; esperar
+          return;
+        }
+      }
 
       // Sincronizar el segundo exacto del video si el usuario no está arrastrando la barra de búsqueda
       if (Date.now() - this.lastSeekTime > 800) {
@@ -629,7 +751,7 @@ export class PlayerService {
       }
 
       // Sincronizar estado play / pause real del video de YouTube
-      const estaPausado = !!pb.paused;
+      const estaPausado = pb.ytState === 2 || (pb.ytState !== 1 && !!pb.paused);
       this.state.reproduciendo.set(!estaPausado);
       if (!estaPausado) {
         if (!this.tickerTimer) {
@@ -829,20 +951,37 @@ export class PlayerService {
       url = `https://www.youtube.com/watch?v=${cancion.videoId}`;
     }
 
-    // Iniciar el navegador de la TV sin reproducción automática (pausado)
-    const res = await this.callPlayerApi('/launch', 'POST', {
-      url,
-      startSeconds: curTime > 0 ? curTime : 0,
-      startPaused: true
-    });
-
-    if (res && res.success !== false) {
-      this.iniciarConteoDesbloqueo();
+    // Activar estado inmediatamente para que el preview no espere
+    this.navegadorActivo.set(true);
+    this.reproductorDesbloqueado.set(true);
+    if (cancion) {
+      this.state.reproduciendo.set(true);
+      if (!this.tickerTimer) {
+        this.iniciarTicker();
+      }
     }
 
+    // Lanzar o reactivar el navegador de la TV en reproducción continua
+    const res = await this.callPlayerApi<any>('/launch', 'POST', {
+      url,
+      startSeconds: curTime > 0 ? curTime : 0,
+      startPaused: false
+    });
+
+    if (res?.status) {
+      this.aplicarEstadoDesdeSocket(res.status);
+    }
+
+    this.iniciarConteoDesbloqueo();
+
+    // Consultar estado de inmediato y tras asentamiento de YouTube
+    this.consultarEstadoNavegador();
     setTimeout(() => {
       this.consultarEstadoNavegador();
-    }, 1000);
+    }, 500);
+    setTimeout(() => {
+      this.consultarEstadoNavegador();
+    }, 1200);
   }
 
   destruir() {

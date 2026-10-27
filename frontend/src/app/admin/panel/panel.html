@@ -20,37 +20,36 @@
        ytSlot
        [class.con-video]="!!state.sonando()?.videoId && state.estado() !== 'cerrado' && !player.karaokeIntroActivo()"
        (click)="onStageClick($event)">
-    @if (state.sonando(); as cancion) {
-      @if (state.estado() !== 'cerrado' && !player.karaokeIntroActivo() && !player.intermissionActual()) {
-        <div class="stage-preview-container">
-          <img
-            class="stage-thumbnail"
-            [src]="cancion.miniatura || (cancion.videoId ? 'https://i.ytimg.com/vi/' + cancion.videoId + '/hqdefault.jpg' : 'logohd.png')"
-            [alt]="cancion.titulo"
-          />
-          <div class="stage-thumbnail-gradient"></div>
+    <!-- Contenedor del preview del video y derechos de autor -->
+    <div class="stage-preview-container" [class.oculto]="!state.sonando() || player.karaokeIntroActivo() || player.intermissionActual() || state.estado() === 'cerrado'">
+      @if (state.sonando(); as cancion) {
+        <img
+          class="stage-thumbnail"
+          [src]="cancion.miniatura || (cancion.videoId ? 'https://i.ytimg.com/vi/' + cancion.videoId + '/hqdefault.jpg' : 'logohd.png')"
+          [alt]="cancion.titulo"
+        />
+        <div class="stage-thumbnail-gradient"></div>
+      }
 
-          <div class="stage-preview-player-wrap" [class.oculto]="previewRestringido()">
-            <div id="panel-preview-yt-player"></div>
+      <div class="stage-preview-player-wrap" [class.oculto]="previewRestringido()">
+        <div id="panel-preview-yt-player"></div>
+      </div>
+
+      @if (previewRestringido() && state.sonando() && !player.karaokeIntroActivo() && !player.intermissionActual() && state.estado() !== 'cerrado') {
+        <div class="stage-restricted-overlay">
+          <div class="restricted-badge">
+            <app-icon name="alert" [size]="18" />
+            <span>Restricción de derechos de autor</span>
           </div>
-
-          @if (previewRestringido()) {
-            <div class="stage-restricted-overlay">
-              <div class="restricted-badge">
-                <app-icon name="alert" [size]="18" />
-                <span>Restricción de derechos de autor</span>
-              </div>
-              <p class="restricted-title">No se puede mirar aquí</p>
-              <span class="restricted-sub">
-                Este video tiene restricciones de copyright para reproducción en este sitio web.
-                <br>
-                <b>El video se reproduce normalmente en la pantalla de la TV.</b>
-              </span>
-            </div>
-          }
+          <p class="restricted-title">No se puede mirar aquí</p>
+          <span class="restricted-sub">
+            Este video tiene restricciones de copyright para reproducción en este sitio web.
+            <br>
+            <b>El video se reproduce normalmente en la pantalla de la TV.</b>
+          </span>
         </div>
       }
-    }
+    </div>
 
     @if (!player.intermissionActual() && !player.karaokeIntroActivo()) {
       <div class="stage-click-catcher" title="Haz clic en el escenario para reproducir o pausar"></div>
