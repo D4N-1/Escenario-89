@@ -345,9 +345,6 @@ export class PlayerService {
     try {
       if (this.role === 'admin') {
         this.muteado.set(false);
-        if (this.player && typeof this.player.unMute === 'function') {
-          try { this.player.unMute(); } catch { }
-        }
       }
       const vol = Math.max(0.1, (this.volumen() || 100) / 100);
 
