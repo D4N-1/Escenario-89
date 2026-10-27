@@ -122,16 +122,21 @@ export class SongService {
 
     }
 
-    async insertBulk(songs: CreateSongDto[]) {
+async insertBulk(songs: CreateSongDto[]) {
         if (!songs || songs.length === 0) return;
 
         try {
             const songEntities = this.songRepository.create(songs);
 
-            await this.songRepository.upsert(songEntities, {
-                conflictPaths: ['id'],
-                skipUpdateIfNoValuesChanged: true,
-            });
+            // Usamos insert con cláusula de ignorar en caso de conflicto (Ejemplo para Postgres: DO NOTHING)
+            await this.songRepository
+                .createQueryBuilder()
+                .insert()
+                .into(SongEntity) // Reemplaza 'Song' por la entidad correspondiente si es necesario
+                .values(songEntities)
+                .orIgnore() // Esto le dice a la BD: "Si choca el ID/Unique, ignóralo y no hagas nada"
+                .execute();
+
         } catch (error: any) {
             console.error('Error en insertBulk:', error.message);
         }

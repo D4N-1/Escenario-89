@@ -25,10 +25,10 @@ import { UserModule } from './modules/user/user.module.js';
     DatabaseModule,
 
     AuthModule,
+    SongModule,
     QueueModule,
     QueueSocketModule,
     SearchModule,
-    SongModule,
     TableModule,
     UserModule,
     IntermissionModule,

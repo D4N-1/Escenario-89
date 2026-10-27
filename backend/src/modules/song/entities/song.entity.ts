@@ -46,7 +46,7 @@ export class SongEntity extends BaseEntity {
     views: number;
 
     @ApiProperty({ description: DESCRIPTION.URL, example: EXAMPLE.URL })
-    @Column({ type: 'varchar' })
+    @Column({ type: 'text' })
     url: string;
 
     @ApiProperty({ description: DESCRIPTION.AGO, example: EXAMPLE.AGO })
