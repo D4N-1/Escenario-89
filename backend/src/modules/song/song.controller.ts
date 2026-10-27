@@ -37,4 +37,9 @@ export class SongController {
         return this.songService.getMostCount()
     }
 
+    @Post('stream')
+    async getUrlStream(@Body('id') id: string) {
+        return this.songService.getUrlStream(id)
+    }
+
 }

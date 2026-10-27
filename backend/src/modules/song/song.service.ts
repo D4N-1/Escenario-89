@@ -1,5 +1,7 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, GoneException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { Repository } from "typeorm";
 import { GetAllQueryDto } from "../../common/dto/getAllQuery.dto.js";
 import { ResAllInterface } from "../../common/interfaces/resAll.interface.js";
@@ -10,9 +12,12 @@ import { UpdateSongDto } from "./dto/update-song.dto.js";
 import { SongEntity, SongType } from "./entities/song.entity.js";
 import { SongErrorCode } from "./song.constants.js";
 
+const execFileAsync = promisify(execFile);
 
 @Injectable()
 export class SongService {
+
+    private logger = new Logger(SongService.name)
 
     constructor(
 
@@ -122,7 +127,7 @@ export class SongService {
 
     }
 
-async insertBulk(songs: CreateSongDto[]) {
+    async insertBulk(songs: CreateSongDto[]) {
         if (!songs || songs.length === 0) return;
 
         try {
@@ -154,5 +159,59 @@ async insertBulk(songs: CreateSongDto[]) {
             data: songs
         }
     }
+
+    async getUrlStream(id: string): Promise<{ url: string }> {
+
+        this.logger.log(`Extrayendo stream directo para YouTube ID: ${id}...`);
+
+        const ytUrl = `https://www.youtube.com/watch?v=${id}`;
+
+        const args = [
+          '--js-runtimes',
+          'node',
+          '--remote-components',
+          'ejs:github',
+          '-f',
+          '18/22/best[ext=mp4]/best[vcodec!=none][acodec!=none]/best',
+          '-g',
+          ytUrl,
+        ];
+    
+        const ytDlpBin = process.env.YTDLP_BIN || 'yt-dlp'
+
+        try {
+
+            const { stdout, stderr } = await execFileAsync(ytDlpBin, args, {
+                windowsHide: true
+            });
+
+
+            const lines = stdout.trim().split(/\r?\n/).filter((l) => l.startsWith('http'));
+
+            if (
+                (stderr && stderr.includes('ERROR') ) ||
+                lines.length === 0
+            ) {
+                this.logger.error(`yt-dlp stderr: ${stderr}`);
+                throw new GoneException('No se pudo obtener la url stream')
+            }
+
+
+            const url = lines[0].trim();
+            this.logger.log(`Stream extraído con éxito para ${id}`);
+
+            this.update({ id, url })
+
+            return {
+                url
+            }
+
+        } catch (err: any) {
+            this.logger.error(`Error al extraer stream con yt-dlp para ${id}:`, err?.message || err);
+            throw new GoneException(`No se pudo obtener el flujo de video para este contenido: ${err?.message || 'Error desconocido'}` );
+        }
+
+    }
+
 
 }

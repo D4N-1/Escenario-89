@@ -42,7 +42,7 @@ export class SongEntity extends BaseEntity {
     timestamp: string;
 
     @ApiProperty({ description: DESCRIPTION.VIEWS, example: EXAMPLE.VIEWS })
-    @Column({ type: 'int' })
+    @Column({ type: 'bigint' })
     views: number;
 
     @ApiProperty({ description: DESCRIPTION.URL, example: EXAMPLE.URL })
