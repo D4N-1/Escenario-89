@@ -66,6 +66,7 @@ export class PlayerService {
   private initialSyncDone = false;
   private listenerInteraccion: (() => void) | null = null;
   private timeoutAutoplay: any = null;
+  private timeoutWatchdogPlayback: any = null;
 
   // Introducción karaoke tras canción normal
   karaokeIntroActivo = signal<boolean>(false);
@@ -661,7 +662,7 @@ export class PlayerService {
                   event.target.playVideo();
                   this.necesitaInteraccion.set(false);
                 } catch { }
-                this.intentarAutoplay();
+                this.intentarAutoplay(false);
               }
 
               this.desactivarSubtitulos();
@@ -739,6 +740,7 @@ export class PlayerService {
         this.necesitaInteraccion.set(false);
         this.removerDesbloqueoInteraccion();
       }
+      this.limpiarWatchdogPlayback();
 
       if (this.role === 'pantalla' && !this.initialSyncDone) {
         this.initialSyncDone = true;
@@ -816,7 +818,7 @@ export class PlayerService {
     this.listenerInteraccion = null;
   }
 
-  private intentarAutoplay() {
+  private intentarAutoplay(reproducirInmediato = true) {
     if (this.intermissionActual() || this.karaokeIntroActivo() || this.streamUrl() || this.solicitandoStream()) return;
     if (this.role !== 'admin' || !this.state.sonando() || !this.player) return;
     if (!this.state.reproduciendo() && !this.cargando()) return;
@@ -826,11 +828,13 @@ export class PlayerService {
       this.timeoutAutoplay = null;
     }
 
-    try {
-      this.player.unMute();
-      this.player.setVolume(this.volumen() || 100);
-      this.player.playVideo();
-    } catch { }
+    if (reproducirInmediato) {
+      try {
+        this.player.unMute();
+        this.player.setVolume(this.volumen() || 100);
+        this.player.playVideo();
+      } catch { }
+    }
 
     this.timeoutAutoplay = setTimeout(() => {
       if (this.streamUrl() || this.solicitandoStream()) return;
@@ -847,32 +851,79 @@ export class PlayerService {
           } catch { }
         }
       }
-    }, 450);
+    }, 1200);
+  }
+
+  iniciarWatchdogPlayback(cancion: Cancion | null, timeoutMs = 4500) {
+    if (this.role !== 'admin' || !cancion?.videoId) return;
+    if (this.streamUrl() || this.solicitandoStream()) return;
+    this.limpiarWatchdogPlayback();
+
+    this.timeoutWatchdogPlayback = setTimeout(async () => {
+      this.timeoutWatchdogPlayback = null;
+      if (this.role !== 'admin' || this.streamUrl() || this.solicitandoStream()) return;
+      if (this.intermissionActual() || this.karaokeIntroActivo()) return;
+
+      const sonando = this.state.sonando();
+      if (!sonando || (sonando.uuid !== cancion.uuid && sonando.videoId !== cancion.videoId)) return;
+      if (!this.state.reproduciendo()) return;
+
+      let st = -1;
+      let cur = 0;
+      try {
+        if (this.player) {
+          if (typeof this.player.getPlayerState === 'function') st = this.player.getPlayerState();
+          if (typeof this.player.getCurrentTime === 'function') cur = this.player.getCurrentTime() || 0;
+        }
+      } catch { }
+
+      const curLive = this.tiempoSegundos();
+
+      // Si está en BUFFERING (3), esperar 3 segundos más antes de forzar stream
+      if (st === 3 && curLive === 0 && timeoutMs <= 4500) {
+        console.log('[Watchdog] Video de YouTube en BUFFERING (3), concediendo 3s adicionales...');
+        this.iniciarWatchdogPlayback(cancion, 3000);
+        return;
+      }
+
+      // Si tras el tiempo de espera YouTube no está reproduciendo activamente (st !== 1) o está atascado en 0:00:
+      if (st !== 1 || (cur === 0 && curLive === 0)) {
+        console.warn(`[Watchdog] YouTube no inició la reproducción tras ${timeoutMs}ms (st: ${st}, cur: ${cur}, live: ${curLive}). Activando rescate con stream directo del backend.`);
+        await this.solicitarStreamYReproducir(sonando, 0);
+      }
+    }, timeoutMs);
+  }
+
+  limpiarWatchdogPlayback() {
+    if (this.timeoutWatchdogPlayback) {
+      clearTimeout(this.timeoutWatchdogPlayback);
+      this.timeoutWatchdogPlayback = null;
+    }
   }
 
   private async handlePlayerError(code: number) {
     if (this.role !== 'admin' || this.streamUrl() || this.solicitandoStream()) return;
     this.cargando.set(false);
+    this.limpiarWatchdogPlayback();
     console.warn(`YouTube Player error (${code})`);
 
     const cancion = this.state.sonando();
 
-    if (code === 150 || code === 101 || code === 2) {
+    // Intentar rescate automático mediante stream directo para CUALQUIER código de error
+    if (cancion && cancion.videoId) {
       this.error.set('');
-      if (cancion && cancion.videoId) {
-        const ok = await this.solicitarStreamYReproducir(cancion, 0);
-        if (ok) return;
-      }
-      this.error.set('No se pudo reproducir este video debido a restricciones de YouTube.');
-      setTimeout(() => this.next(), 3500);
-    } else {
-      this.error.set(`Error de YouTube (${code}). Intenta reproducir otra canción.`);
+      const ok = await this.solicitarStreamYReproducir(cancion, 0);
+      if (ok) return;
     }
+
+    this.error.set(`Error de YouTube (${code}). No se pudo reproducir este video.`);
+    setTimeout(() => this.next(), 3500);
   }
 
   async solicitarStreamYReproducir(cancion: Cancion, startSeconds = 0): Promise<boolean> {
     if (this.role !== 'admin' || !cancion?.videoId) return false;
     if (this.solicitandoStream()) return false;
+    this.limpiarWatchdogPlayback();
 
     if (this.reintentosStream >= 3) {
       console.warn('Límite de reintentos alcanzado para stream:', cancion.titulo);
@@ -1175,6 +1226,9 @@ export class PlayerService {
 
       const pct = dur > 0 ? (cur / dur) * 100 : 0;
       this.progreso.set(Math.min(100, Math.max(0, pct)));
+      if (cur > 0.8) {
+        this.limpiarWatchdogPlayback();
+      }
 
       if (this.role === 'admin' && this.state.reproduciendo()) {
         this.broadcast({
@@ -1392,6 +1446,7 @@ export class PlayerService {
   }
 
   detenerTodoAudio() {
+    this.limpiarWatchdogPlayback();
     this.detenerAudioIntro();
 
     if (this.adminStreamVideo) {
@@ -1436,6 +1491,9 @@ export class PlayerService {
     this.initialSyncDone = false;
     this.currentPlaybackRate = 1.0;
     this.cancionPrevia = cancion;
+    if (this.currentSongUuid !== cancion.uuid) {
+      this.reintentosStream = 0;
+    }
     let vId = cancion.videoId;
 
     if (!vId) {
@@ -1589,6 +1647,9 @@ export class PlayerService {
         if (autoplay && !this.intermissionActual() && !this.karaokeIntroActivo()) {
           this.state.reproduciendo.set(true);
           this.player.loadVideoById({ videoId: vId, startSeconds });
+          if (this.role === 'admin') {
+            this.iniciarWatchdogPlayback(cancion);
+          }
           if (this.role === 'pantalla') {
             try {
               this.player.mute();
@@ -1606,7 +1667,7 @@ export class PlayerService {
             }, 150);
           }
           if (this.role === 'admin') {
-            this.intentarAutoplay();
+            this.intentarAutoplay(false);
           }
         } else {
           this.player.cueVideoById({ videoId: vId, startSeconds });
@@ -1630,6 +1691,9 @@ export class PlayerService {
       this.currentSongUuid = cancion.uuid;
       this.pendingSong = cancion;
       this.pendingTime = startSeconds;
+      if (autoplay && !this.intermissionActual() && !this.karaokeIntroActivo() && this.role === 'admin') {
+        this.iniciarWatchdogPlayback(cancion, 6000);
+      }
       await this.inicializar(this.currentElementId, this.role, this.currentContainerId, vId, this.role === 'pantalla');
       this.loadingVideoId = '';
     }
@@ -1701,6 +1765,9 @@ export class PlayerService {
 
         if (this.state.reproduciendo() && typeof this.player.playVideo === 'function') {
           this.player.playVideo();
+          if (this.role === 'admin' && (cur === 0 || this.tiempoSegundos() === 0)) {
+            this.iniciarWatchdogPlayback(this.state.sonando(), 2500);
+          }
         }
       } catch { }
     }
@@ -1796,6 +1863,9 @@ export class PlayerService {
         }
         this.player.playVideo();
         this.state.reproduciendo.set(true);
+        if (this.role === 'admin') {
+          this.iniciarWatchdogPlayback(cancion);
+        }
       } catch (e) {
         console.warn('Error al reproducir:', e);
       }
@@ -1808,6 +1878,7 @@ export class PlayerService {
   }
 
   pause(emitir = true) {
+    this.limpiarWatchdogPlayback();
     this.detenerTicker();
     this.state.reproduciendo.set(false);
 
@@ -1989,6 +2060,7 @@ export class PlayerService {
   }
 
   destruir() {
+    this.limpiarWatchdogPlayback();
     this.detenerAudioIntro();
     this.karaokeIntroActivo.set(false);
     this.cancionIntroPendiente = null;

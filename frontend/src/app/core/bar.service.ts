@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { ApiService } from './api.service';
 import { AppState } from './app-state';
 import { EstadoLocal } from './models';
+import { SessionService } from './session.service';
 import { SocketService } from './socket.service';
 
 export type BackendBarStatus = 'OPEN' | 'CLOSING' | 'CLOSED';
@@ -69,13 +70,24 @@ export class BarService {
   private api = inject(ApiService);
   private state = inject(AppState);
   private socket = inject(SocketService);
+  private session = inject(SessionService);
 
   private unsubscribeSocketBar?: () => void;
   private sincronizando = false;
 
   async obtenerEstado(): Promise<BarDto | null> {
     try {
-      const res = await this.api.pedirPublico<{ message: string; data: BarDto }>('GET', '/bar');
+      let res: { message: string; data: BarDto } | null = null;
+      if (this.session.tokenAdmin()) {
+        try {
+          res = await this.api.pedir<{ message: string; data: BarDto }>('admin', 'GET', '/bar');
+        } catch {
+          res = await this.api.pedirPublico<{ message: string; data: BarDto }>('GET', '/bar');
+        }
+      } else {
+        res = await this.api.pedirPublico<{ message: string; data: BarDto }>('GET', '/bar');
+      }
+
       const data = res?.data;
       if (data) {
         this.aplicarBar(data);

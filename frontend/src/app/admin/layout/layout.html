@@ -15,13 +15,13 @@
           <div class="hour-pill" [class.open]="hourMenuOpen">
             <input type="text"
                    class="hour-pill-input"
-                   [value]="inputHoraTexto"
+                   [value]="inputHoraTexto || state.horaCierre()"
                    (focus)="onPillFocus()"
                    (input)="onInputHoraTexto($event)"
                    (blur)="onPillBlur()"
                    (keydown.enter)="guardarHoraPersonalizada()"
-                   placeholder="11:31 am"
-                   title="Escribe la hora directamente (ej: 11:31 am)">
+                   [placeholder]="state.horaCierre() || '3:00 am'"
+                   [title]="'Hora de cierre configurada: ' + state.horaCierre()">
             <button type="button" class="hour-chevron-btn" (click)="toggleHourMenu()" title="Selector de hora">
               <app-icon name="chevron" [size]="14" [class.rotated]="hourMenuOpen" />
             </button>
