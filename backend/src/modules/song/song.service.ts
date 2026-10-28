@@ -196,14 +196,13 @@ export class SongService {
             const ytUrl = `https://www.youtube.com/watch?v=${id}`;
 
             const args = [
-              '--js-runtimes',
-              'node',
-              '--remote-components',
-              'ejs:github',
-              '-f',
-              'b[ext=mp4]/best[vcodec!=none][acodec!=none]/best',
-              '-g',
-              ytUrl,
+                '--js-runtimes',
+                process.execPath,
+                '--remote-components',
+                'ejs:github',
+                '-f', 'best[vcodec!=none][acodec!=none]/b[vcodec!=none][acodec!=none]',
+                '-g',
+                ytUrl,
             ];
         
             const ytDlpBin = process.env.YTDLP_BIN || 'yt-dlp';
