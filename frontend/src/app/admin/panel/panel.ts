@@ -27,7 +27,7 @@ export class Panel {
   onStageClick(event: MouseEvent) {
     if (this.state.estado() === 'cerrado' || this.player.intermissionActual() || this.player.karaokeIntroActivo()) return;
     const target = event.target as HTMLElement;
-    if (target.closest('.stage-top-actions, .stage-overlay, button, a, app-buscador')) {
+    if (target.closest('.stage-top-actions, button, a, app-buscador')) {
       return;
     }
     if (this.player.necesitaInteraccion() || this.player.muteado() || !this.state.reproduciendo()) {
