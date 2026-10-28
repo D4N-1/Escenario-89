@@ -54,6 +54,7 @@ export class PlayerService {
   solicitandoStream = signal<boolean>(false);
   adminStreamVideo: HTMLVideoElement | null = null;
   tvStreamVideo: HTMLVideoElement | null = null;
+  private pendingStreamStartTime = 0;
   private reintentosStream = 0;
   private ultimoErrorStream = 0;
   private apiLoadedPromise: Promise<void> | null = null;
@@ -1008,26 +1009,15 @@ export class PlayerService {
           });
         }
 
+        this.pendingStreamStartTime = startSeconds;
+        if (this.adminStreamVideo) {
+          this.iniciarStreamPlayback(this.adminStreamVideo);
+        }
         setTimeout(() => {
           if (this.adminStreamVideo) {
-            if (startSeconds > 0) {
-              try { this.adminStreamVideo.currentTime = startSeconds; } catch { }
-            }
-            if (this.role === 'admin') {
-              this.adminStreamVideo.muted = this.muteado();
-              this.adminStreamVideo.volume = (this.volumen() || 100) / 100;
-            }
-            if (shouldPlay) {
-              this.adminStreamVideo.play().catch((err) => {
-                console.warn('Autoplay bloqueado para stream:', err);
-                this.necesitaInteraccion.set(true);
-                this.registrarDesbloqueoInteraccion();
-              });
-            } else {
-              try { this.adminStreamVideo.pause(); } catch { }
-            }
+            this.iniciarStreamPlayback(this.adminStreamVideo);
           }
-        }, 150);
+        }, 120);
 
         return true;
       }
@@ -1049,6 +1039,36 @@ export class PlayerService {
     return false;
   }
 
+  iniciarStreamPlayback(v: HTMLVideoElement) {
+    if (!v) return;
+    this.adminStreamVideo = v;
+    if (this.pendingStreamStartTime > 0) {
+      try {
+        v.currentTime = this.pendingStreamStartTime;
+        this.pendingStreamStartTime = 0;
+      } catch { }
+    }
+    if (this.role === 'admin') {
+      v.muted = this.muteado();
+      v.volume = (this.volumen() || 100) / 100;
+    }
+    if (this.state.reproduciendo() && !this.intermissionActual() && !this.karaokeIntroActivo()) {
+      const p = v.play();
+      if (p !== undefined) {
+        p.catch((err) => {
+          console.warn('Autoplay bloqueado con audio para stream, reproduciendo silenciado:', err);
+          v.muted = true;
+          this.muteado.set(true);
+          this.necesitaInteraccion.set(true);
+          this.registrarDesbloqueoInteraccion();
+          v.play().catch(() => {});
+        });
+      }
+    } else {
+      try { v.pause(); } catch { }
+    }
+  }
+
   onStreamLoadedMetadata(v: HTMLVideoElement) {
     if (!v) return;
     this.adminStreamVideo = v;
@@ -1062,16 +1082,26 @@ export class PlayerService {
         this.progreso.set(0);
       }
     }
-    if (this.role === 'admin') {
-      v.muted = this.muteado();
-      v.volume = (this.volumen() || 100) / 100;
+    this.iniciarStreamPlayback(v);
+  }
+
+  onStreamCanPlay(v: HTMLVideoElement) {
+    if (!v) return;
+    this.iniciarStreamPlayback(v);
+  }
+
+  iniciarTvStreamPlayback(v: HTMLVideoElement) {
+    if (!v) return;
+    this.tvStreamVideo = v;
+    v.muted = true;
+    v.volume = 0;
+    if (this.pendingStreamStartTime > 0) {
+      try {
+        v.currentTime = this.pendingStreamStartTime;
+      } catch { }
     }
     if (this.state.reproduciendo() && !this.intermissionActual() && !this.karaokeIntroActivo()) {
-      v.play().catch((err) => {
-        console.warn('Autoplay bloqueado en loadedmetadata:', err);
-        this.necesitaInteraccion.set(true);
-        this.registrarDesbloqueoInteraccion();
-      });
+      v.play().catch(() => {});
     } else {
       try { v.pause(); } catch { }
     }
@@ -1080,16 +1110,15 @@ export class PlayerService {
   onTvStreamLoadedMetadata(v: HTMLVideoElement) {
     if (!v) return;
     this.tvStreamVideo = v;
-    v.muted = true;
-    v.volume = 0;
     if (v.duration && !isNaN(v.duration) && v.currentTime >= v.duration - 1) {
       try { v.currentTime = 0; } catch { }
     }
-    if (this.state.reproduciendo() && !this.intermissionActual() && !this.karaokeIntroActivo()) {
-      v.play().catch(() => {});
-    } else {
-      try { v.pause(); } catch { }
-    }
+    this.iniciarTvStreamPlayback(v);
+  }
+
+  onTvStreamCanPlay(v: HTMLVideoElement) {
+    if (!v) return;
+    this.iniciarTvStreamPlayback(v);
   }
 
   onStreamTimeUpdate(v: HTMLVideoElement) {
@@ -1620,32 +1649,19 @@ export class PlayerService {
           streamUrl: cancion.url,
         });
       }
+      this.pendingStreamStartTime = startSeconds;
+      if (this.adminStreamVideo) {
+        this.iniciarStreamPlayback(this.adminStreamVideo);
+      }
+      if (this.tvStreamVideo) {
+        this.iniciarTvStreamPlayback(this.tvStreamVideo);
+      }
       setTimeout(() => {
         if (this.adminStreamVideo) {
-          if (startSeconds > 0) {
-            try { this.adminStreamVideo.currentTime = startSeconds; } catch { }
-          }
-          if (this.role === 'admin') {
-            this.adminStreamVideo.muted = this.muteado();
-            this.adminStreamVideo.volume = (this.volumen() || 100) / 100;
-          }
-          if (shouldPlay) {
-            this.adminStreamVideo.play().catch(() => {});
-          } else {
-            try { this.adminStreamVideo.pause(); } catch { }
-          }
+          this.iniciarStreamPlayback(this.adminStreamVideo);
         }
         if (this.tvStreamVideo) {
-          if (startSeconds > 0) {
-            try { this.tvStreamVideo.currentTime = startSeconds; } catch { }
-          }
-          this.tvStreamVideo.muted = true;
-          this.tvStreamVideo.volume = 0;
-          if (shouldPlay) {
-            this.tvStreamVideo.play().catch(() => {});
-          } else {
-            try { this.tvStreamVideo.pause(); } catch { }
-          }
+          this.iniciarTvStreamPlayback(this.tvStreamVideo);
         }
       }, 100);
       return;
@@ -1878,19 +1894,13 @@ export class PlayerService {
           if (typeof this.player.pauseVideo === 'function') this.player.pauseVideo();
         } catch { }
       }
+      this.state.reproduciendo.set(true);
       if (this.adminStreamVideo) {
-        if (this.role === 'admin') {
-          this.adminStreamVideo.muted = this.muteado();
-          this.adminStreamVideo.volume = (this.volumen() || 100) / 100;
-        }
-        this.adminStreamVideo.play().catch(() => {});
+        this.iniciarStreamPlayback(this.adminStreamVideo);
       }
       if (this.tvStreamVideo) {
-        this.tvStreamVideo.muted = true;
-        this.tvStreamVideo.volume = 0;
-        this.tvStreamVideo.play().catch(() => {});
+        this.iniciarTvStreamPlayback(this.tvStreamVideo);
       }
-      this.state.reproduciendo.set(true);
       if (emitir && this.role === 'admin') {
         this.broadcast({ type: 'PLAY', time: this.tiempoSegundos(), streamUrl: this.streamUrl() });
       }

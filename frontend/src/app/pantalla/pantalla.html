@@ -1,31 +1,18 @@
 <div class="tv">
   <!-- Reproductor de YouTube de la TV -->
-  <div
-    id="tv-player-container"
-    class="tv-player"
-    [class.oculto]="!state.sonando()?.videoId || state.estado() === 'cerrado' || !!player.intermissionActual() || player.karaokeIntroActivo()"
-  >
-    <div
-      id="tv-yt-wrapper"
-      class="tv-yt-wrapper"
-      [class.oculto-intermission]="!!player.intermissionActual() || player.karaokeIntroActivo() || !!player.streamUrl() || player.solicitandoStream()"
-    >
+  <div id="tv-player-container" class="tv-player"
+    [class.oculto]="!state.sonando()?.videoId || state.estado() === 'cerrado' || !!player.intermissionActual() || player.karaokeIntroActivo()">
+    <div id="tv-yt-wrapper" class="tv-yt-wrapper"
+      [class.oculto-intermission]="!!player.intermissionActual() || player.karaokeIntroActivo() || !!player.streamUrl() || player.solicitandoStream()">
       <div id="tv-yt-player"></div>
     </div>
 
     @if (player.streamUrl(); as sUrl) {
-      <video
-        #tvStreamVideo
-        class="tv-stream-video"
-        [class.oculto-intermission]="!!player.intermissionActual()"
-        [src]="sUrl"
-        playsinline
-        muted
-        (loadedmetadata)="player.onTvStreamLoadedMetadata(tvStreamVideo)"
-        (timeupdate)="player.onTvStreamTimeUpdate(tvStreamVideo)"
-        (ended)="player.onStreamEnded()"
-        (error)="player.onTvStreamError(tvStreamVideo)"
-      ></video>
+    <video #tvStreamVideo class="tv-stream-video" [class.oculto-intermission]="!!player.intermissionActual()"
+      [src]="sUrl" autoplay preload="auto" playsinline muted
+      (loadedmetadata)="player.onTvStreamLoadedMetadata(tvStreamVideo)"
+      (canplay)="player.onTvStreamCanPlay(tvStreamVideo)" (timeupdate)="player.onTvStreamTimeUpdate(tvStreamVideo)"
+      (ended)="player.onStreamEnded()" (error)="player.onTvStreamError(tvStreamVideo)"></video>
     }
   </div>
 
@@ -33,68 +20,60 @@
 
   <!-- Pantalla de Local Cerrado solo cuando no hay anuncio activo -->
   @if (state.estado() === 'cerrado' && !player.intermissionActual()) {
-    <div class="tv-cerrado">
-      <img src="logo.png" class="tv-cerrado-logo" alt="Escenario 89">
-      <h1 class="tv-cerrado-title">Local Cerrado</h1>
-      <p class="tv-cerrado-sub">Gracias por su visita · Nos vemos pronto</p>
-    </div>
+  <div class="tv-cerrado">
+    <img src="logo.png" class="tv-cerrado-logo" alt="Escenario 89">
+    <h1 class="tv-cerrado-title">Local Cerrado</h1>
+    <p class="tv-cerrado-sub">Gracias por su visita · Nos vemos pronto</p>
+  </div>
   }
 
   <!-- Cargando en la TV -->
   @if (state.estado() !== 'cerrado' && !player.intermissionActual() && player.solicitandoStream()) {
-    <div class="tv-stream-loader">
-      <div class="tv-circle-wrap">
-        <svg class="tv-circle-svg" viewBox="0 0 100 100">
-          <circle class="tv-circle-track" cx="50" cy="50" r="42" />
-          <circle class="tv-circle-fill" cx="50" cy="50" r="42" />
-        </svg>
-      </div>
-      <span class="tv-stream-text">Cargando...</span>
+  <div class="tv-stream-loader">
+    <div class="tv-circle-wrap">
+      <svg class="tv-circle-svg" viewBox="0 0 100 100">
+        <circle class="tv-circle-track" cx="50" cy="50" r="42" />
+        <circle class="tv-circle-fill" cx="50" cy="50" r="42" />
+      </svg>
     </div>
+    <span class="tv-stream-text">Cargando...</span>
+  </div>
   }
 
-  @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.solicitandoStream() && (!state.sonando()?.videoId || player.karaokeIntroActivo())) {
-    <div class="tv-fondo-logo" [class.intro-activa]="player.karaokeIntroActivo()">
-      <div class="tv-fondo-glow"></div>
-      <div class="tv-fondo-center">
-        <img src="logo.png" class="tv-logo-main" alt="Escenario 89 Karaoke Bar" />
-        @if (player.karaokeIntroActivo()) {
-          @let cIntro = player.cancionIntro() || state.sonando();
-          @if (cIntro) {
-            <div class="tv-intro-karaoke-card">
-              <span class="tv-intro-karaoke-badge">
-                @if (cIntro.mesa >= 26 && cIntro.mesa <= 30) {
-                  🎤 Barra #{{ cIntro.mesa - 25 }}
-                } @else if (cIntro.mesa > 0) {
-                  🎤 Mesa #{{ cIntro.mesa }}
-                } @else {
-                  🎤 KARAOKE
-                }
-              </span>
-              <h2 class="tv-intro-karaoke-title">{{ cIntro.titulo }}</h2>
-              <p class="tv-intro-karaoke-artist">{{ cIntro.artista }}</p>
-            </div>
-          }
-        }
+  @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.solicitandoStream() &&
+  (!state.sonando()?.videoId || player.karaokeIntroActivo())) {
+  <div class="tv-fondo-logo" [class.intro-activa]="player.karaokeIntroActivo()">
+    <div class="tv-fondo-glow"></div>
+    <div class="tv-fondo-center">
+      <img src="logo.png" class="tv-logo-main" alt="Escenario 89 Karaoke Bar" />
+      @if (player.karaokeIntroActivo()) {
+      @let cIntro = player.cancionIntro() || state.sonando();
+      @if (cIntro) {
+      <div class="tv-intro-karaoke-card">
+        <span class="tv-intro-karaoke-badge">
+          @if (cIntro.mesa >= 26 && cIntro.mesa <= 30) { 🎤 Barra #{{ cIntro.mesa - 25 }} } @else if (cIntro.mesa> 0) {
+            🎤 Mesa #{{ cIntro.mesa }}
+            } @else {
+            🎤 KARAOKE
+            }
+        </span>
+        <h2 class="tv-intro-karaoke-title">{{ cIntro.titulo }}</h2>
+        <p class="tv-intro-karaoke-artist">{{ cIntro.artista }}</p>
       </div>
+      }
+      }
     </div>
+  </div>
   }
 
   <!-- Overlay publicitario independiente a pantalla completa en la TV -->
   @if (player.intermissionActual(); as inter) {
-    <div class="tv-intermission-overlay">
-      <video
-        #tvInterVideo
-        class="tv-intermission-video"
-        [src]="inter.url"
-        autoplay
-        playsinline
-        (loadedmetadata)="onVideoLoaded(tvInterVideo)"
-        (ended)="player.onIntermissionVideoEnded()"
-      ></video>
-      <div class="tv-intermission-badge">
-        <span>ESPACIO PUBLICITARIO</span>
-      </div>
+  <div class="tv-intermission-overlay">
+    <video #tvInterVideo class="tv-intermission-video" [src]="inter.url" autoplay preload="auto" playsinline
+      (loadedmetadata)="onVideoLoaded(tvInterVideo)" (ended)="player.onIntermissionVideoEnded()"></video>
+    <div class="tv-intermission-badge">
+      <span>ESPACIO PUBLICITARIO</span>
     </div>
+  </div>
   }
 </div>
