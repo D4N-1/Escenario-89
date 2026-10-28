@@ -68,6 +68,7 @@ export class PlayerService {
   private listenerInteraccion: (() => void) | null = null;
   private timeoutAutoplay: any = null;
   private timeoutWatchdogPlayback: any = null;
+  private timeoutStreamReloadWatchdog: any = null;
 
   // Introducción karaoke tras canción normal
   karaokeIntroActivo = signal<boolean>(false);
@@ -905,6 +906,7 @@ export class PlayerService {
   }
 
   limpiarWatchdogPlayback() {
+    this.limpiarWatchdogStreamReload();
     if (this.timeoutWatchdogPlayback) {
       clearTimeout(this.timeoutWatchdogPlayback);
       this.timeoutWatchdogPlayback = null;
@@ -1010,6 +1012,7 @@ export class PlayerService {
         }
 
         this.pendingStreamStartTime = startSeconds;
+        this.programarRecargaSiStreamNoReproduce(cancion, this.adminStreamVideo);
         if (this.adminStreamVideo) {
           this.iniciarStreamPlayback(this.adminStreamVideo);
         }
@@ -1071,6 +1074,46 @@ export class PlayerService {
     }
   }
 
+  limpiarWatchdogStreamReload() {
+    if (this.timeoutStreamReloadWatchdog) {
+      clearTimeout(this.timeoutStreamReloadWatchdog);
+      this.timeoutStreamReloadWatchdog = null;
+    }
+  }
+
+  programarRecargaSiStreamNoReproduce(cancion: Cancion | null, v?: HTMLVideoElement | null) {
+    if (typeof window === 'undefined') return;
+    this.limpiarWatchdogStreamReload();
+
+    const targetCancion = cancion || this.state.sonando();
+    if (!targetCancion) return;
+    const songId = targetCancion.uuid || targetCancion.videoId || targetCancion.id || 'current';
+    const reloadKey = `e89_stream_reloaded_${songId}`;
+
+    // Evitar bucle infinito si ya se recargó para esta canción
+    try {
+      if (sessionStorage.getItem(reloadKey)) {
+        return;
+      }
+    } catch { }
+
+    this.timeoutStreamReloadWatchdog = setTimeout(() => {
+      this.timeoutStreamReloadWatchdog = null;
+      const actual = this.state.sonando();
+      if (!actual || !this.streamUrl() || !this.state.reproduciendo()) return;
+      if (this.intermissionActual() || this.karaokeIntroActivo()) return;
+
+      const vid = v || this.adminStreamVideo || this.tvStreamVideo;
+      const noReproduce = !vid || vid.paused || vid.currentTime === 0;
+
+      if (noReproduce) {
+        console.warn(`[Stream Recovery] Canción de yt-dlp ("${targetCancion.titulo}") cargó pero no está reproduciendo. Recargando página como solución temporal...`);
+        try { sessionStorage.setItem(reloadKey, '1'); } catch { }
+        window.location.reload();
+      }
+    }, 2500);
+  }
+
   onStreamLoadedMetadata(v: HTMLVideoElement) {
     if (!v) return;
     this.adminStreamVideo = v;
@@ -1085,11 +1128,13 @@ export class PlayerService {
       }
     }
     this.iniciarStreamPlayback(v);
+    this.programarRecargaSiStreamNoReproduce(this.state.sonando(), v);
   }
 
   onStreamCanPlay(v: HTMLVideoElement) {
     if (!v) return;
     this.iniciarStreamPlayback(v);
+    this.programarRecargaSiStreamNoReproduce(this.state.sonando(), v);
   }
 
   iniciarTvStreamPlayback(v: HTMLVideoElement) {
@@ -1119,11 +1164,13 @@ export class PlayerService {
       try { v.currentTime = 0; } catch { }
     }
     this.iniciarTvStreamPlayback(v);
+    this.programarRecargaSiStreamNoReproduce(this.state.sonando(), v);
   }
 
   onTvStreamCanPlay(v: HTMLVideoElement) {
     if (!v) return;
     this.iniciarTvStreamPlayback(v);
+    this.programarRecargaSiStreamNoReproduce(this.state.sonando(), v);
   }
 
   onStreamTimeUpdate(v: HTMLVideoElement) {
@@ -1132,6 +1179,9 @@ export class PlayerService {
     if (this.intermissionActual() || this.karaokeIntroActivo()) {
       try { v.pause(); } catch { }
       return;
+    }
+    if (v.currentTime > 0.3 && !v.paused) {
+      this.limpiarWatchdogStreamReload();
     }
     const cur = v.currentTime || 0;
     const dur = v.duration || this.duracionSegundos() || 0;
@@ -1173,6 +1223,9 @@ export class PlayerService {
     }
     if (!v.muted) v.muted = true;
     if (v.volume > 0) v.volume = 0;
+    if (v.currentTime > 0.3 && !v.paused) {
+      this.limpiarWatchdogStreamReload();
+    }
     const cur = v.currentTime || 0;
     const dur = v.duration || this.duracionSegundos() || 0;
 
