@@ -1,13 +1,10 @@
 <div class="top">
   <span class="crumb">Panel principal › <b class="state-badge" [class]="state.estado()">{{ stateLabel(state.estado()) }}</b></span>
   <app-buscador />
-  <span class="clock">{{ state.hora() }}</span>
+  <span class="clock">{{ state.horaPartes().hora }}<span class="clock-colon">:</span>{{ state.horaPartes().minuto }} {{ state.horaPartes().ampm }}</span>
 </div>
 <div class="stage">
   <div class="stage-top-actions">
-    <button type="button" class="btn-gold dup" (click)="toggleFullscreen()" title="Pantalla completa en este monitor">
-      Pantalla completa <app-icon name="share" [size]="14" />
-    </button>
     <a class="btn-gold dup" routerLink="/pantalla" target="_blank" title="Abrir ventana para TV o segundo monitor">
       Duplicar TV <app-icon name="share" [size]="14" />
     </a>

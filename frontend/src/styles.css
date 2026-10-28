@@ -94,3 +94,26 @@ button { cursor: pointer; }
 }
 .thumb-karaoke small { display: block; font-weight: 700; font-size: .7em; }
 .dim { background: #2b2b2b; }
+
+.clock {
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+}
+
+.clock-colon {
+  display: inline-block;
+  margin: 0 1.5px;
+  animation: clock-pulse 1s infinite ease-in-out;
+}
+
+@keyframes clock-pulse {
+  0%, 100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 2px var(--c-gold));
+  }
+  50% {
+    opacity: 0.18;
+    filter: none;
+  }
+}

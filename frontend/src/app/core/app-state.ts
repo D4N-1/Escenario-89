@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, computed, signal } from '@angular/core';
 import { Anuncio, AudioItem, Cancion, EstadoLocal, MiCancion, Video } from './models';
 import { ANUNCIOS, AUDIOS, COLA, SONANDO, VIDEOS } from './mock-data';
 
@@ -41,6 +41,16 @@ const USAR_MOCK = false;
 export class AppState {
   nombreLocal = signal('Escenario 89');
   hora = signal(obtenerHoraActual());
+  horaPartes = computed(() => {
+    const raw = this.hora();
+    const match = raw.match(/^(\d{1,2}):(\d{2})(.*)$/);
+    if (!match) return { hora: raw, minuto: '', ampm: '' };
+    return {
+      hora: match[1],
+      minuto: match[2],
+      ampm: match[3]?.trim() || '',
+    };
+  });
   estado = signal<EstadoLocal>(leerStorage<EstadoLocal>('e89_estado_local', 'abierto'));
   horaCierre = signal<string>(leerStorage<string>('e89_hora_cierre', '3:00 am'));
 
@@ -50,13 +60,12 @@ export class AppState {
       // Milisegundos exactos que faltan para el segundo :00 del siguiente minuto
       const msHastaSiguienteMinuto = (60 - ahora.getSeconds()) * 1000 - ahora.getMilliseconds();
 
-      setTimeout(() => {
-        this.hora.set(obtenerHoraActual());
-        // A partir de alinearse al minuto exacto, se actualiza solo una vez cada 60 segundos
-        setInterval(() => {
-          this.hora.set(obtenerHoraActual());
-        }, 60_000);
-      }, Math.max(100, msHastaSiguienteMinuto));
+      setInterval(() => {
+        const nueva = obtenerHoraActual();
+        if (nueva !== this.hora()) {
+          this.hora.set(nueva);
+        }
+      }, 1000);
     }
   }
 

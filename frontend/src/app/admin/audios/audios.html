@@ -1,6 +1,6 @@
 <div class="head">
   <span class="crumb">Panel principal › <b>Audios</b></span>
-  <span class="clock">{{ state.hora() }}</span>
+  <span class="clock">{{ state.horaPartes().hora }}<span class="clock-colon">:</span>{{ state.horaPartes().minuto }} {{ state.horaPartes().ampm }}</span>
 </div>
 
 @if (toast()) {

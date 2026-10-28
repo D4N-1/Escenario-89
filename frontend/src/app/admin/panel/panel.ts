@@ -24,17 +24,6 @@ export class Panel {
     }
   }
 
-  toggleFullscreen() {
-    // El video está en el reproductor del layout, no dentro del recuadro .video
-    const videoEl = document.getElementById('admin-player-container');
-    if (!videoEl) return;
-    if (!document.fullscreenElement) {
-      videoEl.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
-    }
-  }
-
   onStageClick(event: MouseEvent) {
     if (this.state.estado() === 'cerrado' || this.player.intermissionActual() || this.player.karaokeIntroActivo()) return;
     const target = event.target as HTMLElement;
