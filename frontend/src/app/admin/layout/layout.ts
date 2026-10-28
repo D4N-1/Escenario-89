@@ -1,4 +1,4 @@
-import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, effect, inject } from '@angular/core';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { Icon } from '../../shared/icon/icon';
 import { QueuePanel } from '../../shared/queue-panel/queue-panel';
@@ -27,11 +27,22 @@ export class Layout implements OnInit, OnDestroy {
   editAmPm: 'am' | 'pm' = 'am';
   inputHoraTexto = '';
 
+  constructor() {
+    this.sincronizarCamposDesdeHora(this.state.horaCierre());
+    effect(() => {
+      const hc = this.state.horaCierre();
+      if (!this.hourMenuOpen) {
+        this.sincronizarCamposDesdeHora(hc);
+      }
+    });
+  }
+
   get editMinutoFormatted(): string {
     return this.editMinuto.toString().padStart(2, '0');
   }
 
   ngOnInit() {
+    this.sincronizarCamposDesdeHora(this.state.horaCierre());
     // Sincronizar estado del bar y hora de cierre desde el backend y sockets
     this.bar.iniciarSincronizacion();
     // La cola vive en el backend: sincronizada vía WebSockets
@@ -80,6 +91,7 @@ export class Layout implements OnInit, OnDestroy {
   onPillFocus() {
     this.hourMenuOpen = true;
     this.estadoMenuOpen = false;
+    this.sincronizarCamposDesdeHora(this.state.horaCierre());
   }
 
   toggleHourMenu() {
@@ -318,11 +330,14 @@ export class Layout implements OnInit, OnDestroy {
       this.editMinuto = parsed.minuto;
       this.editAmPm = parsed.ampm;
       this.inputHoraTexto = this.formatearHora(parsed.hora, parsed.minuto, parsed.ampm);
+    } else {
+      this.sincronizarCamposDesdeHora(this.state.horaCierre());
     }
   }
 
   async guardarHoraPersonalizada() {
-    const parsed = this.parseHora(this.inputHoraTexto);
+    const textoAUsar = this.inputHoraTexto?.trim() || this.state.horaCierre();
+    const parsed = this.parseHora(textoAUsar);
     const horaFinal = this.formatearHora(parsed.hora, parsed.minuto, parsed.ampm);
     await this.selectHour(horaFinal);
   }
@@ -344,12 +359,18 @@ export class Layout implements OnInit, OnDestroy {
       this.estadoMenuOpen = false;
     }
     if (!target.closest('.hour-selector')) {
+      if (this.hourMenuOpen) {
+        this.sincronizarCamposDesdeHora(this.state.horaCierre());
+      }
       this.hourMenuOpen = false;
     }
   }
 
   @HostListener('document:keydown.escape')
   onEscape() {
+    if (this.hourMenuOpen) {
+      this.sincronizarCamposDesdeHora(this.state.horaCierre());
+    }
     this.hourMenuOpen = false;
     this.estadoMenuOpen = false;
   }
