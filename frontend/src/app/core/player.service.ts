@@ -69,6 +69,24 @@ export class PlayerService {
 
   // Introducción karaoke tras canción normal
   karaokeIntroActivo = signal<boolean>(false);
+  karaokeIntroHabilitado = signal<boolean>(
+    typeof localStorage !== 'undefined'
+      ? localStorage.getItem('e89_karaoke_intro_habilitado') !== 'false'
+      : true
+  );
+
+  toggleKaraokeIntroHabilitado(valor?: boolean) {
+    const nuevo = valor !== undefined ? valor : !this.karaokeIntroHabilitado();
+    this.karaokeIntroHabilitado.set(nuevo);
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem('e89_karaoke_intro_habilitado', String(nuevo));
+      } catch {}
+    }
+    if (!nuevo && this.karaokeIntroActivo()) {
+      this.saltarKaraokeIntro();
+    }
+  }
   private cancionPrevia: Cancion | null = null;
   private audioIntro: HTMLAudioElement | null = null;
   private timeoutIntro: any = null;
@@ -1205,6 +1223,7 @@ export class PlayerService {
       autoplay &&
       startSeconds === 0 &&
       cancion.tipo === 'karaoke' &&
+      this.karaokeIntroHabilitado() &&
       !this.karaokeIntroActivo() &&
       !this.intermissionActual();
 
@@ -1217,6 +1236,10 @@ export class PlayerService {
   }
 
   iniciarKaraokeIntro(cancion: Cancion) {
+    if (!this.karaokeIntroHabilitado()) {
+      this.ejecutarCargaCancion(cancion, true, 0);
+      return;
+    }
     this.detenerTodoAudio();
     this.streamUrl.set(null);
 
