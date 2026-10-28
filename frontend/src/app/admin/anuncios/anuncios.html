@@ -96,7 +96,15 @@
               </div>
             </td>
             <td>
-              @if (!a.active) {
+              @if (estaEnSiguientePausa(a)) {
+                <span class="chip next-pause cursor-pointer" (click)="reproducirEnSiguientePausa(a)" title="Programado para la próxima pausa. Clic para quitar.">
+                  ● En próxima pausa
+                </span>
+              } @else if (esProximoAutomatico(a)) {
+                <span class="chip auto-next cursor-pointer" (click)="alternarEstado(a)" title="Próximo en sonar automáticamente. Clic para pausar.">
+                  ● Próximo automático
+                </span>
+              } @else if (!a.active) {
                 <span class="chip off cursor-pointer" (click)="alternarEstado(a)" title="Clic para activar">
                   ● Inactivo
                 </span>
@@ -112,7 +120,22 @@
             </td>
             <td>
               <b class="p">{{ a.startTime.substring(0, 5) }} - {{ a.endTime.substring(0, 5) }}</b>
-              <small>{{ a.everySongs ? ('Cada ' + a.everySongs + ' canciones') : 'Horario comercial' }}</small>
+              @if (a.everySongs) {
+                @if (obtenerContador(a); as c) {
+                  <small class="counter-detail">
+                    Cada {{ a.everySongs }} cancs · Progreso: <b>{{ c.current }}/{{ a.everySongs }}</b>
+                    @if (c.remainingSongs <= 1) {
+                      <span class="due-text">(¡Suena en la próxima!)</span>
+                    } @else {
+                      <span class="due-text">(En {{ c.remainingSongs }} cancs)</span>
+                    }
+                  </small>
+                } @else {
+                  <small>{{ 'Cada ' + a.everySongs + ' canciones' }}</small>
+                }
+              } @else {
+                <small>Horario comercial</small>
+              }
             </td>
             <td class="r">
               <button
@@ -126,10 +149,18 @@
               <button
                 type="button"
                 class="act-btn"
-                title="Poner en la siguiente pausa de canciones"
+                [class.active-scheduled]="estaEnSiguientePausa(a)"
+                [disabled]="procesandoPausaUuid() === a.uuid"
+                [title]="estaEnSiguientePausa(a) ? 'Quitar de la siguiente pausa' : 'Poner en la siguiente pausa de canciones'"
                 (click)="reproducirEnSiguientePausa(a)"
               >
-                <app-icon name="clapper" [size]="16" />
+                @if (procesandoPausaUuid() === a.uuid) {
+                  <div class="mini-spinner"></div>
+                } @else if (estaEnSiguientePausa(a)) {
+                  <app-icon name="check" [size]="16" />
+                } @else {
+                  <app-icon name="clapper" [size]="16" />
+                }
               </button>
               <button
                 type="button"

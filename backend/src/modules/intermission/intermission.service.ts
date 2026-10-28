@@ -17,6 +17,7 @@ import { ResUpdateInterface } from '../../common/interfaces/resUpdate.interface'
 import { PlayIntermissionDto } from './dto/play-intermission.dto';
 import { UpdateIntermissionDto } from './dto/update-intermission.dto';
 import { IntermissionErrorCode } from './intermission.constant';
+import { QueueSocketService } from '../queue-socket/queue-socket.service';
 
 const ffmpegPath =
   (typeof ffmpegInstaller === 'string' ? ffmpegInstaller : null) ||
@@ -42,7 +43,8 @@ export class IntermissionService {
   constructor(
 
     @InjectRepository(IntermissionEntity)
-    private readonly intermissionRepository: Repository<IntermissionEntity>
+    private readonly intermissionRepository: Repository<IntermissionEntity>,
+    private readonly queueSocketService: QueueSocketService,
 
   ) { }
 
@@ -64,6 +66,7 @@ export class IntermissionService {
         this.counters.delete(uuid);
       }
 
+      this.emitScheduledStatus();
       return
     }
 
@@ -81,6 +84,8 @@ export class IntermissionService {
       });
 
     }
+
+    this.emitScheduledStatus();
   }
 
   async findAll(query?:GetAllQueryDto): Promise<ResAllInterface> {
@@ -129,26 +134,45 @@ export class IntermissionService {
   processSongFinished(): IntermissionEntity[] {
     const ahora = new Date();
     const triggeredIntermission: IntermissionEntity[] = [];
+    const seenUuids = new Set<string>();
 
-    for (const [uuid, intermission] of this.counters.entries()) {
-      intermission.current++;
-
-      const inTimeRange = this.isCurrentTimeInRange(ahora, intermission.startTime, intermission.endTime);
-
-      if (inTimeRange && intermission.everySongs && intermission.current >= intermission.everySongs) {
-        triggeredIntermission.push(intermission);
-        
-        intermission.current = 0;
+    // 1. Si hay un anuncio puesto manualmente para la siguiente pausa, tiene prioridad absoluta.
+    // Al reproducirlo, se cumple la pausa y NO se acumula con un anuncio automático ("evita duples").
+    if (this.next.size > 0) {
+      for (const [uuid, intermission] of this.next.entries()) {
+        if (!seenUuids.has(uuid)) {
+          seenUuids.add(uuid);
+          triggeredIntermission.push(intermission);
+        }
       }
+      this.next.clear();
 
+      // Si el anuncio manual coincide con alguno programado por contador, reiniciamos su contador
+      for (const [uuid, counter] of this.counters.entries()) {
+        if (seenUuids.has(uuid)) {
+          counter.current = 0;
+        }
+      }
+    } else {
+      // 2. Si no hubo manual, evaluamos los contadores automáticos
+      for (const [uuid, intermission] of this.counters.entries()) {
+        intermission.current++;
+
+        const inTimeRange = this.isCurrentTimeInRange(ahora, intermission.startTime, intermission.endTime);
+
+        if (inTimeRange && intermission.everySongs && intermission.current >= intermission.everySongs) {
+          if (!seenUuids.has(uuid)) {
+            seenUuids.add(uuid);
+            triggeredIntermission.push(intermission);
+          }
+          intermission.current = 0;
+          // Máximo 1 anuncio automático por pausa para evitar acumulación de comerciales seguidos ("duples")
+          break;
+        }
+      }
     }
 
-    for (const [uuid, intermission] of this.next.entries() ) {
-      triggeredIntermission.push(intermission)
-    }
-
-    this.next.clear();
-
+    this.emitScheduledStatus();
 
     return triggeredIntermission;
   }
@@ -285,14 +309,117 @@ export class IntermissionService {
   }
 
   async playOne(playIntermission: PlayIntermissionDto) {
-
     const { uuid } = playIntermission;
-    const intermission = await this.findOne.uuid(uuid)
+    const intermission = await this.findOne.uuid(uuid);
 
-    this.next.set(uuid, intermission)
+    // Si ya estaba en la siguiente pausa, alternar/desprogramar (toggle)
+    if (this.next.has(uuid)) {
+      this.next.delete(uuid);
+      this.emitScheduledStatus();
+      return {
+        message: 'Anuncio retirado de la siguiente pausa',
+        scheduled: false,
+        status: this.getScheduledStatus(),
+      };
+    }
+
+    // Solo se permite 1 anuncio manual para la siguiente pausa para evitar acumulación de comerciales seguidos ("duples")
+    this.next.clear();
+    this.next.set(uuid, intermission);
+
+    this.emitScheduledStatus();
 
     return {
-      message: 'Anuncio listado para la siguiente pausa'
+      message: 'Anuncio programado para la siguiente pausa',
+      scheduled: true,
+      status: this.getScheduledStatus(),
+    };
+  }
+
+  async cancelPlayOne(uuid?: string) {
+    if (uuid) {
+      this.next.delete(uuid);
+    } else {
+      this.next.clear();
+    }
+
+    this.emitScheduledStatus();
+
+    return {
+      message: 'Anuncio desprogramado de la siguiente pausa',
+      scheduled: false,
+      status: this.getScheduledStatus(),
+    };
+  }
+
+  getScheduledStatus() {
+    const ahora = new Date();
+    const manualItem = this.next.size > 0 ? Array.from(this.next.values())[0] : null;
+
+    const manual = manualItem ? {
+      uuid: manualItem.uuid,
+      title: manualItem.title,
+      image: manualItem.image,
+      url: manualItem.url,
+      startTime: manualItem.startTime,
+      endTime: manualItem.endTime,
+      everySongs: manualItem.everySongs,
+      type: 'manual' as const,
+    } : null;
+
+    let upcomingAuto: any = null;
+    let minRemaining = Infinity;
+    const countersList: any[] = [];
+
+    for (const [uuid, item] of this.counters.entries()) {
+      const every = item.everySongs ?? 0;
+      if (!every || !item.active) continue;
+
+      const inTimeRange = this.isCurrentTimeInRange(ahora, item.startTime, item.endTime);
+      const remainingSongs = Math.max(0, every - item.current);
+
+      const counterInfo = {
+        uuid: item.uuid,
+        title: item.title,
+        image: item.image,
+        url: item.url,
+        current: item.current,
+        everySongs: every,
+        remainingSongs,
+        inTimeRange,
+      };
+      countersList.push(counterInfo);
+
+      if (inTimeRange && remainingSongs < minRemaining) {
+        minRemaining = remainingSongs;
+        upcomingAuto = {
+          ...counterInfo,
+          type: 'auto' as const,
+        };
+      }
+    }
+
+    let nextBreak: any = null;
+    if (manual) {
+      nextBreak = manual;
+    } else if (upcomingAuto && upcomingAuto.remainingSongs <= 1) {
+      nextBreak = upcomingAuto;
+    }
+
+    return {
+      manual,
+      upcomingAuto,
+      nextBreak,
+      counters: countersList,
+    };
+  }
+
+  emitScheduledStatus() {
+    try {
+      const status = this.getScheduledStatus();
+      this.queueSocketService.emitIntermissionScheduled(status);
+    } catch {
+      // Ignorar si el socket aún no está listo
     }
   }
 

@@ -23,8 +23,8 @@
     <video
       #adminStreamVideo
       class="stream-video"
+      [class.oculto-intermission]="!!player.intermissionActual()"
       [src]="sUrl"
-      autoplay
       playsinline
       (loadedmetadata)="player.onStreamLoadedMetadata(adminStreamVideo)"
       (timeupdate)="player.onStreamTimeUpdate(adminStreamVideo)"

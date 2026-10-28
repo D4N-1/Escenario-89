@@ -17,8 +17,8 @@
       <video
         #tvStreamVideo
         class="tv-stream-video"
+        [class.oculto-intermission]="!!player.intermissionActual()"
         [src]="sUrl"
-        autoplay
         playsinline
         muted
         (loadedmetadata)="player.onTvStreamLoadedMetadata(tvStreamVideo)"

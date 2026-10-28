@@ -303,6 +303,39 @@ td small,
     color: #777;
 }
 
+.chip.next-pause {
+    background: linear-gradient(135deg, rgba(242, 206, 100, 0.25) 0%, rgba(50, 38, 18, 0.95) 100%);
+    border: 1px solid var(--c-gold);
+    color: var(--c-gold);
+    font-weight: 700;
+    box-shadow: 0 0 10px rgba(212, 170, 67, 0.3);
+    animation: pulse-glow-anuncio 2s infinite ease-in-out;
+}
+
+@keyframes pulse-glow-anuncio {
+    0%, 100% { box-shadow: 0 0 6px rgba(212, 170, 67, 0.2); }
+    50% { box-shadow: 0 0 12px rgba(212, 170, 67, 0.5); }
+}
+
+.chip.auto-next {
+    background: rgba(230, 126, 34, 0.2);
+    border: 1px solid rgba(230, 126, 34, 0.6);
+    color: #ff9f43;
+    font-weight: 700;
+}
+
+.counter-detail {
+    display: block;
+    margin-top: 3px;
+    font-size: 11px;
+}
+
+.counter-detail .due-text {
+    color: var(--c-gold);
+    font-weight: 700;
+    margin-left: 4px;
+}
+
 .act-btn {
     background: var(--c-search);
     border: 1px solid #333;
@@ -321,6 +354,31 @@ td small,
     background: #333;
     border-color: var(--c-gold);
     color: var(--c-gold);
+}
+
+.act-btn.active-scheduled {
+    background: linear-gradient(135deg, rgba(242, 206, 100, 0.3) 0%, rgba(55, 42, 20, 0.95) 100%);
+    border: 1px solid var(--c-gold);
+    color: var(--c-gold);
+    box-shadow: 0 0 8px rgba(212, 170, 67, 0.35);
+}
+
+.act-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.mini-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top-color: var(--c-gold);
+    border-radius: 50%;
+    animation: spin-mini 0.6s linear infinite;
+}
+
+@keyframes spin-mini {
+    to { transform: rotate(360deg); }
 }
 
 .act-btn.play-next:hover {

@@ -40,7 +40,8 @@
   z-index: 2;
 }
 
-.tv-yt-wrapper.oculto-intermission {
+.tv-yt-wrapper.oculto-intermission,
+.tv-stream-video.oculto-intermission {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;

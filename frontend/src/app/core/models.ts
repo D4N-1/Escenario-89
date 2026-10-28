@@ -72,7 +72,6 @@ export interface AudioEntity {
   updatedAt?: string;
 }
 
-
 export interface IntermissionItem {
   id?: number;
   uuid: string;
@@ -86,6 +85,38 @@ export interface IntermissionItem {
   everySongs?: number | null;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface AnuncioProgramadoItem {
+  uuid: string;
+  title: string;
+  image?: string;
+  url?: string;
+  startTime?: string;
+  endTime?: string;
+  everySongs?: number | null;
+  current?: number;
+  remainingSongs?: number;
+  inTimeRange?: boolean;
+  type: 'manual' | 'auto';
+}
+
+export interface ContadorAnuncio {
+  uuid: string;
+  title: string;
+  image?: string;
+  url?: string;
+  current: number;
+  everySongs: number;
+  remainingSongs: number;
+  inTimeRange: boolean;
+}
+
+export interface ScheduledIntermissionState {
+  manual: AnuncioProgramadoItem | null;
+  upcomingAuto: AnuncioProgramadoItem | null;
+  nextBreak: AnuncioProgramadoItem | null;
+  counters: ContadorAnuncio[];
 }
 
 export interface MiCancion {

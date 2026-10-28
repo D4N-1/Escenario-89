@@ -120,6 +120,11 @@ export class QueueSocketService {
 
   }
 
+  async emitIntermissionScheduled(payload: any) {
+    if (!this.server) return;
+    this.server.to(Rooms.USER_ROLE + UserRole.ADMIN).emit(Events.INTERMISSION_SCHEDULED, payload);
+  }
+
   async updateBar(bar: BarEntity) {
     
     console.log('ACTUALIZACIÓN DEL BAR')

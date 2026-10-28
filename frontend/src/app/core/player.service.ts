@@ -93,6 +93,7 @@ export class PlayerService {
   intermissionTiempo = signal<number>(0);
   intermissionDuracion = signal<number>(0);
   intermissionPausadaYoutube = signal<boolean>(false);
+  cancionEnPausaUuid: string | null = null;
 
   constructor() {
     this.iniciarBroadcastChannel();
@@ -145,8 +146,18 @@ export class PlayerService {
       }
 
       if (untracked(() => this.listo())) {
-        const autoplay = !untracked(() => this.intermissionActual());
-        this.cargarCancion(cancion, autoplay);
+        const intermissionActiva = untracked(() => this.intermissionActual());
+        if (intermissionActiva) {
+          // Si hay una pausa publicitaria activa en curso, no montar ni alterar el reproductor
+          // para no interferir ni arrastrar tiempos; terminarIntermission() la cargará limpiamente al finalizar el anuncio.
+          this.tiempoSegundos.set(0);
+          this.tiempoFormateado.set('0:00');
+          this.progreso.set(0);
+          this.currentSongUuid = '';
+          this.currentVideoId = '';
+          return;
+        }
+        this.cargarCancion(cancion, true);
       } else {
         this.pendingSong = cancion;
       }
@@ -262,8 +273,19 @@ export class PlayerService {
             this.solicitandoStream.set(msg.streamLoading);
           }
           if (msg.intermission !== undefined) {
-            this.intermissionActual.set(msg.intermission);
+            const inter = msg.intermission ? {
+              ...msg.intermission,
+              url: this.resolverUrl(msg.intermission.url),
+              image: msg.intermission.image ? this.resolverUrl(msg.intermission.image) : '',
+            } : null;
+            this.intermissionActual.set(inter);
             if (msg.intermission) {
+              if (this.adminStreamVideo) {
+                try { this.adminStreamVideo.pause(); } catch { }
+              }
+              if (this.tvStreamVideo) {
+                try { this.tvStreamVideo.pause(); } catch { }
+              }
               if (this.player && typeof this.player.pauseVideo === 'function') {
                 try { this.player.pauseVideo(); } catch { }
               }
@@ -317,16 +339,40 @@ export class PlayerService {
             }
           }
         } else if (msg.type === 'INTERMISSION_START') {
+          if (this.adminStreamVideo) {
+            try { this.adminStreamVideo.pause(); } catch { }
+          }
+          if (this.tvStreamVideo) {
+            try { this.tvStreamVideo.pause(); } catch { }
+          }
           if (this.player && typeof this.player.pauseVideo === 'function') {
             try { this.player.pauseVideo(); } catch { }
           }
           this.state.reproduciendo.set(false);
           this.detenerTicker();
-          this.intermissionActual.set(msg.intermission ?? null);
+          const inter = msg.intermission ? {
+            ...msg.intermission,
+            url: this.resolverUrl(msg.intermission.url),
+            image: msg.intermission.image ? this.resolverUrl(msg.intermission.image) : '',
+          } : null;
+          this.intermissionActual.set(inter);
         } else if (msg.type === 'INTERMISSION_END') {
           this.intermissionActual.set(null);
-          if (msg.resumeSong && this.state.sonando()) {
-            this.play(false);
+          const cancion = this.state.sonando();
+          if (cancion) {
+            if (this.cancionEnPausaUuid && this.cancionEnPausaUuid === cancion.uuid && (this.streamUrl() || this.player)) {
+              this.play(false);
+            } else {
+              this.cancionEnPausaUuid = null;
+              this.currentSongUuid = '';
+              this.currentVideoId = '';
+              this.tiempoSegundos.set(0);
+              this.tiempoFormateado.set('0:00');
+              this.duracionSegundos.set(0);
+              this.duracionFormateada.set('0:00');
+              this.progreso.set(0);
+              this.cargarCancion(cancion, true, 0);
+            }
           }
         } else if (msg.type === 'TIME_SYNC') {
           if (this.intermissionActual() || this.karaokeIntroActivo()) return;
@@ -577,12 +623,12 @@ export class PlayerService {
                   event.target.mute();
                   this.muteado.set(true);
                   this.necesitaInteraccion.set(false);
-                  if (hayCancionReal) {
+                  if (hayCancionReal && !this.intermissionActual() && !this.karaokeIntroActivo()) {
                     event.target.playVideo();
                     this.state.reproduciendo.set(true);
                   }
                 } catch { }
-              } else if (!hayCancionReal) {
+              } else if (!hayCancionReal || this.intermissionActual() || this.karaokeIntroActivo()) {
                 try {
                   event.target.mute();
                   this.muteado.set(true);
@@ -825,6 +871,17 @@ export class PlayerService {
       this.timeoutAutoplay = null;
     }
 
+    // Proteger contra seeking más allá de la duración de la canción
+    const maxDur = cancion.duracion ? this.stringASegundos(cancion.duracion) : 0;
+    if (maxDur > 0 && startSeconds >= maxDur - 2) {
+      startSeconds = 0;
+    }
+    if (startSeconds === 0) {
+      this.tiempoSegundos.set(0);
+      this.tiempoFormateado.set('0:00');
+      this.progreso.set(0);
+    }
+
     this.solicitandoStream.set(true);
     this.reintentosStream++;
     this.cargando.set(false);
@@ -850,7 +907,8 @@ export class PlayerService {
         this.streamUrl.set(res.url);
         this.error.set('');
         this.cargando.set(false);
-        this.state.reproduciendo.set(true);
+        const shouldPlay = !this.intermissionActual() && !this.karaokeIntroActivo();
+        this.state.reproduciendo.set(shouldPlay);
         this.necesitaInteraccion.set(false);
 
         if (this.player) {
@@ -866,7 +924,7 @@ export class PlayerService {
           this.broadcast({
             type: 'CHANGE_SONG',
             song: cancion,
-            playing: true,
+            playing: shouldPlay,
             time: startSeconds,
             streamUrl: res.url,
           });
@@ -881,11 +939,15 @@ export class PlayerService {
               this.adminStreamVideo.muted = this.muteado();
               this.adminStreamVideo.volume = (this.volumen() || 100) / 100;
             }
-            this.adminStreamVideo.play().catch((err) => {
-              console.warn('Autoplay bloqueado para stream:', err);
-              this.necesitaInteraccion.set(true);
-              this.registrarDesbloqueoInteraccion();
-            });
+            if (shouldPlay) {
+              this.adminStreamVideo.play().catch((err) => {
+                console.warn('Autoplay bloqueado para stream:', err);
+                this.necesitaInteraccion.set(true);
+                this.registrarDesbloqueoInteraccion();
+              });
+            } else {
+              try { this.adminStreamVideo.pause(); } catch { }
+            }
           }
         }, 150);
 
@@ -915,17 +977,25 @@ export class PlayerService {
     if (v.duration && !isNaN(v.duration)) {
       this.duracionSegundos.set(v.duration);
       this.duracionFormateada.set(this.segundosAString(v.duration));
+      if (v.currentTime >= v.duration - 1) {
+        try { v.currentTime = 0; } catch { }
+        this.tiempoSegundos.set(0);
+        this.tiempoFormateado.set('0:00');
+        this.progreso.set(0);
+      }
     }
     if (this.role === 'admin') {
       v.muted = this.muteado();
       v.volume = (this.volumen() || 100) / 100;
     }
-    if (this.state.reproduciendo()) {
+    if (this.state.reproduciendo() && !this.intermissionActual() && !this.karaokeIntroActivo()) {
       v.play().catch((err) => {
         console.warn('Autoplay bloqueado en loadedmetadata:', err);
         this.necesitaInteraccion.set(true);
         this.registrarDesbloqueoInteraccion();
       });
+    } else {
+      try { v.pause(); } catch { }
     }
   }
 
@@ -934,14 +1004,29 @@ export class PlayerService {
     this.tvStreamVideo = v;
     v.muted = true;
     v.volume = 0;
-    v.play().catch(() => {});
+    if (v.duration && !isNaN(v.duration) && v.currentTime >= v.duration - 1) {
+      try { v.currentTime = 0; } catch { }
+    }
+    if (this.state.reproduciendo() && !this.intermissionActual() && !this.karaokeIntroActivo()) {
+      v.play().catch(() => {});
+    } else {
+      try { v.pause(); } catch { }
+    }
   }
 
   onStreamTimeUpdate(v: HTMLVideoElement) {
     if (!v) return;
     this.adminStreamVideo = v;
+    if (this.intermissionActual() || this.karaokeIntroActivo()) {
+      try { v.pause(); } catch { }
+      return;
+    }
     const cur = v.currentTime || 0;
     const dur = v.duration || this.duracionSegundos() || 0;
+
+    if (dur > 0 && cur > dur) {
+      return;
+    }
 
     this.tiempoSegundos.set(cur);
     if (dur > 0) this.duracionSegundos.set(dur);
@@ -970,10 +1055,18 @@ export class PlayerService {
   onTvStreamTimeUpdate(v: HTMLVideoElement) {
     if (!v) return;
     this.tvStreamVideo = v;
+    if (this.intermissionActual() || this.karaokeIntroActivo()) {
+      try { v.pause(); } catch { }
+      return;
+    }
     if (!v.muted) v.muted = true;
     if (v.volume > 0) v.volume = 0;
     const cur = v.currentTime || 0;
     const dur = v.duration || this.duracionSegundos() || 0;
+
+    if (dur > 0 && cur > dur) {
+      return;
+    }
 
     this.tiempoSegundos.set(cur);
     if (dur > 0) this.duracionSegundos.set(dur);
@@ -990,6 +1083,7 @@ export class PlayerService {
   }
 
   onStreamEnded() {
+    if (this.intermissionActual()) return;
     this.state.reproduciendo.set(false);
     this.streamUrl.set(null);
     this.next();
@@ -1013,7 +1107,11 @@ export class PlayerService {
     console.warn('Error en reproducción de stream HTML5:', v.error.code, v.error.message);
     const cancion = this.state.sonando();
     if (cancion && cancion.videoId && this.reintentosStream < 3) {
-      const tiempoActual = this.tiempoSegundos();
+      let tiempoActual = this.tiempoSegundos();
+      const dur = this.duracionSegundos() || (cancion.duracion ? this.stringASegundos(cancion.duracion) : 0);
+      if (dur > 0 && tiempoActual >= dur - 2) {
+        tiempoActual = 0;
+      }
       await this.solicitarStreamYReproducir(cancion, tiempoActual);
     } else {
       this.streamUrl.set(null);
@@ -1040,6 +1138,7 @@ export class PlayerService {
   }
 
   private actualizarProgreso() {
+    if (this.intermissionActual() || this.karaokeIntroActivo()) return;
     if (!this.player || typeof this.player.getCurrentTime !== 'function') return;
 
     try {
@@ -1077,7 +1176,17 @@ export class PlayerService {
     return `${m}:${resto.toString().padStart(2, '0')}`;
   }
 
+  private stringASegundos(duracion: string | undefined): number {
+    if (!duracion) return 0;
+    return duracion.split(':').reduce((total, parte) => total * 60 + Number(parte), 0) || 0;
+  }
+
   async cargarCancion(cancion: Cancion, autoplay = true, startSeconds = 0) {
+    if (startSeconds === 0) {
+      this.tiempoSegundos.set(0);
+      this.tiempoFormateado.set('0:00');
+      this.progreso.set(0);
+    }
     if (this.karaokeIntroActivo()) {
       if (this.cancionIntroPendiente?.uuid === cancion.uuid || this.cancionIntroPendiente?.videoId === cancion.videoId) {
         return;
@@ -1104,7 +1213,7 @@ export class PlayerService {
       return;
     }
 
-    await this.ejecutarCargaCancion(cancion, autoplay, startSeconds);
+    await this.ejecutarCargaCancion(cancion, autoplay && !this.intermissionActual(), startSeconds);
   }
 
   iniciarKaraokeIntro(cancion: Cancion) {
@@ -1280,6 +1389,8 @@ export class PlayerService {
       this.tvStreamVideo = null;
     }
 
+    this.streamUrl.set(null);
+
     if (this.player) {
       try {
         if (typeof this.player.pauseVideo === 'function') {
@@ -1330,6 +1441,15 @@ export class PlayerService {
       if (this.streamUrl() === cancion.url && this.currentVideoId === vId && this.currentSongUuid === cancion.uuid) {
         return;
       }
+      const maxDur = cancion.duracion ? this.stringASegundos(cancion.duracion) : 0;
+      if (maxDur > 0 && startSeconds >= maxDur - 2) {
+        startSeconds = 0;
+      }
+      if (startSeconds === 0) {
+        this.tiempoSegundos.set(0);
+        this.tiempoFormateado.set('0:00');
+        this.progreso.set(0);
+      }
       this.currentVideoId = vId;
       this.currentSongUuid = cancion.uuid;
       this.streamUrl.set(cancion.url!);
@@ -1344,12 +1464,13 @@ export class PlayerService {
         } catch { }
       }
       this.cargando.set(false);
-      this.state.reproduciendo.set(autoplay);
+      const shouldPlay = autoplay && !this.intermissionActual() && !this.karaokeIntroActivo();
+      this.state.reproduciendo.set(shouldPlay);
       if (this.role === 'admin') {
         this.broadcast({
           type: 'CHANGE_SONG',
           song: cancion,
-          playing: autoplay,
+          playing: shouldPlay,
           time: startSeconds,
           streamUrl: cancion.url,
         });
@@ -1363,8 +1484,10 @@ export class PlayerService {
             this.adminStreamVideo.muted = this.muteado();
             this.adminStreamVideo.volume = (this.volumen() || 100) / 100;
           }
-          if (autoplay) {
+          if (shouldPlay) {
             this.adminStreamVideo.play().catch(() => {});
+          } else {
+            try { this.adminStreamVideo.pause(); } catch { }
           }
         }
         if (this.tvStreamVideo) {
@@ -1373,8 +1496,10 @@ export class PlayerService {
           }
           this.tvStreamVideo.muted = true;
           this.tvStreamVideo.volume = 0;
-          if (autoplay) {
+          if (shouldPlay) {
             this.tvStreamVideo.play().catch(() => {});
+          } else {
+            try { this.tvStreamVideo.pause(); } catch { }
           }
         }
       }, 100);
@@ -1438,7 +1563,7 @@ export class PlayerService {
           } catch { }
         }
 
-        if (autoplay && !this.intermissionActual()) {
+        if (autoplay && !this.intermissionActual() && !this.karaokeIntroActivo()) {
           this.state.reproduciendo.set(true);
           this.player.loadVideoById({ videoId: vId, startSeconds });
           if (this.role === 'pantalla') {
@@ -1463,6 +1588,7 @@ export class PlayerService {
         } else {
           this.player.cueVideoById({ videoId: vId, startSeconds });
           this.state.reproduciendo.set(false);
+          try { this.player.pauseVideo(); } catch { }
         }
         this.currentVideoId = vId;
         this.currentSongUuid = cancion.uuid;
@@ -1605,6 +1731,11 @@ export class PlayerService {
         }
         this.adminStreamVideo.play().catch(() => {});
       }
+      if (this.tvStreamVideo) {
+        this.tvStreamVideo.muted = true;
+        this.tvStreamVideo.volume = 0;
+        this.tvStreamVideo.play().catch(() => {});
+      }
       this.state.reproduciendo.set(true);
       if (emitir && this.role === 'admin') {
         this.broadcast({ type: 'PLAY', time: this.tiempoSegundos(), streamUrl: this.streamUrl() });
@@ -1725,9 +1856,15 @@ export class PlayerService {
       if (this.role === 'admin') {
         this.detenerTicker();
         this.reintentosStream = 0;
-        this.detenerTodoAudio();
+        this.cancionEnPausaUuid = null;
+        this.tiempoSegundos.set(0);
+        this.tiempoFormateado.set('0:00');
+        this.duracionSegundos.set(0);
+        this.duracionFormateada.set('0:00');
+        this.progreso.set(0);
         this.currentSongUuid = '';
         this.currentVideoId = '';
+        this.detenerTodoAudio();
         this.broadcast({ type: 'CHANGE_SONG', song: null, playing: false });
         this.queue.finalizar(actual.uuid).catch((e) => {
           this.error.set(e instanceof Error ? e.message : 'No se pudo pasar a la siguiente canción.');
@@ -1874,11 +2011,18 @@ export class PlayerService {
       this.cancionIntroPendiente = null;
     }
 
-    // Solo marcar para reanudar si YouTube estaba activamente reproduciéndose (no si estaba pausado)
+    // Solo marcar para reanudar si estaba activamente reproduciéndose (no si estaba pausado o terminó)
     const habiaMusica = this.state.reproduciendo();
     this.intermissionPausadaYoutube.set(habiaMusica);
+    this.cancionEnPausaUuid = habiaMusica ? (this.state.sonando()?.uuid ?? null) : null;
 
-    // Pausar YouTube inmediatamente en Admin
+    // Pausar inmediatamente todo video/audio de fondo (Stream HTML5 y YouTube en Admin y TV)
+    if (this.adminStreamVideo) {
+      try { this.adminStreamVideo.pause(); } catch { }
+    }
+    if (this.tvStreamVideo) {
+      try { this.tvStreamVideo.pause(); } catch { }
+    }
     if (this.player && typeof this.player.pauseVideo === 'function') {
       try { this.player.pauseVideo(); } catch { }
     }
@@ -1888,6 +2032,7 @@ export class PlayerService {
     const itemsResueltos = items.map(it => ({
       ...it,
       url: this.resolverUrl(it.url),
+      image: it.image ? this.resolverUrl(it.image) : '',
     }));
 
     const [primero, ...resto] = itemsResueltos;
@@ -1958,15 +2103,29 @@ export class PlayerService {
     if (this.role === 'admin') {
       this.broadcast({
         type: 'INTERMISSION_END',
-        resumeSong: reanudar,
+        resumeSong: true,
       });
     }
 
-    // Reanudar YouTube si estaba sonando antes de la pausa publicitaria
-    if (reanudar && this.state.sonando()) {
-      this.play();
-    } else if (this.state.cola().length > 0 && !this.state.sonando()) {
-      // Si la canción previa había concluido y hay cola, pasar a la siguiente
+    const cancion = this.state.sonando();
+    if (cancion) {
+      // Si la misma canción ya estaba reproduciéndose antes del anuncio (se pausó a mitad)
+      if (this.cancionEnPausaUuid && this.cancionEnPausaUuid === cancion.uuid && (this.streamUrl() || this.player)) {
+        this.play();
+      } else {
+        // Es una canción nueva que entró en cola tras finalizar la anterior:
+        // Cargarla limpiamente desde el segundo 0 con reproducción automática (y ejecutar intro karaoke si aplica)
+        this.cancionEnPausaUuid = null;
+        this.currentSongUuid = '';
+        this.currentVideoId = '';
+        this.tiempoSegundos.set(0);
+        this.tiempoFormateado.set('0:00');
+        this.duracionSegundos.set(0);
+        this.duracionFormateada.set('0:00');
+        this.progreso.set(0);
+        this.cargarCancion(cancion, true, 0);
+      }
+    } else if (this.state.cola().length > 0) {
       this.next();
     }
   }
