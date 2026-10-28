@@ -169,10 +169,12 @@ export class QueueService {
     private procesarColaMesa(rawItems: any[]) {
         const items = (rawItems ?? []).filter(q => q && q.song);
         const mesa = this.state.mesa();
-        const mias = items
-            .filter(q => (!q.table || q.table?.number === mesa) && (q.status === 'PLAYING' || q.status === 'WAITING'))
-            .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-            .map((q): MiCancion => ({ video: this.aVideo(q), posicion: q.position ?? 0 }));
+        const mias = (!mesa)
+            ? []
+            : items
+                .filter(q => q.table && (q.table.number === mesa || Number(q.table.number) === Number(mesa)) && (q.status === 'PLAYING' || q.status === 'WAITING'))
+                .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+                .map((q): MiCancion => ({ video: this.aVideo(q), posicion: q.position ?? 0 }));
 
         const clave = (l: MiCancion[]) => l.map(m => `${m.video.id}:${m.posicion}`).join('|');
         if (clave(mias) !== clave(this.state.misCanciones())) {
