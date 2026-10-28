@@ -154,9 +154,14 @@ export class PlayerService {
         this.introEjecutadaParaUuid = null;
       }
 
-      // Si ya está sonando exactamente esta misma canción (mismo uuid y videoId), no hacer nada
+      // Si ya está sonando exactamente esta misma canción (mismo uuid y videoId), no recargar a menos que haya un stream nuevo
       if (this.currentSongUuid && uuid && this.currentSongUuid === uuid && this.currentVideoId === vId) {
-        return;
+        const esStream = !!(cancion.url && (cancion.url.includes('googlevideo.com') || (!cancion.url.includes('youtube.com') && !cancion.url.includes('youtu.be') && cancion.url.startsWith('http'))));
+        if (esStream && this.streamUrl() !== cancion.url) {
+          // Si llegó una URL de stream directo nueva, continuar para cargarla de inmediato
+        } else {
+          return;
+        }
       }
 
       // Si la intro de karaoke está sonando activamente para esta misma canción, no recargar
@@ -982,6 +987,7 @@ export class PlayerService {
         this.currentVideoId = cancion.videoId;
         this.currentSongUuid = cancion.uuid;
         cancion.url = res.url;
+        this.state.sonando.set({ ...cancion, url: res.url });
         this.streamUrl.set(res.url);
         this.error.set('');
         this.cargando.set(false);
@@ -1019,9 +1025,14 @@ export class PlayerService {
             }
             if (shouldPlay) {
               this.adminStreamVideo.play().catch((err) => {
-                console.warn('Autoplay bloqueado para stream:', err);
-                this.necesitaInteraccion.set(true);
-                this.registrarDesbloqueoInteraccion();
+                console.warn('Autoplay bloqueado para stream, intentando silenciado:', err);
+                if (this.adminStreamVideo) {
+                  this.adminStreamVideo.muted = true;
+                  this.muteado.set(true);
+                  this.necesitaInteraccion.set(true);
+                  this.registrarDesbloqueoInteraccion();
+                  this.adminStreamVideo.play().catch(() => {});
+                }
               });
             } else {
               try { this.adminStreamVideo.pause(); } catch { }
@@ -1068,9 +1079,12 @@ export class PlayerService {
     }
     if (this.state.reproduciendo() && !this.intermissionActual() && !this.karaokeIntroActivo()) {
       v.play().catch((err) => {
-        console.warn('Autoplay bloqueado en loadedmetadata:', err);
+        console.warn('Autoplay bloqueado en loadedmetadata, intentando silenciado:', err);
+        v.muted = true;
+        this.muteado.set(true);
         this.necesitaInteraccion.set(true);
         this.registrarDesbloqueoInteraccion();
+        v.play().catch(() => {});
       });
     } else {
       try { v.pause(); } catch { }
@@ -1630,7 +1644,16 @@ export class PlayerService {
             this.adminStreamVideo.volume = (this.volumen() || 100) / 100;
           }
           if (shouldPlay) {
-            this.adminStreamVideo.play().catch(() => {});
+            this.adminStreamVideo.play().catch((err) => {
+              console.warn('Autoplay bloqueado en carga stream:', err);
+              if (this.adminStreamVideo) {
+                this.adminStreamVideo.muted = true;
+                this.muteado.set(true);
+                this.necesitaInteraccion.set(true);
+                this.registrarDesbloqueoInteraccion();
+                this.adminStreamVideo.play().catch(() => {});
+              }
+            });
           } else {
             try { this.adminStreamVideo.pause(); } catch { }
           }
