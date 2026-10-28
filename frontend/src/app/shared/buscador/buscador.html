@@ -11,13 +11,16 @@
 @if (abierto()) {
   <div class="resultados">
     <div class="cab">
-      <span>{{ ultima() ? 'Resultados de «' + ultima() + '»' : 'Búsqueda de canciones' }}</span>
+      <span>{{ ultima() ? 'Resultados de «' + ultima() + '»' : (consulta() ? 'Buscando «' + consulta() + '»' : 'Búsqueda de canciones') }}</span>
       <button type="button" title="Cerrar" (click)="cerrar()"><app-icon name="close" [size]="20" /></button>
     </div>
 
 
     @if (cargando()) {
-      <p class="msg">Buscando…</p>
+      <div class="buscador-loading-box">
+        <div class="buscador-spinner"></div>
+        <p class="msg">Buscando «{{ consulta() }}»…</p>
+      </div>
     } @else if (error()) {
       <p class="msg err">{{ error() }}</p>
     } @else {
