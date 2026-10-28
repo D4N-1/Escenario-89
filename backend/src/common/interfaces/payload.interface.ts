@@ -1,11 +1,17 @@
 import { UserRole } from "../../modules/user/user.constants";
 import { TypeRequest } from "../enums/typeRequest.enum";
 
+export interface JwtToken {
+
+    iat: number;
+    exp: number
+
+}
 export interface UserRequest {
 
     type: TypeRequest.USER
     name: string;
-    role: UserRole
+    role: UserRole;
 
 }
 

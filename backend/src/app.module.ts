@@ -1,6 +1,7 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { JwtModule } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
 import * as Joi from 'joi';
 import { AppController } from './app.controller.js';
@@ -9,6 +10,7 @@ import { DatabaseModule } from './database/database.module.js';
 import AuthNGuard from './guards/auth-n.guard.js';
 import AuthZGuard from './guards/auth-z.guard.js';
 import { LoggerMiddleware } from './middlewares/logger.middleware.js';
+import { ActivityMiddleware } from './middlewares/session.middleware.js';
 import { AudioModule } from './modules/audio/audio.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { BarModule } from './modules/bar/bar.module.js';
@@ -47,6 +49,8 @@ import { UserModule } from './modules/user/user.module.js';
 
     ScheduleModule.forRoot(),
 
+    JwtModule
+
 
   ],
   controllers: [ AppController ],
@@ -69,6 +73,15 @@ export class AppModule implements NestModule {
     consumer
       .apply(LoggerMiddleware)
       .forRoutes('*');
+
+    consumer
+      .apply(ActivityMiddleware)
+      .exclude(
+        { path: '/', method: RequestMethod.ALL },
+        { path: '/auth/user', method: RequestMethod.ALL },
+        { path: '/auth/table', method: RequestMethod.ALL }
+      )
+      .forRoutes('*')
   
   }
 }
