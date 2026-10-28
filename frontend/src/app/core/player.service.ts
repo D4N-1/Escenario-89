@@ -896,7 +896,7 @@ export class PlayerService {
       }
 
       // Si tras el tiempo de espera YouTube no está reproduciendo activamente (st !== 1) o está atascado en 0:00:
-      if (st !== 1 || (cur === 0 && curLive === 0)) {
+      if ((st !== 1 && st !== 3) && cur === 0 && curLive === 0) {
         console.warn(`[Watchdog] YouTube no inició la reproducción tras ${timeoutMs}ms (st: ${st}, cur: ${cur}, live: ${curLive}). Activando rescate con stream directo del backend.`);
         await this.solicitarStreamYReproducir(sonando, 0);
       }
@@ -1250,7 +1250,7 @@ export class PlayerService {
     } catch { }
   }
 
-  private segundosAString(sec: number): string {
+  segundosAString(sec: number): string {
     const s = Math.floor(sec);
     const m = Math.floor(s / 60);
     const resto = s % 60;
@@ -1830,7 +1830,7 @@ export class PlayerService {
         if (this.state.reproduciendo() && typeof this.player.playVideo === 'function') {
           this.player.playVideo();
           if (this.role === 'admin' && (cur === 0 || this.tiempoSegundos() === 0)) {
-            this.iniciarWatchdogPlayback(this.state.sonando(), 2500);
+            this.iniciarWatchdogPlayback(this.state.sonando(), 7000);
           }
         }
       } catch { }

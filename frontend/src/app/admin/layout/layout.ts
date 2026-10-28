@@ -1,4 +1,4 @@
-import { Component, HostListener, OnDestroy, OnInit, effect, inject } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, effect, inject, signal, computed } from '@angular/core';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { Icon } from '../../shared/icon/icon';
 import { QueuePanel } from '../../shared/queue-panel/queue-panel';
@@ -375,7 +375,71 @@ export class Layout implements OnInit, OnDestroy {
     this.estadoMenuOpen = false;
   }
 
-  onSeek(event: MouseEvent) {
+  isDragging = signal(false);
+  dragPct = signal(0);
+
+  progresoVisual = computed(() => {
+    return this.isDragging() ? this.dragPct() : this.player.progreso();
+  });
+
+  tiempoVisual = computed(() => {
+    if (this.isDragging()) {
+      const dur = this.player.duracionSegundos();
+      const seg = Math.round((this.dragPct() / 100) * dur);
+      return this.player.segundosAString(seg);
+    }
+    return this.player.tiempoFormateado();
+  });
+
+  onBarPointerDown(event: PointerEvent) {
+    if (this.state.estado() === 'cerrado' || this.player.intermissionActual() || !this.state.sonando()) return;
+    const el = event.currentTarget as HTMLElement;
+    try {
+      el.setPointerCapture(event.pointerId);
+    } catch { }
+    this.isDragging.set(true);
+    this.actualizarDragPct(event, el);
+  }
+
+  onBarPointerMove(event: PointerEvent) {
+    if (!this.isDragging()) return;
+    const el = event.currentTarget as HTMLElement;
+    this.actualizarDragPct(event, el);
+  }
+
+  onBarPointerUp(event: PointerEvent) {
+    if (!this.isDragging()) return;
+    const el = event.currentTarget as HTMLElement;
+    try {
+      if (el.hasPointerCapture(event.pointerId)) {
+        el.releasePointerCapture(event.pointerId);
+      }
+    } catch { }
+    this.actualizarDragPct(event, el);
+    this.player.seekPorcentaje(this.dragPct());
+    this.isDragging.set(false);
+  }
+
+  onBarPointerCancel(event: PointerEvent) {
+    if (!this.isDragging()) return;
+    const el = event.currentTarget as HTMLElement;
+    try {
+      if (el.hasPointerCapture(event.pointerId)) {
+        el.releasePointerCapture(event.pointerId);
+      }
+    } catch { }
+    this.isDragging.set(false);
+  }
+
+  private actualizarDragPct(event: PointerEvent, el: HTMLElement) {
+    const rect = el.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const clickX = event.clientX - rect.left;
+    const pct = Math.max(0, Math.min(100, (clickX / rect.width) * 100));
+    this.dragPct.set(pct);
+  }
+
+  legacyOnSeek(event: MouseEvent) {
     if (this.state.estado() === 'cerrado' || this.player.intermissionActual()) return;
     const el = event.currentTarget as HTMLElement;
     const rect = el.getBoundingClientRect();

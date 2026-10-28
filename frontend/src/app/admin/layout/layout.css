@@ -551,6 +551,8 @@ nav .btn-gold.big {
   right: 0;
   height: 8px;
   background: #26262a;
+  user-select: none;
+  touch-action: none;
   cursor: pointer;
   transition: height 0.15s ease, top 0.15s ease;
 }
@@ -564,7 +566,8 @@ nav .btn-gold.big {
   right: 0;
 }
 
-.bar:hover {
+.bar:hover,
+.bar.dragging {
   height: 11px;
   top: -5.5px;
 }
@@ -590,8 +593,14 @@ nav .btn-gold.big {
   z-index: 2;
 }
 
-.bar:hover i {
+.bar:hover i,
+.bar.dragging i {
   opacity: 1;
+}
+
+.bar.dragging i {
+  transform: translate(-50%, -50%) scale(1.2);
+  box-shadow: 0 0 14px rgba(245, 209, 121, 1);
 }
 
 .np {

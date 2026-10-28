@@ -1,93 +1,77 @@
 <div class="shell">
   <aside class="side">
-    <a class="logo" routerLink="/admin"><img src="logo.png" alt=""><span class="brand">{{ state.nombreLocal() }}</span></a>
+    <a class="logo" routerLink="/admin"><img src="logo.png" alt=""><span class="brand">{{ state.nombreLocal()
+        }}</span></a>
 
     <nav>
-      @if (!isPanel) { <a class="btn-gold" routerLink="/admin"><app-icon name="back" [size]="14" /> Panel principal</a> }
-      @if (!isAnuncios) { <a class="btn-gold big" routerLink="/admin/anuncios">Anuncios <app-icon name="clapper" [size]="16" /></a> }
-      @if (!isAudios) { <a class="btn-gold big" routerLink="/admin/audios">Audios <app-icon name="mic" [size]="16" /></a> }
+      @if (!isPanel) { <a class="btn-gold" routerLink="/admin"><app-icon name="back" [size]="14" /> Panel principal</a>
+      }
+      @if (!isAnuncios) { <a class="btn-gold big" routerLink="/admin/anuncios">Anuncios <app-icon name="clapper"
+          [size]="16" /></a> }
+      @if (!isAudios) { <a class="btn-gold big" routerLink="/admin/audios">Audios <app-icon name="mic"
+          [size]="16" /></a> }
     </nav>
 
     @if (isPanel) {
-      <div class="close-at">
-        <small>El local cerrará a las:</small>
-        <div class="hour-selector">
-          <div class="hour-pill" [class.open]="hourMenuOpen">
-            <input type="text"
-                   class="hour-pill-input"
-                   [value]="inputHoraTexto || state.horaCierre()"
-                   (focus)="onPillFocus()"
-                   (input)="onInputHoraTexto($event)"
-                   (blur)="onPillBlur()"
-                   (keydown.enter)="guardarHoraPersonalizada()"
-                   [placeholder]="state.horaCierre() || '3:00 am'"
-                   [title]="'Hora de cierre configurada: ' + state.horaCierre()">
-            <button type="button" class="hour-chevron-btn" (click)="toggleHourMenu()" title="Selector de hora">
-              <app-icon name="chevron" [size]="14" [class.rotated]="hourMenuOpen" />
-            </button>
+    <div class="close-at">
+      <small>El local cerrará a las:</small>
+      <div class="hour-selector">
+        <div class="hour-pill" [class.open]="hourMenuOpen">
+          <input type="text" class="hour-pill-input" [value]="inputHoraTexto || state.horaCierre()"
+            (focus)="onPillFocus()" (input)="onInputHoraTexto($event)" (blur)="onPillBlur()"
+            (keydown.enter)="guardarHoraPersonalizada()" [placeholder]="state.horaCierre() || '3:00 am'"
+            [title]="'Hora de cierre configurada: ' + state.horaCierre()">
+          <button type="button" class="hour-chevron-btn" (click)="toggleHourMenu()" title="Selector de hora">
+            <app-icon name="chevron" [size]="14" [class.rotated]="hourMenuOpen" />
+          </button>
+        </div>
+
+        @if (hourMenuOpen) {
+        <div class="hour-dropdown">
+          <!-- Selector AM / PM -->
+          <div class="ampm-switch">
+            <button type="button" class="ampm-opt" [class.active]="editAmPm === 'am'"
+              (click)="setAmPm('am')">AM</button>
+            <button type="button" class="ampm-opt" [class.active]="editAmPm === 'pm'"
+              (click)="setAmPm('pm')">PM</button>
           </div>
 
-          @if (hourMenuOpen) {
-            <div class="hour-dropdown">
-              <!-- Selector AM / PM -->
-              <div class="ampm-switch">
-                <button type="button"
-                        class="ampm-opt"
-                        [class.active]="editAmPm === 'am'"
-                        (click)="setAmPm('am')">AM</button>
-                <button type="button"
-                        class="ampm-opt"
-                        [class.active]="editAmPm === 'pm'"
-                        (click)="setAmPm('pm')">PM</button>
-              </div>
-
-              <!-- Steppers digitales de hora y minuto -->
-              <div class="time-display">
-                <div class="digit-col">
-                  <button type="button" class="arrow-btn" (click)="stepHour(1)" title="Subir hora">▲</button>
-                  <input type="text"
-                         inputmode="numeric"
-                         class="time-digit"
-                         [value]="editHora"
-                         (input)="onHoraInput($event)"
-                         (keydown.enter)="guardarHoraPersonalizada()">
-                  <button type="button" class="arrow-btn" (click)="stepHour(-1)" title="Bajar hora">▼</button>
-                </div>
-
-                <span class="time-colon">:</span>
-
-                <div class="digit-col">
-                  <button type="button" class="arrow-btn" (click)="stepMinute(1)" title="Subir minuto">▲</button>
-                  <input type="text"
-                         inputmode="numeric"
-                         class="time-digit"
-                         [value]="editMinutoFormatted"
-                         (input)="onMinutoInput($event)"
-                         (keydown.enter)="guardarHoraPersonalizada()">
-                  <button type="button" class="arrow-btn" (click)="stepMinute(-1)" title="Bajar minuto">▼</button>
-                </div>
-              </div>
-
-              <!-- Botón Fijar hora -->
-              <button type="button" class="btn-save-time" (click)="guardarHoraPersonalizada()">
-                Fijar hora
-              </button>
-
-              <!-- Presets rápidos -->
-              <div class="preset-grid">
-                @for (h of quickPresets; track h) {
-                  <button type="button"
-                          class="preset-chip"
-                          [class.active]="h === state.horaCierre()"
-                          (click)="selectHour(h)">
-                    {{ h }}
-                  </button>
-                }
-              </div>
+          <!-- Steppers digitales de hora y minuto -->
+          <div class="time-display">
+            <div class="digit-col">
+              <button type="button" class="arrow-btn" (click)="stepHour(1)" title="Subir hora">▲</button>
+              <input type="text" inputmode="numeric" class="time-digit" [value]="editHora" (input)="onHoraInput($event)"
+                (keydown.enter)="guardarHoraPersonalizada()">
+              <button type="button" class="arrow-btn" (click)="stepHour(-1)" title="Bajar hora">▼</button>
             </div>
-          }
+
+            <span class="time-colon">:</span>
+
+            <div class="digit-col">
+              <button type="button" class="arrow-btn" (click)="stepMinute(1)" title="Subir minuto">▲</button>
+              <input type="text" inputmode="numeric" class="time-digit" [value]="editMinutoFormatted"
+                (input)="onMinutoInput($event)" (keydown.enter)="guardarHoraPersonalizada()">
+              <button type="button" class="arrow-btn" (click)="stepMinute(-1)" title="Bajar minuto">▼</button>
+            </div>
+          </div>
+
+          <!-- Botón Fijar hora -->
+          <button type="button" class="btn-save-time" (click)="guardarHoraPersonalizada()">
+            Fijar hora
+          </button>
+
+          <!-- Presets rápidos -->
+          <div class="preset-grid">
+            @for (h of quickPresets; track h) {
+            <button type="button" class="preset-chip" [class.active]="h === state.horaCierre()" (click)="selectHour(h)">
+              {{ h }}
+            </button>
+            }
+          </div>
         </div>
+        }
       </div>
+    </div>
     }
 
     <div class="karaoke-switch-card">
@@ -97,13 +81,9 @@
           {{ player.karaokeIntroHabilitado() ? 'Activado' : 'Desactivado' }}
         </small>
       </div>
-      <button type="button"
-              class="karaoke-toggle"
-              [class.active]="player.karaokeIntroHabilitado()"
-              (click)="player.toggleKaraokeIntroHabilitado()"
-              role="switch"
-              [attr.aria-checked]="player.karaokeIntroHabilitado()"
-              title="Activar o desactivar presentación de karaoke">
+      <button type="button" class="karaoke-toggle" [class.active]="player.karaokeIntroHabilitado()"
+        (click)="player.toggleKaraokeIntroHabilitado()" role="switch"
+        [attr.aria-checked]="player.karaokeIntroHabilitado()" title="Activar o desactivar presentación de karaoke">
         <span class="karaoke-toggle-thumb"></span>
       </button>
     </div>
@@ -116,20 +96,23 @@
           <app-icon name="chevron" [size]="16" [class.rotated]="estadoMenuOpen" />
         </button>
         @if (estadoMenuOpen) {
-          <div class="estado-dropdown">
-            <button type="button" class="estado-option s-abierto" [class.selected]="activeState === 'abierto'" (click)="selectState('abierto')">
-              <span>Abierto</span>
-              @if (activeState === 'abierto') { <app-icon name="check" [size]="14" /> }
-            </button>
-            <button type="button" class="estado-option s-cerrando" [class.selected]="activeState === 'cerrando'" (click)="selectState('cerrando')">
-              <span>Cerrando</span>
-              @if (activeState === 'cerrando') { <app-icon name="check" [size]="14" /> }
-            </button>
-            <button type="button" class="estado-option s-cerrado" [class.selected]="activeState === 'cerrado'" (click)="selectState('cerrado')">
-              <span>Cerrado</span>
-              @if (activeState === 'cerrado') { <app-icon name="check" [size]="14" /> }
-            </button>
-          </div>
+        <div class="estado-dropdown">
+          <button type="button" class="estado-option s-abierto" [class.selected]="activeState === 'abierto'"
+            (click)="selectState('abierto')">
+            <span>Abierto</span>
+            @if (activeState === 'abierto') { <app-icon name="check" [size]="14" /> }
+          </button>
+          <button type="button" class="estado-option s-cerrando" [class.selected]="activeState === 'cerrando'"
+            (click)="selectState('cerrando')">
+            <span>Cerrando</span>
+            @if (activeState === 'cerrando') { <app-icon name="check" [size]="14" /> }
+          </button>
+          <button type="button" class="estado-option s-cerrado" [class.selected]="activeState === 'cerrado'"
+            (click)="selectState('cerrado')">
+            <span>Cerrado</span>
+            @if (activeState === 'cerrado') { <app-icon name="check" [size]="14" /> }
+          </button>
+        </div>
         }
       </div>
     </div>
@@ -138,43 +121,53 @@
   <section class="main"><router-outlet /></section>
 
   <footer class="player">
-    <div class="bar" (click)="onSeek($event)">
-      <div class="bar-fill" [style.width.%]="player.progreso()"></div>
-      <i [style.left.%]="player.progreso()"></i>
+    <div class="bar" [class.dragging]="isDragging()" (pointerdown)="onBarPointerDown($event)"
+      (pointermove)="onBarPointerMove($event)" (pointerup)="onBarPointerUp($event)"
+      (pointercancel)="onBarPointerCancel($event)">
+      <div class="bar-fill" [style.width.%]="progresoVisual()"></div>
+      <i [style.left.%]="progresoVisual()"></i>
     </div>
     <div class="np">
       @if (state.sonando(); as s) {
-        @if (s.miniatura || (s.videoId ? 'https://i.ytimg.com/vi/' + s.videoId + '/mqdefault.jpg' : null); as img) {
-          <div class="np-thumb">
-            <img [src]="img" [alt]="s.titulo" />
-          </div>
-        }
-        <div class="np-meta">
-          <b [title]="s.titulo">{{ s.titulo }}</b>
-          <span>{{ s.artista }} @if (s.mesa >= 26 && s.mesa <= 30) { · Barra #{{ s.mesa - 25 }} } @else if (s.mesa > 0) { · Mesa #{{ s.mesa }} }</span>
-        </div>
+      @if (s.miniatura || (s.videoId ? 'https://i.ytimg.com/vi/' + s.videoId + '/mqdefault.jpg' : null); as img) {
+      <div class="np-thumb">
+        <img [src]="img" [alt]="s.titulo" />
+      </div>
+      }
+      <div class="np-meta">
+        <b [title]="s.titulo">{{ s.titulo }}</b>
+        <span>{{ s.artista }} @if (s.mesa >= 26 && s.mesa <= 30) { · Barra #{{ s.mesa - 25 }} } @else if (s.mesa> 0) { ·
+            Mesa #{{ s.mesa }} }</span>
+      </div>
       } @else {
-        <div class="np-meta">
-          <b>Sin canción</b><span>La cola está vacía</span>
-        </div>
+      <div class="np-meta">
+        <b>Sin canción</b><span>La cola está vacía</span>
+      </div>
       }
     </div>
     <div class="ctrl">
-      <button type="button" class="ctrl-btn" [disabled]="state.estado() === 'cerrado' || !!player.intermissionActual()" [title]="player.intermissionActual() ? 'Pausa publicitaria en curso' : 'Anterior (reiniciar)'" (click)="player.prev()">
+      <button type="button" class="ctrl-btn" [disabled]="state.estado() === 'cerrado' || !!player.intermissionActual()"
+        [title]="player.intermissionActual() ? 'Pausa publicitaria en curso' : 'Anterior (reiniciar)'"
+        (click)="player.prev()">
         <app-icon name="prev" [size]="24" />
       </button>
-      <button type="button" class="play" [disabled]="state.estado() === 'cerrado' || !!player.intermissionActual()" [title]="player.intermissionActual() ? 'Pausa publicitaria en curso' : (state.reproduciendo() ? 'Pausar' : 'Reproducir')" (click)="player.togglePlay()">
+      <button type="button" class="play" [disabled]="state.estado() === 'cerrado' || !!player.intermissionActual()"
+        [title]="player.intermissionActual() ? 'Pausa publicitaria en curso' : (state.reproduciendo() ? 'Pausar' : 'Reproducir')"
+        (click)="player.togglePlay()">
         <app-icon [name]="state.reproduciendo() ? 'pause' : 'play'" [size]="22" />
       </button>
-      <button type="button" class="ctrl-btn" [disabled]="state.estado() === 'cerrado' || !!player.intermissionActual()" [title]="player.intermissionActual() ? 'Pausa publicitaria en curso' : 'Siguiente canción'" (click)="player.next()">
+      <button type="button" class="ctrl-btn" [disabled]="state.estado() === 'cerrado' || !!player.intermissionActual()"
+        [title]="player.intermissionActual() ? 'Pausa publicitaria en curso' : 'Siguiente canción'"
+        (click)="player.next()">
         <app-icon name="next" [size]="24" />
       </button>
     </div>
     <div class="player-right">
-      <button type="button" class="mute-btn" (click)="player.toggleMute()" [title]="player.muteado() ? 'Activar sonido' : 'Silenciar'">
+      <button type="button" class="mute-btn" (click)="player.toggleMute()"
+        [title]="player.muteado() ? 'Activar sonido' : 'Silenciar'">
         <app-icon [name]="player.muteado() ? 'volume-x' : 'volume-2'" [size]="18" />
       </button>
-      <span class="time">{{ player.tiempoFormateado() }} / {{ state.sonando()?.duracion || player.duracionFormateada() }}</span>
+      <span class="time">{{ tiempoVisual() }} / {{ state.sonando()?.duracion || player.duracionFormateada() }}</span>
     </div>
   </footer>
 
