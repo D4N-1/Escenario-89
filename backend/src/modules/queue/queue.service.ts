@@ -57,6 +57,13 @@ export class QueueService implements OnModuleInit {
         }
         )
 
+        const hasPlaying = initialQueue.some(q => q.status === SongStatus.PLAYING);
+        if (!hasPlaying && initialQueue.length > 0) {
+            initialQueue[0].status = SongStatus.PLAYING;
+            initialQueue[0].position = 0;
+            await this.queueRepository.save(initialQueue[0]);
+        }
+
         this.queueSocketService.setQueue(initialQueue)
 
     }
@@ -210,43 +217,48 @@ export class QueueService implements OnModuleInit {
             newData.fixed = false;
 
 
+            const hasPlaying = Queue.some((q) => q.status === SongStatus.PLAYING);
+
             if (table) {
+                if (!hasPlaying || Queue.length === 0) {
+                    newData.position = 0;
+                    newData.status = SongStatus.PLAYING;
+                    newData.value = 0;
 
-                const waitingSongs = Queue.filter( (q) => q.table?.code === table.code )
+                    Queue.forEach((q) => q.position!++);
+                    const newQueue = this.queueRepository.create(newData);
+                    Queue.unshift(newQueue);
+                    await manager.save(QueueEntity, Queue);
+                } else {
+                    const waitingSongs = Queue.filter((q) => q.table?.code === table.code);
+                    const value = waitingSongs.length;
+                    newData.value = value;
 
-                const value = waitingSongs.length
-                newData.value = value
+                    const prev = Queue.findLastIndex((q) => (q.value ?? 0) <= value);
+                    const position = prev === -1 ? 1 : prev + 1;
 
-                const prev = Queue.findLastIndex( (q) => q.value! <= value)
-                const position = prev === -1 ? 1
-                    : prev + 1
+                    newData.position = position;
+                    newData.status = SongStatus.WAITING;
 
-                console.log('PREV: ', prev, '\nPOSITION: ', position)
-
-
-                newData.position = position
-                newData.status = newData.position == 0 ? SongStatus.PLAYING : SongStatus.WAITING
-
-                Queue.forEach( (q) => q.position! >= position ? q.position!++ : null )
-
-                const newQueue = this.queueRepository.create(newData)
-
-                Queue.splice(position, 0, newQueue)
-
-                await manager.save(QueueEntity, Queue)
-
-
-
+                    Queue.forEach((q) => (q.position ?? 0) >= position ? q.position!++ : null);
+                    const newQueue = this.queueRepository.create(newData);
+                    Queue.splice(position, 0, newQueue);
+                    await manager.save(QueueEntity, Queue);
+                }
             } else {
-
-                newData.position = Queue.length
-                newData.status = newData.position == 0 ? SongStatus.PLAYING : SongStatus.WAITING
-
-
-                const newQueue = this.queueRepository.create(newData)
-
-                await manager.save(QueueEntity, newQueue)
-
+                if (!hasPlaying || Queue.length === 0) {
+                    newData.position = 0;
+                    newData.status = SongStatus.PLAYING;
+                    Queue.forEach((q) => q.position!++);
+                    const newQueue = this.queueRepository.create(newData);
+                    Queue.unshift(newQueue);
+                    await manager.save(QueueEntity, Queue);
+                } else {
+                    newData.position = Queue.length;
+                    newData.status = SongStatus.WAITING;
+                    const newQueue = this.queueRepository.create(newData);
+                    await manager.save(QueueEntity, newQueue);
+                }
             }
 
 

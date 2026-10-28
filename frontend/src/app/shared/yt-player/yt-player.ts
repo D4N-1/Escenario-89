@@ -41,7 +41,7 @@ export class YtPlayer implements AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
-    this.player.inicializar('admin-yt-player', 'admin', 'admin-player-container');
+    this.player.inicializar('admin-yt-player', 'admin', 'admin-yt-wrapper');
   }
 
   ngOnDestroy() {

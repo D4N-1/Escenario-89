@@ -4,14 +4,34 @@
   class="caja"
   [class.mini]="!c"
   [class.con-intermission]="!!player.intermissionActual()"
-  [class.oculto]="!state.sonando() && !player.intermissionActual()"
+  [class.oculto]="(!state.sonando() || player.karaokeIntroActivo()) && !player.intermissionActual()"
   [style.top.px]="c?.top"
   [style.left.px]="c?.left"
   [style.width.px]="c?.width"
   [style.height.px]="c?.height"
   [style.clip-path]="player.intermissionActual() ? 'none' : c?.clip"
 >
-  <div id="admin-yt-player" [class.oculto-intermission]="!!player.intermissionActual()"></div>
+  <div
+    id="admin-yt-wrapper"
+    class="admin-yt-wrapper"
+    [class.oculto-intermission]="!!player.intermissionActual() || player.karaokeIntroActivo() || !!player.streamUrl() || player.solicitandoStream()"
+  >
+    <div id="admin-yt-player"></div>
+  </div>
+
+  @if (player.streamUrl(); as sUrl) {
+    <video
+      #adminStreamVideo
+      class="stream-video"
+      [src]="sUrl"
+      autoplay
+      playsinline
+      (loadedmetadata)="player.onStreamLoadedMetadata(adminStreamVideo)"
+      (timeupdate)="player.onStreamTimeUpdate(adminStreamVideo)"
+      (ended)="player.onStreamEnded()"
+      (error)="player.onStreamError(adminStreamVideo)"
+    ></video>
+  }
 
   @if (player.intermissionActual(); as inter) {
     <div class="intermission-overlay">

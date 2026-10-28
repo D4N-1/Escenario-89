@@ -20,7 +20,7 @@
        ytSlot
        [class.con-video]="!!state.sonando()?.videoId && state.estado() !== 'cerrado' && !player.karaokeIntroActivo()"
        (click)="onStageClick($event)">
-    @if (!player.intermissionActual() && !player.karaokeIntroActivo()) {
+    @if (!player.intermissionActual() && !player.karaokeIntroActivo() && !player.solicitandoStream()) {
       <div class="stage-click-catcher" title="Haz clic en el escenario para reproducir o pausar"></div>
     }
 
@@ -34,7 +34,7 @@
       <div class="stage-karaoke-intro">
         <div class="stage-intro-glow"></div>
         <img src="logo.png" class="stage-intro-logo" alt="Escenario 89" />
-        <button type="button" class="btn-skip-intro" (click)="player.saltarKaraokeIntro()" title="Omitir audio e iniciar canción inmediatamente">
+        <button type="button" class="btn-skip-intro" (click)="$event.stopPropagation(); player.saltarKaraokeIntro()" title="Omitir audio e iniciar canción inmediatamente">
           Omitir intro ⏭
         </button>
       </div>
@@ -48,7 +48,19 @@
       </div>
     }
 
-    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && state.sonando() && !state.reproduciendo() && !player.cargando()) {
+    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && player.solicitandoStream()) {
+      <div class="stage-stream-loader">
+        <div class="stream-circle-wrap">
+          <svg class="stream-circle-svg" viewBox="0 0 100 100">
+            <circle class="circle-track" cx="50" cy="50" r="42" />
+            <circle class="circle-fill" cx="50" cy="50" r="42" />
+          </svg>
+        </div>
+        <span>Cargando...</span>
+      </div>
+    }
+
+    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && !player.solicitandoStream() && state.sonando() && !state.reproduciendo() && !player.cargando()) {
       <div class="stage-play-prompt">
         <div class="stage-play-circle" title="Haz clic para reproducir">
           <app-icon name="play" [size]="38" />
@@ -57,28 +69,28 @@
       </div>
     }
 
-    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && player.cargando()) {
+    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && !player.solicitandoStream() && player.cargando()) {
       <div class="stage-status-overlay">
         <div class="stage-spinner"></div>
         <span>Cargando video de YouTube...</span>
       </div>
     }
 
-    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && player.error(); as err) {
+    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && !player.solicitandoStream() && player.error(); as err) {
       <div class="stage-error-banner">
         <app-icon name="alert" [size]="18" />
         <span>{{ err }}</span>
       </div>
     }
 
-    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && state.sonando() && player.necesitaInteraccion() && player.muteado()) {
+    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && !player.solicitandoStream() && state.sonando() && player.necesitaInteraccion() && player.muteado()) {
       <div class="stage-unmute-banner" (click)="player.desbloquearAudio()" title="Haz clic para activar el audio">
         <app-icon name="volume" [size]="18" />
         <span>Audio silenciado por el navegador · Haz clic para activar el sonido</span>
       </div>
     }
 
-    @if (!player.intermissionActual() && !player.karaokeIntroActivo()) {
+    @if (!player.intermissionActual() && !player.karaokeIntroActivo() && !player.solicitandoStream()) {
       <div class="stage-overlay">
         @if (state.estado() === 'cerrado') {
           <span class="status-pill cerrado">● Estado: Cerrado</span>

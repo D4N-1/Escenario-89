@@ -5,10 +5,31 @@
     class="tv-player"
     [class.oculto]="!state.sonando()?.videoId || state.estado() === 'cerrado' || !!player.intermissionActual() || player.karaokeIntroActivo()"
   >
-    <div id="tv-yt-player" [class.oculto-intermission]="!!player.intermissionActual() || player.karaokeIntroActivo()"></div>
+    <div
+      id="tv-yt-wrapper"
+      class="tv-yt-wrapper"
+      [class.oculto-intermission]="!!player.intermissionActual() || player.karaokeIntroActivo() || !!player.streamUrl() || player.solicitandoStream()"
+    >
+      <div id="tv-yt-player"></div>
+    </div>
+
+    @if (player.streamUrl(); as sUrl) {
+      <video
+        #tvStreamVideo
+        class="tv-stream-video"
+        [src]="sUrl"
+        autoplay
+        playsinline
+        muted
+        (loadedmetadata)="player.onTvStreamLoadedMetadata(tvStreamVideo)"
+        (timeupdate)="player.onTvStreamTimeUpdate(tvStreamVideo)"
+        (ended)="player.onStreamEnded()"
+        (error)="player.onTvStreamError(tvStreamVideo)"
+      ></video>
+    }
   </div>
 
-  <div class="tv-shield"></div>
+  <div class="tv-shield" (click)="player.reproducirPantallaMuted()"></div>
 
   <!-- Pantalla de Local Cerrado solo cuando no hay anuncio activo -->
   @if (state.estado() === 'cerrado' && !player.intermissionActual()) {
@@ -19,7 +40,20 @@
     </div>
   }
 
-  @if (state.estado() !== 'cerrado' && !player.intermissionActual() && (!state.sonando()?.videoId || player.karaokeIntroActivo())) {
+  <!-- Cargando en la TV -->
+  @if (state.estado() !== 'cerrado' && !player.intermissionActual() && player.solicitandoStream()) {
+    <div class="tv-stream-loader">
+      <div class="tv-circle-wrap">
+        <svg class="tv-circle-svg" viewBox="0 0 100 100">
+          <circle class="tv-circle-track" cx="50" cy="50" r="42" />
+          <circle class="tv-circle-fill" cx="50" cy="50" r="42" />
+        </svg>
+      </div>
+      <span class="tv-stream-text">Cargando...</span>
+    </div>
+  }
+
+  @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.solicitandoStream() && (!state.sonando()?.videoId || player.karaokeIntroActivo())) {
     <div class="tv-fondo-logo" [class.intro-activa]="player.karaokeIntroActivo()">
       <div class="tv-fondo-glow"></div>
       <div class="tv-fondo-center">

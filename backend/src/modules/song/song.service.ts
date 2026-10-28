@@ -9,6 +9,8 @@ import { ResCreateInterface } from "../../common/interfaces/resCreate.interface.
 import { ResUpdateInterface } from "../../common/interfaces/resUpdate.interface.js";
 import { CreateSongDto } from "./dto/create-song.dto.js";
 import { UpdateSongDto } from "./dto/update-song.dto.js";
+import { QueueEntity, SongStatus } from "../queue/entities/queue.entity.js";
+import { QueueSocketService } from "../queue-socket/queue-socket.service.js";
 import { SongEntity, SongType } from "./entities/song.entity.js";
 import { SongErrorCode } from "./song.constants.js";
 
@@ -22,7 +24,12 @@ export class SongService {
     constructor(
 
         @InjectRepository(SongEntity)
-        private readonly songRepository: Repository<SongEntity>
+        private readonly songRepository: Repository<SongEntity>,
+
+        @InjectRepository(QueueEntity)
+        private readonly queueRepository: Repository<QueueEntity>,
+
+        private readonly queueSocketService: QueueSocketService
 
     ) {}
 
@@ -160,55 +167,95 @@ export class SongService {
         }
     }
 
+    private streamPromises = new Map<string, Promise<{ url: string }>>();
+
     async getUrlStream(id: string): Promise<{ url: string }> {
 
-        this.logger.log(`Extrayendo stream directo para YouTube ID: ${id}...`);
+        if (this.streamPromises.has(id)) {
+            return this.streamPromises.get(id)!;
+        }
 
-        const ytUrl = `https://www.youtube.com/watch?v=${id}`;
+        const task = (async () => {
+            // Verificar si la canción ya tiene una URL de stream válida en la base de datos
+            const existingSong = await this.findOrNull.id(id);
+            if (existingSong?.url && existingSong.url.includes('expire=')) {
+                try {
+                    const urlObj = new URL(existingSong.url);
+                    const expireEpoch = parseInt(urlObj.searchParams.get('expire') || '0', 10);
+                    const nowEpoch = Math.floor(Date.now() / 1000);
+                    // Si aún le quedan más de 10 minutos (600s) de vigencia, reutilizamos
+                    if (expireEpoch - nowEpoch > 600) {
+                        this.logger.log(`Reutilizando stream vigente de BD para ${id} (expira en ${expireEpoch - nowEpoch}s)`);
+                        return { url: existingSong.url };
+                    }
+                } catch { }
+            }
 
-        const args = [
-          '--js-runtimes',
-          'node',
-          '--remote-components',
-          'ejs:github',
-          '-f',
-          '18/22/best[ext=mp4]/best[vcodec!=none][acodec!=none]/best',
-          '-g',
-          ytUrl,
-        ];
-    
-        const ytDlpBin = process.env.YTDLP_BIN || 'yt-dlp'
+            this.logger.log(`Extrayendo stream directo para YouTube ID: ${id}...`);
+
+            const ytUrl = `https://www.youtube.com/watch?v=${id}`;
+
+            const args = [
+              '--js-runtimes',
+              'node',
+              '--remote-components',
+              'ejs:github',
+              '-f',
+              '18/22/best[ext=mp4]/best[vcodec!=none][acodec!=none]/best',
+              '-g',
+              ytUrl,
+            ];
+        
+            const ytDlpBin = process.env.YTDLP_BIN || 'yt-dlp';
+
+            try {
+                const { stdout, stderr } = await execFileAsync(ytDlpBin, args, {
+                    windowsHide: true
+                });
+
+                const lines = stdout.trim().split(/\r?\n/).filter((l) => l.startsWith('http'));
+
+                if (
+                    (stderr && stderr.includes('ERROR') ) ||
+                    lines.length === 0
+                ) {
+                    this.logger.error(`yt-dlp stderr: ${stderr}`);
+                    throw new GoneException('No se pudo obtener la url stream');
+                }
+
+                const url = lines[0].trim();
+                this.logger.log(`Stream extraído con éxito para ${id}`);
+
+                await this.update({ id, url });
+
+                try {
+                    const updatedQueue = await this.queueRepository.find({
+                        where: [
+                            { status: SongStatus.PLAYING },
+                            { status: SongStatus.WAITING }
+                        ],
+                        order: { position: 'ASC' },
+                        relations: { table: true, song: true }
+                    });
+                    await this.queueSocketService.updateQueue(updatedQueue);
+                } catch (queueErr: any) {
+                    this.logger.warn(`No se pudo emitir la cola actualizada por socket: ${queueErr?.message}`);
+                }
+
+                return { url };
+
+            } catch (err: any) {
+                this.logger.error(`Error al extraer stream con yt-dlp para ${id}:`, err?.message || err);
+                throw new GoneException(`No se pudo obtener el flujo de video para este contenido: ${err?.message || 'Error desconocido'}`);
+            }
+        })();
+
+        this.streamPromises.set(id, task);
 
         try {
-
-            const { stdout, stderr } = await execFileAsync(ytDlpBin, args, {
-                windowsHide: true
-            });
-
-
-            const lines = stdout.trim().split(/\r?\n/).filter((l) => l.startsWith('http'));
-
-            if (
-                (stderr && stderr.includes('ERROR') ) ||
-                lines.length === 0
-            ) {
-                this.logger.error(`yt-dlp stderr: ${stderr}`);
-                throw new GoneException('No se pudo obtener la url stream')
-            }
-
-
-            const url = lines[0].trim();
-            this.logger.log(`Stream extraído con éxito para ${id}`);
-
-            this.update({ id, url })
-
-            return {
-                url
-            }
-
-        } catch (err: any) {
-            this.logger.error(`Error al extraer stream con yt-dlp para ${id}:`, err?.message || err);
-            throw new GoneException(`No se pudo obtener el flujo de video para este contenido: ${err?.message || 'Error desconocido'}` );
+            return await task;
+        } finally {
+            this.streamPromises.delete(id);
         }
 
     }

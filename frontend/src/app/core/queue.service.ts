@@ -19,6 +19,7 @@ interface ColaItem {
         ago?: string | null;
         type?: string;
         description?: string | null;
+        url?: string;
     };
     table?: { number: number; code: string } | null;
 }
@@ -125,13 +126,31 @@ export class QueueService {
             .filter(q => q !== enCurso && q.status === 'WAITING')
             .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 
-        if ((enCurso?.uuid ?? null) !== (this.state.sonando()?.uuid ?? null)) {
-            this.state.sonando.set(enCurso ? this.aCancion(enCurso) : null);
+        const cancionNueva = enCurso ? this.aCancion(enCurso) : null;
+        const cancionActual = this.state.sonando();
+        const uuidNuevo = cancionNueva?.uuid ?? null;
+        const uuidActual = cancionActual?.uuid ?? null;
+        if (uuidNuevo !== uuidActual) {
+            this.state.sonando.set(cancionNueva);
+        } else if (cancionActual && cancionNueva) {
+            if (cancionNueva.url && !cancionActual.url && (cancionNueva.url.includes('googlevideo.com') || !cancionNueva.url.includes('youtube.com'))) {
+                cancionActual.url = cancionNueva.url;
+                this.state.sonando.set({ ...cancionActual });
+            } else if (cancionActual.url && (cancionActual.url.includes('googlevideo.com') || !cancionActual.url.includes('youtube.com'))) {
+                cancionNueva.url = cancionActual.url;
+            }
+            if (cancionActual.videoId && !cancionNueva.videoId) {
+                cancionNueva.videoId = cancionActual.videoId;
+            }
         }
 
         const actual = this.state.cola();
         const igual = espera.length === actual.length && espera.every((q, i) => q.uuid === actual[i].uuid);
         if (!igual) this.state.cola.set(espera.map(q => this.aCancion(q)));
+
+        if (!enCurso && espera.length > 0 && !cancionActual && !cancionNueva) {
+            this.reproducirAhora(espera[0].uuid).catch(() => {});
+        }
     }
 
 
@@ -290,6 +309,7 @@ export class QueueService {
             mesa: q.table?.number ?? 0,
             tipo: detectarTipoCancion(s),
             videoId: s.id,
+            url: s.url,
             miniatura: s.image || `https://i.ytimg.com/vi/${s.id}/mqdefault.jpg`,
         };
     }

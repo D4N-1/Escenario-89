@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Post, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiOkResponse, ApiOperation } from "@nestjs/swagger";
 import { GetAllQueryDto } from "../../common/dto/getAllQuery.dto.js";
 import { Private } from "../../decorators/private.decorator.js";
@@ -39,7 +39,8 @@ export class SongController {
 
     @Post('stream')
     async getUrlStream(@Body('id') id: string) {
-        return this.songService.getUrlStream(id)
+        if (!id) throw new BadRequestException('El campo id es requerido');
+        return this.songService.getUrlStream(id);
     }
 
 }

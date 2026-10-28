@@ -23,6 +23,7 @@ export interface Cancion {
   videoId?: string;           
   uuid?: string;               
   miniatura?: string;          
+  url?: string;
 }
 
 export interface Video {

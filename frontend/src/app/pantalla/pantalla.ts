@@ -25,32 +25,34 @@ export class Pantalla implements OnInit, AfterViewInit, OnDestroy {
   }
 
   @HostListener('click')
-  desbloquearAudio() {
-    const v = document.querySelector('.tv-intermission-video') as HTMLVideoElement;
-    if (v && v.muted) {
-      v.muted = false;
+  onPantallaClick() {
+    if (this.state.sonando()) {
+      this.player.reproducirPantallaMuted();
     }
   }
 
   onVideoLoaded(video: HTMLVideoElement) {
     if (!video) return;
+    video.muted = true;
+    video.volume = 0;
     const playPromise = video.play();
     if (playPromise !== undefined) {
-      playPromise.catch((err) => {
-        console.warn('Autoplay bloqueado en TV, reproduciendo silenciado con fallback:', err);
+      playPromise.catch(() => {
         video.muted = true;
+        video.volume = 0;
         video.play().catch(() => {});
       });
     }
   }
 
   ngOnInit() {
+    this.player.setRole('pantalla');
     this.bar.iniciarSincronizacion();
     this.queue.iniciarPolling();
   }
 
   ngAfterViewInit() {
-    this.player.inicializar('tv-yt-player', 'pantalla', 'tv-player-container', undefined, true);
+    this.player.inicializar('tv-yt-player', 'pantalla', 'tv-yt-wrapper', undefined, true);
   }
 
   ngOnDestroy() {
