@@ -288,7 +288,7 @@ export class QueueService implements OnModuleInit {
 
     }
 
-    async update(updateQueueDto: UpdateQueueDto): Promise<QueueResCreateInterface> {
+async update(updateQueueDto: UpdateQueueDto): Promise<QueueResCreateInterface> {
         const { uuid, fixed, position, status } = updateQueueDto;
 
         const newQueue = await this.findOne.uuid(uuid);
@@ -302,12 +302,12 @@ export class QueueService implements OnModuleInit {
                     { status: SongStatus.WAITING }
                 ],
                 order: { position: 'ASC' },
-                relations: { table: true, song: true }
+                relations: { table: true, song: true },
+                lock: { mode: 'pessimistic_write' }
             });
 
             const isCancelledOrFinished = status === SongStatus.CANCELLED || status === SongStatus.FINISHED;
 
-            // Si se pasa una canción a posición 0 (reproducir ahora), la canción que estaba sonando se finaliza
             if (position === 0) {
                 const playingSong = queueList.find(q => (q.status === SongStatus.PLAYING || q.position === 0) && q.uuid !== uuid);
                 if (playingSong) {
@@ -336,10 +336,8 @@ export class QueueService implements OnModuleInit {
                 newQueue.status = status;
 
                 if (isCancelledOrFinished) {
-
                     newQueue.position = null;
                     newQueue.value = null;
-
                 } else if (position !== undefined) newQueue.position = position;
                 
             } else if (position !== undefined) {
@@ -347,28 +345,28 @@ export class QueueService implements OnModuleInit {
                 if (position === 0) newQueue.status = SongStatus.PLAYING;
             }
             
-
             const editQueue = manager.create(QueueEntity, newQueue);
             await manager.save(QueueEntity, editQueue);
 
-            const savedQueue = await manager.save(QueueEntity, updatedQueueList);
+            for (const item of updatedQueueList) {
+                await manager.save(QueueEntity, item);
+            }
 
-            this.queueSocketService.updateQueue(await manager.find(QueueEntity, {
+            const finalQueueList = await manager.find(QueueEntity, {
                 where: [
                     { status: SongStatus.PLAYING },
                     { status: SongStatus.WAITING }
                 ],
                 order: { position: 'ASC' },
                 relations: { table: true, song: true }
-            })
-            );
+            });
+
+            this.queueSocketService.updateQueue(finalQueueList);
 
             if (editQueue.status === SongStatus.FINISHED) {
-                const intermissions = this.intermissionService.processSongFinished()
-
-                console.log(intermissions)
-
-                if (intermissions.length > 0) this.queueSocketService.updateIntermission(intermissions)
+                const intermissions = this.intermissionService.processSongFinished();
+                console.log(intermissions);
+                if (intermissions.length > 0) this.queueSocketService.updateIntermission(intermissions);
             }
             
             return {
@@ -376,7 +374,7 @@ export class QueueService implements OnModuleInit {
                 position: editQueue.position,
                 status: editQueue.status,
                 fixed: editQueue.fixed,
-                data: savedQueue
+                data: finalQueueList
             };
         });
     }

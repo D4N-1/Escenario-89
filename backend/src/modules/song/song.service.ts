@@ -7,10 +7,10 @@ import { GetAllQueryDto } from "../../common/dto/getAllQuery.dto.js";
 import { ResAllInterface } from "../../common/interfaces/resAll.interface.js";
 import { ResCreateInterface } from "../../common/interfaces/resCreate.interface.js";
 import { ResUpdateInterface } from "../../common/interfaces/resUpdate.interface.js";
+import { QueueSocketService } from "../queue-socket/queue-socket.service.js";
+import { QueueEntity, SongStatus } from "../queue/entities/queue.entity.js";
 import { CreateSongDto } from "./dto/create-song.dto.js";
 import { UpdateSongDto } from "./dto/update-song.dto.js";
-import { QueueEntity, SongStatus } from "../queue/entities/queue.entity.js";
-import { QueueSocketService } from "../queue-socket/queue-socket.service.js";
 import { SongEntity, SongType } from "./entities/song.entity.js";
 import { SongErrorCode } from "./song.constants.js";
 
@@ -201,7 +201,7 @@ export class SongService {
               '--remote-components',
               'ejs:github',
               '-f',
-              '18/22/best[ext=mp4]/best[vcodec!=none][acodec!=none]/best',
+              'b[ext=mp4]/best[vcodec!=none][acodec!=none]/best',
               '-g',
               ytUrl,
             ];
