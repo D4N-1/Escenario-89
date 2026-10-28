@@ -75,7 +75,7 @@ export class BarService {
 
   async obtenerEstado(): Promise<BarDto | null> {
     try {
-      const res = await this.api.pedirPublico<{ message: string; data: BarDto }>('GET', '/bar');
+      const res = await this.api.pedir<{ message: string; data: BarDto }>('admin', 'GET', '/bar');
       const data = res?.data;
       if (data) {
         this.aplicarBar(data);

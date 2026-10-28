@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, GoneException, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { BadRequestException, GoneException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -91,7 +91,11 @@ export class SongService {
         const newData: Partial<SongEntity> = { ...createSongDto }
 
         const song = await this.findOrNull.id(id)
-        if (song) throw new ConflictException( SongErrorCode.CONFLICT('Ya existe este id de canción') )
+        if (song) return {
+            message: 'La cancion ya existe en la base de datos',
+            data: song
+        }
+
 
         newData.id = id;
         newData.description = createSongDto.description ?? null;
@@ -137,10 +141,13 @@ export class SongService {
     async insertBulk(songs: CreateSongDto[]) {
         if (!songs || songs.length === 0) return;
 
+        songs.forEach( (s) => {
+            if (s.id) return s
+        })
+
         try {
             const songEntities = this.songRepository.create(songs);
 
-            // Usamos insert con cláusula de ignorar en caso de conflicto (Ejemplo para Postgres: DO NOTHING)
             await this.songRepository
                 .createQueryBuilder()
                 .insert()
@@ -200,7 +207,7 @@ export class SongService {
                 process.execPath,
                 '--remote-components',
                 'ejs:github',
-                '-f', 'best[vcodec!=none][acodec!=none]/b[vcodec!=none][acodec!=none]',
+                '-f', 'best[height<=720][vcodec!=none][acodec!=none]/best[vcodec!=none][acodec!=none]/b',
                 '-g',
                 ytUrl,
             ];

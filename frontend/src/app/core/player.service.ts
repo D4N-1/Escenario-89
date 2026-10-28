@@ -3,9 +3,9 @@ import { environment } from '../../environments/environment';
 import { ApiService } from './api.service';
 import { AppState } from './app-state';
 import { Cancion, IntermissionItem } from './models';
-import { YoutubeService } from './youtube.service';
 import { QueueService } from './queue.service';
 import { SocketService } from './socket.service';
+import { YoutubeService } from './youtube.service';
 
 declare global {
   interface Window {
@@ -497,7 +497,7 @@ export class PlayerService {
   }
 
   /** Carga dinámicamente y de forma segura la API de YouTube IFrame */
-  cargarApi(): Promise<void> {
+    cargarApi(): Promise<void> {
     if (typeof window === 'undefined') return Promise.resolve();
     if (window.YT && window.YT.Player) return Promise.resolve();
     if (this.apiLoadedPromise) return this.apiLoadedPromise;
@@ -630,7 +630,7 @@ export class PlayerService {
                 if (iframe) {
                   iframe.setAttribute(
                     'allow',
-                    'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+                    'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; compute-pressure',
                   );
                   iframe.setAttribute('allowfullscreen', 'true');
                 }
@@ -682,6 +682,7 @@ export class PlayerService {
             },
             onError: (event: any) => {
               this.handlePlayerError(event.data);
+              console.warn(event)
             },
           },
         };
