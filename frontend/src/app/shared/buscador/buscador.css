@@ -1,4 +1,5 @@
-:host { display: block; position: relative; width: 260px; z-index: 100; }
+:host { display: block; position: relative; width: 390px; z-index: 100; }
+.pill-input input { padding: 8px 12px; font-size: 15px; }
 .resultados {
   position: absolute; top: calc(100% + 12px); left: 50%; transform: translateX(-50%);
   width: min(960px, calc(100vw - 480px)); max-width: 94vw; max-height: 75vh; overflow-y: auto;

@@ -4,6 +4,7 @@ import { AppState } from '../../core/app-state';
 import { PlayerService } from '../../core/player.service';
 import { QueueService } from '../../core/queue.service';
 import { Cancion } from '../../core/models';
+import { IntermissionService } from '../../core/intermission.service';
 
 @Component({
   selector: 'app-queue-panel',
@@ -15,6 +16,7 @@ export class QueuePanel {
   state = inject(AppState);
   player = inject(PlayerService);
   queue = inject(QueueService);
+  intermissions = inject(IntermissionService);
   /** Muestra anuncios mezclados en la cola (vistas Anuncios / Audios) */
   showAds = input(false);
 
@@ -37,6 +39,20 @@ export class QueuePanel {
   togglePlay() {
     if (this.player.intermissionActual()) return;
     this.player.togglePlay();
+  }
+
+  imgErrorMap = signal<Record<string, boolean>>({});
+
+  onImgError(key: string) {
+    if (!key) return;
+    this.imgErrorMap.update(map => ({ ...map, [key]: true }));
+  }
+
+  obtenerMiniaturaAnuncio(item: { uuid?: string; image?: string } | null | undefined): string {
+    if (!item?.image) return '';
+    const key = item.uuid || item.image;
+    if (this.imgErrorMap()[key]) return '';
+    return this.intermissions.resolverUrl(item.image);
   }
 
   obtenerMiniatura(c: Cancion | null | undefined): string {
@@ -107,4 +123,9 @@ export class QueuePanel {
   private fallo(err: unknown) {
     this.error.set(err instanceof Error ? err.message : 'No se pudo cambiar la cola.');
   }
-}
+
+  cancelarAdManual(e: Event, uuid?: string) {
+    e.stopPropagation();
+    this.intermissions.cancelarSiguientePausa(uuid).catch(() => {});
+  }
+}

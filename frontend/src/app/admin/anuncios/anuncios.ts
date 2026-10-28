@@ -30,6 +30,7 @@ export class Anuncios implements OnInit {
 
   // Notificación rápida
   toast = signal('');
+  procesandoPausaUuid = signal<string | null>(null);
 
   // Formulario de creación
   formTitle = signal('');
@@ -135,16 +136,33 @@ export class Anuncios implements OnInit {
 
   probarEnPantalla(item: IntermissionItem) {
     const urlResuelta = this.intermissions.resolverUrl(item.url);
-    this.player.reproducirIntermission([{ ...item, url: urlResuelta }]);
+    const imgResuelta = item.image ? this.intermissions.resolverUrl(item.image) : '';
+    this.player.reproducirIntermission([{ ...item, url: urlResuelta, image: imgResuelta }]);
     this.mostrarToast(`Emitiendo "${item.title}" en pantalla`);
   }
 
+  estaEnSiguientePausa(item: IntermissionItem): boolean {
+    return this.intermissions.manualProgramadoUuid() === item.uuid;
+  }
+
+  esProximoAutomatico(item: IntermissionItem): boolean {
+    return this.intermissions.proximaEnPausa()?.uuid === item.uuid && this.intermissions.proximaEnPausa()?.type === 'auto';
+  }
+
+  obtenerContador(item: IntermissionItem) {
+    return this.intermissions.obtenerContador(item.uuid);
+  }
+
   async reproducirEnSiguientePausa(item: IntermissionItem) {
+    if (this.procesandoPausaUuid()) return;
+    this.procesandoPausaUuid.set(item.uuid);
     try {
-      const msg = await this.intermissions.reproducirEnSiguientePausa(item.uuid);
-      this.mostrarToast(msg || 'Anuncio programado para sonar en la siguiente pausa');
+      const res = await this.intermissions.reproducirEnSiguientePausa(item.uuid);
+      this.mostrarToast(res.message);
     } catch (e: any) {
       this.mostrarToast(e?.message || 'Error al programar anuncio');
+    } finally {
+      this.procesandoPausaUuid.set(null);
     }
   }
 

@@ -5,6 +5,30 @@
   <p class="error" role="alert">{{ error() }}</p>
   }
 
+  @if (player.intermissionActual(); as inter) {
+  <div class="row now intermission-now" title="Pausa publicitaria sonando en pantalla">
+    <div class="num">
+      <app-icon name="clapper" [size]="18" />
+      <span class="ad-tag">AD</span>
+    </div>
+    <div class="thumb now-thumb ad-thumb">
+      @if (obtenerMiniaturaAnuncio(inter); as img) {
+        <img [src]="img" [alt]="inter.title" (error)="onImgError(inter.uuid || img)" />
+      } @else {
+        <div class="ad-badge"><app-icon name="clapper" [size]="16" /></div>
+      }
+    </div>
+    <div class="info">
+      <div class="now-status-pill">● Sonando en pantalla</div>
+      <b [title]="inter.title">{{ inter.title }}</b>
+      <small>{{ inter.description || 'Pausa publicitaria del local' }}</small>
+    </div>
+    <button type="button" class="btn-skip-inter" title="Omitir anuncio" (click)="player.saltarIntermission()">
+      <app-icon name="forward" [size]="15" />
+    </button>
+  </div>
+  }
+
   @if (state.sonando(); as s) {
   <div class="row now"
        [class.karaoke]="s.tipo === 'karaoke'"
@@ -39,6 +63,74 @@
     </div>
     <span class="dur">{{ s.duracion }}</span>
     <app-icon name="more-v" [size]="16" />
+  </div>
+
+  @if (intermissions.proximaEnPausa(); as prox) {
+  <div class="row ad upcoming" [class.manual]="prox.type === 'manual'">
+    <div class="num">
+      <app-icon name="clapper" [size]="16" />
+      <span class="ad-tag">PAUSA</span>
+    </div>
+    <div class="thumb ad-thumb">
+      @if (obtenerMiniaturaAnuncio(prox); as img) {
+        <img [src]="img" [alt]="prox.title" (error)="onImgError(prox.uuid || img)" />
+      } @else {
+        <div class="ad-badge"><app-icon name="clapper" [size]="14" /></div>
+      }
+    </div>
+    <div class="info">
+      <div class="ad-upcoming-pill" [class.manual]="prox.type === 'manual'">
+        @if (prox.type === 'manual') {
+          ● Siguiente pausa (Manual)
+        } @else {
+          ● Siguiente pausa (Automático)
+        }
+      </div>
+      <b [title]="prox.title">{{ prox.title }}</b>
+      <small>
+        @if (prox.type === 'manual') {
+          Sonará al terminar la canción actual
+        } @else {
+          Programado cada {{ prox.everySongs }} canciones
+        }
+      </small>
+    </div>
+    @if (prox.type === 'manual') {
+      <button type="button" class="quitar btn-quitar-ad" title="Quitar de la siguiente pausa" (click)="cancelarAdManual($event, prox.uuid)">
+        <app-icon name="close" [size]="14" />
+      </button>
+    }
+  </div>
+  }
+  } @else if (!player.intermissionActual() && intermissions.proximaEnPausa(); as prox) {
+  <div class="row ad upcoming" [class.manual]="prox.type === 'manual'">
+    <div class="num">
+      <app-icon name="clapper" [size]="16" />
+      <span class="ad-tag">PAUSA</span>
+    </div>
+    <div class="thumb ad-thumb">
+      @if (obtenerMiniaturaAnuncio(prox); as img) {
+        <img [src]="img" [alt]="prox.title" (error)="onImgError(prox.uuid || img)" />
+      } @else {
+        <div class="ad-badge"><app-icon name="clapper" [size]="14" /></div>
+      }
+    </div>
+    <div class="info">
+      <div class="ad-upcoming-pill" [class.manual]="prox.type === 'manual'">
+        @if (prox.type === 'manual') {
+          ● Siguiente pausa (Manual)
+        } @else {
+          ● Siguiente pausa (Automático)
+        }
+      </div>
+      <b [title]="prox.title">{{ prox.title }}</b>
+      <small>Programado para sonar en la pausa</small>
+    </div>
+    @if (prox.type === 'manual') {
+      <button type="button" class="quitar btn-quitar-ad" title="Quitar de la siguiente pausa" (click)="cancelarAdManual($event, prox.uuid)">
+        <app-icon name="close" [size]="14" />
+      </button>
+    }
   </div>
   }
 

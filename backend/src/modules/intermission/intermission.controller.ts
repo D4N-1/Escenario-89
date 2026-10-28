@@ -81,12 +81,33 @@ export class IntermissionController {
     return this.intermissionService.update(updateIntermissionDto)
   }
 
+  @ApiOperation({ summary: 'Obtiene el estado de los anuncios programados' })
+  @ApiOkResponse({ description: 'Estado de anuncios programados' })
+  @Get('scheduled')
+  async getScheduled() {
+    return this.intermissionService.getScheduledStatus();
+  }
+
   @ApiOperation({ summary: 'Reproduce un anuncio en la siguiente pausa' })
   @ApiOkResponse({ description: 'Anuncio enlistado en el siguiente espacio' })
   @ApiNotFoundResponse({ description: 'Ese anuncio no existe' })
   @Post('play')
   async playOne(@Body() playIntermission: PlayIntermissionDto) {
-    return this.intermissionService.playOne(playIntermission)
+    return this.intermissionService.playOne(playIntermission);
+  }
+
+  @ApiOperation({ summary: 'Cancela un anuncio de la siguiente pausa' })
+  @ApiOkResponse({ description: 'Anuncio desprogramado de la siguiente pausa' })
+  @Delete('play/:uuid')
+  async cancelPlay(@Param('uuid') uuid: string) {
+    return this.intermissionService.cancelPlayOne(uuid);
+  }
+
+  @ApiOperation({ summary: 'Cancela cualquier anuncio manual de la siguiente pausa' })
+  @ApiOkResponse({ description: 'Pausa publicitaria manual cancelada' })
+  @Post('cancel')
+  async cancelPlayPost(@Body('uuid') uuid?: string) {
+    return this.intermissionService.cancelPlayOne(uuid);
   }
 
   @ApiOperation({ summary: 'Elimina un anuncio' })

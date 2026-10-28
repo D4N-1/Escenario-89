@@ -32,6 +32,7 @@ export class SocketService {
 
   private listenersCola: Array<(datos: any[]) => void> = [];
   private listenersIntermission: Array<(datos: any) => void> = [];
+  private listenersIntermissionScheduled: Array<(datos: any) => void> = [];
   private listenersBar: Array<(bar: any) => void> = [];
 
   conectar(rol: SocketRol): Socket | null {
@@ -98,6 +99,14 @@ export class SocketService {
       }
     });
 
+    this.socket.on('intermission:scheduled', (payload: any) => {
+      for (const cb of this.listenersIntermissionScheduled) {
+        try {
+          cb(payload);
+        } catch { }
+      }
+    });
+
     this.socket.on('bar', (bar: any) => {
       for (const cb of this.listenersBar) {
         try {
@@ -120,6 +129,13 @@ export class SocketService {
     this.listenersIntermission.push(callback);
     return () => {
       this.listenersIntermission = this.listenersIntermission.filter(cb => cb !== callback);
+    };
+  }
+
+  onIntermissionScheduled(callback: (datos: any) => void): () => void {
+    this.listenersIntermissionScheduled.push(callback);
+    return () => {
+      this.listenersIntermissionScheduled = this.listenersIntermissionScheduled.filter(cb => cb !== callback);
     };
   }
 

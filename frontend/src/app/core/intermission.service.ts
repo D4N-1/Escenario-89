@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { environment } from '../../environments/environment';
 import { ApiService } from './api.service';
 import { AppState } from './app-state';
-import { Anuncio, AudioItem, EstadoAnuncio, IntermissionItem } from './models';
+import { Anuncio, AudioItem, EstadoAnuncio, IntermissionItem, ScheduledIntermissionState, AnuncioProgramadoItem, ContadorAnuncio } from './models';
 import { SocketService } from './socket.service';
 
 export interface NuevoAnuncioDto {
@@ -37,6 +37,20 @@ export class IntermissionService {
   error = signal('');
   ultimoMensaje = signal('');
 
+  // Estado en tiempo real de anuncios programados
+  programacion = signal<ScheduledIntermissionState | null>(null);
+  manualProgramadoUuid = computed(() => this.programacion()?.manual?.uuid ?? null);
+  proximaEnPausa = computed(() => {
+    const p = this.programacion()?.nextBreak;
+    if (!p) return null;
+    return {
+      ...p,
+      image: p.image ? this.resolverUrl(p.image) : '',
+      url: this.resolverUrl(p.url),
+    };
+  });
+  contadores = computed(() => this.programacion()?.counters ?? []);
+
   anuncios = computed(() => this.items().filter(i => !this.esAudio(i)));
   audios = computed(() => this.items().filter(i => this.esAudio(i)));
   todosLosItems = computed(() => this.items());
@@ -48,7 +62,17 @@ export class IntermissionService {
         this.ultimoMensaje.set(payload.message);
       }
       this.cargar().catch(() => {});
+      this.cargarProgramacion().catch(() => {});
     });
+
+    // Escuchar actualizaciones de programación en tiempo real
+    this.socket.onIntermissionScheduled((payload) => {
+      if (payload) {
+        this.programacion.set(payload);
+      }
+    });
+
+    this.cargarProgramacion().catch(() => {});
   }
 
   esAudio(item: IntermissionItem): boolean {
@@ -176,14 +200,59 @@ export class IntermissionService {
     }
   }
 
-  async reproducirEnSiguientePausa(uuid: string): Promise<string> {
+  async cargarProgramacion(): Promise<ScheduledIntermissionState | null> {
     try {
-      const res = await this.api.pedir<{ message?: string }>('admin', 'POST', '/intermission/play', { uuid });
-      const msg = res?.message || 'Anuncio listado para la siguiente pausa';
+      const res = await this.api.pedir<ScheduledIntermissionState>('admin', 'GET', '/intermission/scheduled');
+      if (res) {
+        this.programacion.set(res);
+      }
+      return res ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  obtenerContador(uuid: string): ContadorAnuncio | null {
+    return this.contadores().find(c => c.uuid === uuid) ?? null;
+  }
+
+  async reproducirEnSiguientePausa(uuid: string): Promise<{ message: string; scheduled: boolean }> {
+    try {
+      // Si ya está programado este anuncio, alternar y desprogramarlo (toggle)
+      if (this.manualProgramadoUuid() === uuid) {
+        return await this.cancelarSiguientePausa(uuid);
+      }
+
+      const res = await this.api.pedir<{ message?: string; scheduled?: boolean; status?: ScheduledIntermissionState }>('admin', 'POST', '/intermission/play', { uuid });
+      const msg = res?.message || 'Anuncio programado para la siguiente pausa';
       this.ultimoMensaje.set(msg);
-      return msg;
+      if (res?.status) {
+        this.programacion.set(res.status);
+      } else {
+        await this.cargarProgramacion();
+      }
+      return { message: msg, scheduled: true };
     } catch (err: any) {
-      const msg = err?.message || 'No se pudo enviar el anuncio a reproducción';
+      const msg = err?.message || 'No se pudo programar el anuncio';
+      this.error.set(msg);
+      throw err;
+    }
+  }
+
+  async cancelarSiguientePausa(uuid?: string): Promise<{ message: string; scheduled: boolean }> {
+    try {
+      const endpoint = uuid ? `/intermission/play/${uuid}` : '/intermission/cancel';
+      const res = await this.api.pedir<{ message?: string; scheduled?: boolean; status?: ScheduledIntermissionState }>('admin', uuid ? 'DELETE' : 'POST', endpoint);
+      const msg = res?.message || 'Anuncio retirado de la siguiente pausa';
+      this.ultimoMensaje.set(msg);
+      if (res?.status) {
+        this.programacion.set(res.status);
+      } else {
+        await this.cargarProgramacion();
+      }
+      return { message: msg, scheduled: false };
+    } catch (err: any) {
+      const msg = err?.message || 'No se pudo retirar el anuncio';
       this.error.set(msg);
       throw err;
     }
