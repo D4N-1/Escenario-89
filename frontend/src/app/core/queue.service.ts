@@ -133,7 +133,7 @@ export class QueueService {
         if (uuidNuevo !== uuidActual) {
             this.state.sonando.set(cancionNueva);
         } else if (cancionActual && cancionNueva) {
-            if (cancionNueva.url && !cancionActual.url && (cancionNueva.url.includes('googlevideo.com') || !cancionNueva.url.includes('youtube.com'))) {
+            if (cancionNueva.url && cancionNueva.url !== cancionActual.url && (cancionNueva.url.includes('googlevideo.com') || !cancionNueva.url.includes('youtube.com'))) {
                 cancionActual.url = cancionNueva.url;
                 this.state.sonando.set({ ...cancionActual });
             } else if (cancionActual.url && (cancionActual.url.includes('googlevideo.com') || !cancionActual.url.includes('youtube.com'))) {

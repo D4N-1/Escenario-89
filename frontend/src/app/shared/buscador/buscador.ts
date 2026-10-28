@@ -29,43 +29,100 @@ export class Buscador {
   bloqueado = computed(() => this.state.estado() === 'cerrado' || this.state.estado() === 'cerrando');
 
   private recognition: any = null;
+  private debounceTimer: any = null;
+  private requestId = 0;
 
   constructor() {
     this.destroyRef.onDestroy(() => {
       this.detenerVoz();
+      if (this.debounceTimer) {
+        clearTimeout(this.debounceTimer);
+        this.debounceTimer = null;
+      }
     });
 
     effect(() => {
       if (this.bloqueado()) {
         this.detenerVoz();
+        if (this.debounceTimer) {
+          clearTimeout(this.debounceTimer);
+          this.debounceTimer = null;
+        }
         this.abierto.set(false);
       }
     });
   }
 
-  onInput(e: Event) { this.consulta.set((e.target as HTMLInputElement).value); }
+  onInput(e: Event) {
+    const val = (e.target as HTMLInputElement).value;
+    this.consulta.set(val);
+
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+
+    const q = val.trim();
+    if (!q) {
+      this.abierto.set(false);
+      this.cargando.set(false);
+      this.resultados.set([]);
+      this.error.set('');
+      return;
+    }
+
+    // Apenas empieza a escribir: mostrar modal de resultados vacío por feedback inmediato
+    this.abierto.set(true);
+    this.cargando.set(true);
+    this.error.set('');
+
+    if (this.ultima() !== q) {
+      this.resultados.set([]);
+    }
+
+    // Debounce: realizar la búsqueda GET automáticamente tras 380ms de pausa al escribir
+    this.debounceTimer = setTimeout(() => {
+      this.ejecutarBusqueda(q);
+    }, 380);
+  }
 
   async buscar() {
     this.detenerVoz();
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+    const q = this.consulta().trim();
+    if (!q) return;
+    await this.ejecutarBusqueda(q);
+  }
+
+  private async ejecutarBusqueda(q: string) {
     if (this.bloqueado()) {
       this.error.set(this.state.estado() === 'cerrado'
         ? 'El local está cerrado. No se pueden pedir canciones.'
         : 'El local está cerrando. Solo se reproducen las canciones que ya están en cola.');
       return;
     }
-    const q = this.consulta().trim();
-    if (!q) return;
-    this.ultima.set(q);
+
+    const currentReq = ++this.requestId;
     this.abierto.set(true);
     this.cargando.set(true);
     this.error.set('');
+
     try {
-      this.resultados.set(await this.yt.buscar(q));
+      const res = await this.yt.buscar(q);
+      if (currentReq !== this.requestId || !this.abierto()) return;
+      this.resultados.set(res);
+      this.ultima.set(q);
     } catch (e) {
+      if (currentReq !== this.requestId || !this.abierto()) return;
       this.resultados.set([]);
       this.error.set(e instanceof Error ? e.message : 'Error al buscar');
     } finally {
-      this.cargando.set(false);
+      if (currentReq === this.requestId) {
+        this.cargando.set(false);
+      }
     }
   }
 
@@ -171,6 +228,10 @@ export class Buscador {
   @HostListener('document:keydown.escape')
   cerrar() {
     this.detenerVoz();
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
     this.abierto.set(false);
   }
 

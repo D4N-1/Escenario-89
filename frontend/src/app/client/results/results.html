@@ -26,9 +26,10 @@
              [disabled]="state.estado() === 'cerrado' || state.estado() === 'cerrando'"
              enterkeyhint="search"
              autocomplete="off"
+             (input)="onInput($event)"
              (keydown.enter)="buscar(q.value)">
       @if (q.value) {
-        <button type="button" class="clear-btn" (click)="q.value = ''; state.busqueda.set('')" aria-label="Limpiar"><app-icon name="close" [size]="16" /></button>
+        <button type="button" class="clear-btn" (click)="limpiar(q)" aria-label="Limpiar"><app-icon name="close" [size]="16" /></button>
       }
       <button type="button" class="pill-btn" [disabled]="state.estado() === 'cerrado' || state.estado() === 'cerrando'" aria-label="Buscar" (click)="buscar(q.value)"><app-icon name="search" /></button>
     </div>
@@ -38,7 +39,7 @@
     @if (cargando()) {
       <div class="estado-mensaje">
         <div class="spinner-gold" aria-hidden="true"></div>
-        <p style="color: var(--c-gold); font-weight: 600; margin: 0;">Buscando en YouTube…</p>
+        <p style="color: var(--c-gold); font-weight: 600; margin: 0;">Buscando «{{ state.busqueda() }}» en YouTube…</p>
       </div>
     } @else if (error()) {
       <div class="estado-mensaje">
@@ -71,4 +72,4 @@
 
 @if (seleccion(); as v) {
   <app-confirm-dialog [video]="v" (cerrar)="seleccion.set(null)" />
-}
+}
