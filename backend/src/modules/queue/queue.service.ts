@@ -288,7 +288,7 @@ export class QueueService implements OnModuleInit {
 
     }
 
-async update(updateQueueDto: UpdateQueueDto): Promise<QueueResCreateInterface> {
+    async update(updateQueueDto: UpdateQueueDto): Promise<QueueResCreateInterface> {
         const { uuid, fixed, position, status } = updateQueueDto;
 
         const newQueue = await this.findOne.uuid(uuid);
