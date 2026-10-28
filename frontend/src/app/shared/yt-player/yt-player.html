@@ -25,9 +25,7 @@
       class="stream-video"
       [class.oculto-intermission]="!!player.intermissionActual()"
       [src]="sUrl"
-      autoplay
       playsinline
-      preload="auto"
       (loadedmetadata)="player.onStreamLoadedMetadata(adminStreamVideo)"
       (timeupdate)="player.onStreamTimeUpdate(adminStreamVideo)"
       (ended)="player.onStreamEnded()"

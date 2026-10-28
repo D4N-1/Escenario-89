@@ -17,11 +17,9 @@
       <video
         #tvStreamVideo
         class="tv-stream-video"
-        [class.oculto-intermission]="!!player.intermissionActual() || player.karaokeIntroActivo()"
+        [class.oculto-intermission]="!!player.intermissionActual()"
         [src]="sUrl"
-        autoplay
         playsinline
-        preload="auto"
         muted
         (loadedmetadata)="player.onTvStreamLoadedMetadata(tvStreamVideo)"
         (timeupdate)="player.onTvStreamTimeUpdate(tvStreamVideo)"

@@ -25,7 +25,6 @@
              [disabled]="state.estado() === 'cerrado' || state.estado() === 'cerrando'"
              enterkeyhint="search"
              autocomplete="off"
-             (input)="irABuscar(q.value)"
              (keydown.enter)="irABuscar(q.value)">
       @if (q.value) {
         <button type="button" class="clear-btn" (click)="q.value = ''" aria-label="Limpiar"><app-icon name="close" [size]="16" /></button>
