@@ -1,7 +1,9 @@
 <div class="top">
-  <span class="crumb">Panel principal › <b class="state-badge" [class]="state.estado()">{{ stateLabel(state.estado()) }}</b></span>
+  <span class="crumb">Panel principal › <b class="state-badge" [class]="state.estado()">{{ stateLabel(state.estado())
+      }}</b></span>
   <app-buscador />
-  <span class="clock">{{ state.horaPartes().hora }}<span class="clock-colon">:</span>{{ state.horaPartes().minuto }} {{ state.horaPartes().ampm }}</span>
+  <span class="clock">{{ state.horaPartes().hora }}<span class="clock-colon">:</span>{{ state.horaPartes().minuto }} {{
+    state.horaPartes().ampm }}</span>
 </div>
 <div class="stage">
   <div class="stage-top-actions">
@@ -10,110 +12,87 @@
     </a>
   </div>
 
-  <div class="video"
-       [class.video-abierto]="state.estado() === 'abierto'"
-       [class.video-cerrando]="state.estado() === 'cerrando'"
-       [class.video-cerrado]="state.estado() === 'cerrado'"
-       ytSlot
-       [class.con-video]="!!state.sonando()?.videoId && state.estado() !== 'cerrado' && !player.karaokeIntroActivo()"
-       (click)="onStageClick($event)">
+  <div class="video" [class.video-abierto]="state.estado() === 'abierto'"
+    [class.video-cerrando]="state.estado() === 'cerrando'" [class.video-cerrado]="state.estado() === 'cerrado'" ytSlot
+    [class.con-video]="!!state.sonando()?.videoId && state.estado() !== 'cerrado' && !player.karaokeIntroActivo()"
+    (click)="onStageClick($event)">
     @if (!player.intermissionActual() && !player.karaokeIntroActivo() && !player.solicitandoStream()) {
-      <div class="stage-click-catcher" title="Haz clic en el escenario para reproducir o pausar"></div>
+    <div class="stage-click-catcher" title="Haz clic en el escenario para reproducir o pausar"></div>
     }
 
     @if (state.estado() === 'cerrado') {
-      <div class="empty-stage closed-stage">
-        <div class="empty-icon closed-icon"><app-icon name="alert" [size]="48" /></div>
-        <p class="empty-title">Local Cerrado</p>
-        <span class="empty-sub">El local se encuentra cerrado. Todas las canciones han sido finalizadas y no se aceptan nuevos pedidos.</span>
-      </div>
+    <div class="empty-stage closed-stage">
+      <div class="empty-icon closed-icon"><app-icon name="alert" [size]="48" /></div>
+      <p class="empty-title">Local Cerrado</p>
+      <span class="empty-sub">El local se encuentra cerrado. Todas las canciones han sido finalizadas y no se aceptan
+        nuevos pedidos.</span>
+    </div>
     } @else if (player.karaokeIntroActivo()) {
-      <div class="stage-karaoke-intro">
-        <div class="stage-intro-glow"></div>
-        <img src="logo.png" class="stage-intro-logo" alt="Escenario 89" />
-        <button type="button" class="btn-skip-intro" (click)="$event.stopPropagation(); player.saltarKaraokeIntro()" title="Omitir audio e iniciar canción inmediatamente">
-          Omitir intro ⏭
-        </button>
-      </div>
+    <div class="stage-karaoke-intro">
+      <div class="stage-intro-glow"></div>
+      <img src="logo.png" class="stage-intro-logo" alt="Escenario 89" />
+      <button type="button" class="btn-skip-intro" (click)="$event.stopPropagation(); player.saltarKaraokeIntro()"
+        title="Omitir audio e iniciar canción inmediatamente">
+        Omitir intro ⏭
+      </button>
+    </div>
     } @else if (!state.sonando() && !player.intermissionActual()) {
-      <div class="empty-stage">
-        <div class="empty-icon"><app-icon name="clapper" [size]="48" /></div>
-        <p class="empty-title">{{ state.estado() === 'cerrando' ? 'No hay más canciones en cola' : 'Sin canción sonando' }}</p>
-        <span class="empty-sub">
-          {{ state.estado() === 'cerrando' ? 'El local está cerrando y la cola ha finalizado.' : 'Selecciona una canción en el buscador arriba para empezar la música' }}
-        </span>
-      </div>
+    <div class="empty-stage">
+      <div class="empty-icon"><app-icon name="clapper" [size]="48" /></div>
+      <p class="empty-title">{{ state.estado() === 'cerrando' ? 'No hay más canciones en cola' : 'Sin canción sonando'
+        }}</p>
+      <span class="empty-sub">
+        {{ state.estado() === 'cerrando' ? 'El local está cerrando y la cola ha finalizado.' : 'Selecciona una canción
+        en el buscador arriba para empezar la música' }}
+      </span>
+    </div>
     }
 
-    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && player.solicitandoStream()) {
-      <div class="stage-stream-loader">
-        <div class="stream-circle-wrap">
-          <svg class="stream-circle-svg" viewBox="0 0 100 100">
-            <circle class="circle-track" cx="50" cy="50" r="42" />
-            <circle class="circle-fill" cx="50" cy="50" r="42" />
-          </svg>
-        </div>
-        <span>Cargando...</span>
+    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() &&
+    player.solicitandoStream()) {
+    <div class="stage-stream-loader">
+      <div class="stream-circle-wrap">
+        <svg class="stream-circle-svg" viewBox="0 0 100 100">
+          <circle class="circle-track" cx="50" cy="50" r="42" />
+          <circle class="circle-fill" cx="50" cy="50" r="42" />
+        </svg>
       </div>
+      <span>Cargando...</span>
+    </div>
     }
 
-    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && !player.solicitandoStream() && state.sonando() && !state.reproduciendo() && !player.cargando()) {
-      <div class="stage-play-prompt">
-        <div class="stage-play-circle" title="Haz clic para reproducir">
-          <app-icon name="play" [size]="38" />
-        </div>
-        <span class="stage-play-label">Haz clic para reproducir</span>
+    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() &&
+    !player.solicitandoStream() && state.sonando() && !state.reproduciendo() && !player.cargando()) {
+    <div class="stage-play-prompt">
+      <div class="stage-play-circle" title="Haz clic para reproducir">
+        <app-icon name="play" [size]="38" />
       </div>
+      <span class="stage-play-label">Haz clic para reproducir</span>
+    </div>
     }
 
-    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && !player.solicitandoStream() && player.cargando()) {
-      <div class="stage-status-overlay">
-        <div class="stage-spinner"></div>
-        <span>Cargando video de YouTube...</span>
-      </div>
+    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() &&
+    !player.solicitandoStream() && player.cargando()) {
+    <div class="stage-status-overlay">
+      <div class="stage-spinner"></div>
+      <span>Cargando video de YouTube...</span>
+    </div>
     }
 
-    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && !player.solicitandoStream() && player.error(); as err) {
-      <div class="stage-error-banner">
-        <app-icon name="alert" [size]="18" />
-        <span>{{ err }}</span>
-      </div>
+    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() &&
+    !player.solicitandoStream() && player.error(); as err) {
+    <div class="stage-error-banner">
+      <app-icon name="alert" [size]="18" />
+      <span>{{ err }}</span>
+    </div>
     }
 
-    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() && !player.solicitandoStream() && state.sonando() && player.necesitaInteraccion() && player.muteado()) {
-      <div class="stage-unmute-banner" (click)="player.desbloquearAudio()" title="Haz clic para activar el audio">
-        <app-icon name="volume" [size]="18" />
-        <span>Audio silenciado por el navegador · Haz clic para activar el sonido</span>
-      </div>
-    }
-
-    @if (!player.intermissionActual() && !player.karaokeIntroActivo() && !player.solicitandoStream()) {
-      <div class="stage-overlay">
-        @if (state.estado() === 'cerrado') {
-          <span class="status-pill cerrado">● Estado: Cerrado</span>
-          <p class="status-msg">Local cerrado · No se aceptan nuevos pedidos de canciones</p>
-        } @else if (state.estado() === 'cerrando') {
-          <span class="status-pill cerrando">● Estado: Cerrando</span>
-          <p class="status-msg">
-            @if (state.sonando(); as s) {
-              {{ s.titulo }} · {{ s.artista }} @if (s.mesa > 0) { (Mesa #{{ s.mesa }}) } · Reproduciendo cola restante
-            } @else {
-              Cola finalizada · Preparando cierre
-            }
-          </p>
-        } @else {
-          <span class="status-pill" [class.abierto]="state.reproduciendo() && !player.muteado()">
-            {{ state.reproduciendo() ? (player.muteado() ? 'En Vivo · Audio en espera' : 'En Vivo · Reproduciendo') : (state.sonando() ? 'En Pausa' : 'En Espera') }}
-          </span>
-          <p class="status-msg">
-            @if (state.sonando(); as s) {
-              {{ s.titulo }} · {{ s.artista }} @if (s.mesa > 0) { (Mesa #{{ s.mesa }}) }
-            } @else {
-              Sin canción sonando · Esperando pedidos
-            }
-          </p>
-        }
-      </div>
+    @if (state.estado() !== 'cerrado' && !player.intermissionActual() && !player.karaokeIntroActivo() &&
+    !player.solicitandoStream() && state.sonando() && player.necesitaInteraccion() && player.muteado()) {
+    <div class="stage-unmute-banner" (click)="player.desbloquearAudio()" title="Haz clic para activar el audio">
+      <app-icon name="volume" [size]="18" />
+      <span>Audio silenciado por el navegador · Haz clic para activar el sonido</span>
+    </div>
     }
   </div>
 </div>
