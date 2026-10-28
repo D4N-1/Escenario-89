@@ -202,12 +202,13 @@ export class SongService {
 
             const ytUrl = `https://www.youtube.com/watch?v=${id}`;
 
+            const jsRuntimeArg = process.execPath ? `node:${process.execPath}` : 'node';
             const args = [
                 '--js-runtimes',
-                process.execPath,
+                jsRuntimeArg,
                 '--remote-components',
                 'ejs:github',
-                '-f', 'best[height<=720][vcodec!=none][acodec!=none]/best[vcodec!=none][acodec!=none]/b',
+                '-f', 'best[height<=720][ext=mp4][vcodec!=none][acodec!=none]/best[height<=720][vcodec!=none][acodec!=none]/best[ext=mp4]/best/b',
                 '-g',
                 ytUrl,
             ];

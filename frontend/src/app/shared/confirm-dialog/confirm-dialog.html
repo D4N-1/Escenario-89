@@ -24,7 +24,7 @@
     <div class="ask-box">
       <span class="ask-text">¿Confirmar pedido para tu mesa?</span>
       @if (state.mesa() > 0) {
-        <span class="mesa-pill">Mesa {{ state.mesa() }}</span>
+        <span class="mesa-pill">@if (state.mesa() >= 26 && state.mesa() <= 30) { Barra {{ state.mesa() - 25 }} } @else { Mesa {{ state.mesa() }} }</span>
       }
     </div>
 

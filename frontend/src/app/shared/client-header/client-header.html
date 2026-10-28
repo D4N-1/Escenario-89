@@ -17,7 +17,7 @@
         @if (state.mesa() > 0) {
         <span class="mesa-badge">
             <span class="mesa-dot"></span>
-            Mesa {{ state.mesa() }}
+            @if (state.mesa() >= 26 && state.mesa() <= 30) { Barra {{ state.mesa() - 25 }} } @else { Mesa {{ state.mesa() }} }
         </span>
         } @else {
         <a routerLink="/sin-mesa" class="mesa-badge libre">

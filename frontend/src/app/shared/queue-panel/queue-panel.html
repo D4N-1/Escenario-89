@@ -38,7 +38,9 @@
     <div class="num">
       <app-icon [name]="state.reproduciendo() ? 'pause' : 'play'" [size]="18" />
       <span class="mesa">
-        @if (s.mesa > 0) {
+        @if (s.mesa >= 26 && s.mesa <= 30) {
+          B{{ s.mesa - 25 }}
+        } @else if (s.mesa > 0) {
           #{{ s.mesa }}
         } @else {
           <svg class="admin-crown" viewBox="0 0 500 400" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
@@ -152,7 +154,9 @@
       <span class="n" [class.big]="it.tipo === 'anuncio'">{{ $index + 1 }}</span>
       @if (it.tipo !== 'anuncio') { 
         <span class="mesa">
-          @if (it.mesa > 0) {
+          @if (it.mesa >= 26 && it.mesa <= 30) {
+            B{{ it.mesa - 25 }}
+          } @else if (it.mesa > 0) {
             #{{ it.mesa }}
           } @else {
             <svg class="admin-crown" viewBox="0 0 500 400" width="16" height="16" xmlns="http://www.w3.org/2000/svg">

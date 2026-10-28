@@ -151,7 +151,7 @@
         }
         <div class="np-meta">
           <b [title]="s.titulo">{{ s.titulo }}</b>
-          <span>{{ s.artista }} @if (s.mesa > 0) { · Mesa #{{ s.mesa }} }</span>
+          <span>{{ s.artista }} @if (s.mesa >= 26 && s.mesa <= 30) { · Barra #{{ s.mesa - 25 }} } @else if (s.mesa > 0) { · Mesa #{{ s.mesa }} }</span>
         </div>
       } @else {
         <div class="np-meta">

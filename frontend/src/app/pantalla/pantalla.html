@@ -58,6 +58,24 @@
       <div class="tv-fondo-glow"></div>
       <div class="tv-fondo-center">
         <img src="logo.png" class="tv-logo-main" alt="Escenario 89 Karaoke Bar" />
+        @if (player.karaokeIntroActivo()) {
+          @let cIntro = player.cancionIntro() || state.sonando();
+          @if (cIntro) {
+            <div class="tv-intro-karaoke-card">
+              <span class="tv-intro-karaoke-badge">
+                @if (cIntro.mesa >= 26 && cIntro.mesa <= 30) {
+                  🎤 Barra #{{ cIntro.mesa - 25 }}
+                } @else if (cIntro.mesa > 0) {
+                  🎤 Mesa #{{ cIntro.mesa }}
+                } @else {
+                  🎤 KARAOKE
+                }
+              </span>
+              <h2 class="tv-intro-karaoke-title">{{ cIntro.titulo }}</h2>
+              <p class="tv-intro-karaoke-artist">{{ cIntro.artista }}</p>
+            </div>
+          }
+        }
       </div>
     </div>
   }

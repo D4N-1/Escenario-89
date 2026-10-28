@@ -31,6 +31,20 @@
     <div class="stage-karaoke-intro">
       <div class="stage-intro-glow"></div>
       <img src="logo.png" class="stage-intro-logo" alt="Escenario 89" />
+      @let cIntro = player.cancionIntro() || state.sonando();
+      @if (cIntro) {
+        <span class="stage-intro-badge">
+          @if (cIntro.mesa >= 26 && cIntro.mesa <= 30) {
+            🎤 Barra #{{ cIntro.mesa - 25 }}
+          } @else if (cIntro.mesa > 0) {
+            🎤 Mesa #{{ cIntro.mesa }}
+          } @else {
+            🎤 Presentación Karaoke
+          }
+        </span>
+        <h2 class="stage-intro-titulo">{{ cIntro.titulo }}</h2>
+        <p class="stage-intro-msg">{{ cIntro.artista }}</p>
+      }
       <button type="button" class="btn-skip-intro" (click)="$event.stopPropagation(); player.saltarKaraokeIntro()"
         title="Omitir audio e iniciar canción inmediatamente">
         Omitir intro ⏭

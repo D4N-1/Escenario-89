@@ -329,6 +329,19 @@
   animation: stage-logo-intro 2.5s ease-in-out infinite alternate;
 }
 
+.stage-intro-titulo {
+  position: relative;
+  z-index: 2;
+  margin: 2px 0 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  max-width: 440px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .stage-intro-badge {
   position: relative;
   z-index: 2;

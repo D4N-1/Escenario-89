@@ -37,6 +37,14 @@ async function bootstrap() {
   app.useStaticAssets(publicPath, {
     prefix: '/api/uploads',
   });
+
+  const resourcesPath = join(process.cwd(), '..', 'resources');
+  app.useStaticAssets(resourcesPath, {
+    prefix: '/resources',
+  });
+  app.useStaticAssets(resourcesPath, {
+    prefix: '/api/resources',
+  });
   
 
   /// ADAPTERS ///
