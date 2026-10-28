@@ -1053,16 +1053,18 @@ export class PlayerService {
       v.volume = (this.volumen() || 100) / 100;
     }
     if (this.state.reproduciendo() && !this.intermissionActual() && !this.karaokeIntroActivo()) {
-      const p = v.play();
-      if (p !== undefined) {
-        p.catch((err) => {
-          console.warn('Autoplay bloqueado con audio para stream, reproduciendo silenciado:', err);
-          v.muted = true;
-          this.muteado.set(true);
-          this.necesitaInteraccion.set(true);
-          this.registrarDesbloqueoInteraccion();
-          v.play().catch(() => {});
-        });
+      if (v.paused) {
+        const p = v.play();
+        if (p !== undefined) {
+          p.catch((err) => {
+            console.warn('Autoplay bloqueado con audio para stream, reproduciendo silenciado:', err);
+            v.muted = true;
+            this.muteado.set(true);
+            this.necesitaInteraccion.set(true);
+            this.registrarDesbloqueoInteraccion();
+            v.play().catch(() => {});
+          });
+        }
       }
     } else {
       try { v.pause(); } catch { }
@@ -1098,10 +1100,13 @@ export class PlayerService {
     if (this.pendingStreamStartTime > 0) {
       try {
         v.currentTime = this.pendingStreamStartTime;
+        this.pendingStreamStartTime = 0;
       } catch { }
     }
     if (this.state.reproduciendo() && !this.intermissionActual() && !this.karaokeIntroActivo()) {
-      v.play().catch(() => {});
+      if (v.paused) {
+        v.play().catch(() => {});
+      }
     } else {
       try { v.pause(); } catch { }
     }
@@ -1438,9 +1443,7 @@ export class PlayerService {
         console.warn('Error al reproducir audio intro karaoke:', e, url);
         if (!this.karaokeIntroActivo()) return;
         if (errFallbackTimeout) { clearTimeout(errFallbackTimeout); errFallbackTimeout = null; }
-        errFallbackTimeout = setTimeout(() => {
-          if (this.karaokeIntroActivo()) onEnd();
-        }, 1500);
+        onEnd();
       };
 
       audio.onplay = () => {
@@ -1464,9 +1467,8 @@ export class PlayerService {
         playPromise.catch((err) => {
           console.warn('Autoplay de audio intro bloqueado por el navegador:', err);
           if (!this.karaokeIntroActivo()) return;
-          errFallbackTimeout = setTimeout(() => {
-            if (this.karaokeIntroActivo()) onEnd();
-          }, 3000);
+          if (errFallbackTimeout) { clearTimeout(errFallbackTimeout); errFallbackTimeout = null; }
+          onEnd();
         });
       }
 
