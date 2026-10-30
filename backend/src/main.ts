@@ -59,7 +59,7 @@ async function bootstrap() {
     .setTitle('Escenario 89 - API')
     .addServer('https://escenario89.danidev.top/api', 'Servidor de produccion')
     .addServer(`http://localhost:${port}`, 'Servidor de desarrollo')
-    .addServer('http://26.198.176.98:105', 'Entorno de pruebas')
+    .addServer(`http://26.198.176.98:${port}`, 'Entorno de pruebas')
     .addBearerAuth()
     .addCookieAuth()
     .setDescription('Documentacion sobre el uso del backend de la pagina oficial')
