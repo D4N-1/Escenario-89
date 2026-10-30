@@ -47,3 +47,4 @@ npm run start:dev -w backend
 > [!TIP]
 > **-w** hace referencia a que aplicacion usar su **package.json** sin necesidad de ubicarse fisicamente adentro de la carpeta
 
+test
