@@ -12,10 +12,10 @@ export const mesaGuard: CanActivateFn = (route) => {
   const session = inject(SessionService);
   const router = inject(Router);
 
-  if (session.tokenMesa()) return true;
-
   const codigo = route.queryParamMap.get('mesa')?.trim();
   if (codigo) return router.createUrlTree(['/mesa', codigo]);
+
+  if (session.tokenMesa()) return true;
 
   return router.createUrlTree(['/sin-mesa']);
 };
