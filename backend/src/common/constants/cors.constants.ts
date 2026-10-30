@@ -4,9 +4,10 @@ dotenv.config()
 export const CorsConfig = {
 
   origin: [
-    `http://localhost:${process.env.ANGULAR_PORT ?? 4200}`,
-    `http://127.0.0.1:${process.env.ANGULAR_PORT ?? 4200}`,
-    'https://escenario89.danidev.top'
+    `http://localhost:${process.env.ANGULAR_PORT ?? 105}`,
+    `http://127.0.0.1:${process.env.ANGULAR_PORT ?? 105}`,
+    'https://escenario89.danidev.top',
+    'http://26.198.176.98:105'
 
   ],
   credentials: true,
