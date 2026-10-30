@@ -12,10 +12,10 @@ export class BarSeederService implements OnModuleInit {
 
         private readonly barService: BarService
 
-    ) {}
+    ) { }
 
     async onModuleInit() {
-        
+
         await this.seedBars()
 
         this.logger.debug('Bar seeder executed')
@@ -26,7 +26,7 @@ export class BarSeederService implements OnModuleInit {
 
         const barsToCreate: CreateBarDto[] = [
             {
-                close: '12:00',
+                close: '04:00',
                 status: BarStatus.OPEN
             }
         ];

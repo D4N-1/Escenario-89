@@ -29,7 +29,7 @@ export class QueueSocketGateway implements OnGatewayInit, OnGatewayConnection, O
 
     this.queueSocketService.setServer(server);
 
-    server.use( async(client: Socket, next) => {
+    server.use(async (client: Socket, next) => {
 
       try {
 
@@ -46,8 +46,8 @@ export class QueueSocketGateway implements OnGatewayInit, OnGatewayConnection, O
             message: 'Error de autenticación de socket desconocido'
           }, null, 2)
 
-        next( new Error(errorPayload) )
-        
+        next(new Error(errorPayload))
+
       }
 
     })
@@ -58,14 +58,13 @@ export class QueueSocketGateway implements OnGatewayInit, OnGatewayConnection, O
 
     let request = this.queueSocketService.getSocketUser(client);
 
+    client.emit(Events.GENERAL, { message: 'Asignando...' } as General);
     await wait(1_000);
-    client.emit(Events.GENERAL, { message: 'Asignando...' } as General );
-    await wait(3_000);
 
     if (request?.type === 'USER') {
 
       client.join(Rooms.USER_ROLE + request.role)
-      client.emit(Events.GENERAL, { message: 'Bienvenido administrador', room: `user:${request.role}`, events: AllSocketEvents } as General );
+      client.emit(Events.GENERAL, { message: 'Bienvenido administrador', room: `user:${request.role}`, events: AllSocketEvents } as General);
 
       const queue = await this.queueSocketService.getQueue();
       client.emit(Events.QUEUE, { message: 'Actualización de lista', data: queue } as QueueUpdate)
@@ -74,11 +73,11 @@ export class QueueSocketGateway implements OnGatewayInit, OnGatewayConnection, O
     } else if (request?.type === 'TABLE') {
 
       client.join(Rooms.TABLE_CODE + request.code)
-      client.emit(Events.GENERAL, { message: 'Bienvenido a la mesa', room: `table:${request.code}`, events: AllSocketEvents } as General );
+      client.emit(Events.GENERAL, { message: 'Bienvenido a la mesa', room: `table:${request.code}`, events: AllSocketEvents } as General);
 
       const queue = await this.queueSocketService.getQueueForTable(request.code);
       client.emit(Events.QUEUE, { message: 'Actualización de lista', data: queue } as QueueUpdate)
-      
+
 
     }
 
@@ -92,11 +91,11 @@ export class QueueSocketGateway implements OnGatewayInit, OnGatewayConnection, O
   @SubscribeMessage(Events.GENERAL)
   handleStart(@ConnectedSocket() client: Socket) {
 
-      client.emit(Events.GENERAL, { message: 'Actualización de lista', room: client.rooms, events: AllSocketEvents } as General)
+    client.emit(Events.GENERAL, { message: 'Actualización de lista', room: client.rooms, events: AllSocketEvents } as General)
 
 
   }
 
-  
+
 
 }
