@@ -1,7 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { BarService } from "../../modules/bar/bar.service.js";
-import { CreateBarDto } from "../../modules/bar/dto/create-bar.dto";
-import { BarStatus } from "../../modules/bar/enum/bar-status.enum.js";
+import { loadSeedsData } from "./seed-loader.util.js";
 
 
 @Injectable()
@@ -24,18 +23,11 @@ export class BarSeederService implements OnModuleInit {
 
     async seedBars() {
 
-        const barsToCreate: CreateBarDto[] = [
-            {
-                close: '04:00',
-                status: BarStatus.OPEN
-            }
-        ];
+        const { bars = [] } = loadSeedsData();
 
-        for (const bar of barsToCreate) {
+        for (const bar of bars) {
 
             const exist = await this.barService.getBar(false)
-
-            console.log(exist)
 
             if (!exist?.data) await this.barService.createBar(bar)
         }

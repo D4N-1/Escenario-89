@@ -58,3 +58,7 @@ Thumbs.db
 
 # Logs
 **/logs
+
+# Seeds
+**/seeds/*.json
+!**/seeds/*.example.json

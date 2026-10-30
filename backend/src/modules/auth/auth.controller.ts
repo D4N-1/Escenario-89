@@ -8,8 +8,10 @@ import { CreateUserSignDto } from "./dto/user-sign.dto";
 import { GetUser } from "../../decorators/user.decorator";
 import type { AnyRequest } from "../../common/types/payload.type";
 import { Private } from "../../decorators/private.decorator";
+import { Public } from "../../decorators/public.decorator";
 
 
+@Public()
 @Controller('auth')
 export class AuthController {
 
