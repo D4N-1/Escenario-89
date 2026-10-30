@@ -24,21 +24,21 @@ export class UserService {
 
     findOne = {
 
-        name: async(name: string): Promise<UserEntity> => {
+        name: async (name: string): Promise<UserEntity> => {
 
             const user = await this.userRepository.findOne({
                 where: { name }
             })
 
-            if (!user) throw new NotFoundException( UserErrorCode.NOT_FOUND('No existe ese usuario') )
-                return user
+            if (!user) throw new NotFoundException(UserErrorCode.NOT_FOUND('No existe ese usuario'))
+            return user
         }
 
     }
 
     findOrNull = {
 
-        name: async(name: string): Promise<UserEntity|null> => {
+        name: async (name: string): Promise<UserEntity | null> => {
 
             return await this.userRepository.findOne({
                 where: { name }
@@ -51,12 +51,12 @@ export class UserService {
 
         const { password, name } = createUserDto
 
-        const newData: Partial<UserEntity> = {  }
+        const newData: Partial<UserEntity> = {}
 
         newData.passwordHash = await hash(password, 10)
 
         const exist = await this.findOrNull.name(name)
-        if (exist) throw new ConflictException( UserErrorCode.CONFLICT('Ese usuario ya existe') )
+        if (exist) throw new ConflictException(UserErrorCode.CONFLICT('Ese usuario ya existe'))
 
         newData.name = name;
 
@@ -75,12 +75,14 @@ export class UserService {
 
 
     async update(updateUserDto: UpdateUserDto): Promise<ResUpdateInterface> {
-          
-  
-        const user = ( await this.find() )?.[0]
-  
+
+
+        const user = (await this.find())?.[0]
+
         const newData: Partial<UserEntity> = { ...updateUserDto }
-  
+
+        if (updateUserDto.password) newData.passwordHash = await hash(updateUserDto.password, 10)
+
         const editIntermission = this.userRepository.merge(user, newData)
         const saved = await this.userRepository.save(editIntermission)
 
@@ -89,7 +91,7 @@ export class UserService {
             change: updateUserDto,
             data: saved
         }
-  
-  }
+
+    }
 
 }

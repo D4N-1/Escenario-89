@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { hash } from "bcrypt";
+import { compare, hash } from "bcrypt";
 import { CreateUserDto } from "../../modules/user/dto/user.dto";
 import { UserService } from "../../modules/user/user.service";
 
@@ -39,8 +39,7 @@ export class UserSeederService implements OnModuleInit {
 
             if (!exist) await this.userService.create(user)
 
-            const passwordHash = await hash(user.password, 10)
-            if (exist?.passwordHash !== passwordHash) await this.userService.update({ password: user.password })
+            if (exist && !await compare(user.password, exist.passwordHash)) await this.userService.update({ password: user.password })
         }
     }
 }

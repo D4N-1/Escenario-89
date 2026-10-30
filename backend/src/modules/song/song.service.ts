@@ -31,26 +31,26 @@ export class SongService {
 
         private readonly queueSocketService: QueueSocketService
 
-    ) {}
+    ) { }
 
 
     findOne = {
 
-        id: async( id: string ): Promise<SongEntity> => {
+        id: async (id: string): Promise<SongEntity> => {
 
             const song = await this.songRepository.findOne({
                 where: { id }
             })
 
-            if (!song) throw new NotFoundException( SongErrorCode.NOT_FOUND('No existe esa id de cancion') )
-                return song
+            if (!song) throw new NotFoundException(SongErrorCode.NOT_FOUND('No existe esa id de cancion'))
+            return song
         },
 
     }
 
     findOrNull = {
 
-        id: async( id: string ): Promise<SongEntity|null> => {
+        id: async (id: string): Promise<SongEntity | null> => {
 
             return await this.songRepository.findOne({
                 where: { id }
@@ -59,13 +59,13 @@ export class SongService {
 
     }
 
-    async findAll(query?:GetAllQueryDto): Promise<ResAllInterface> {
+    async findAll(query?: GetAllQueryDto): Promise<ResAllInterface> {
 
-        const page = Math.max(1, Number(query?.page) );
-        const limit = Math.max(1, Number(query?.limit) );
+        const page = Math.max(1, Number(query?.page));
+        const limit = Math.max(1, Number(query?.limit));
         const skip = (page - 1) * limit;
 
-        const [ data, total ] = await this.songRepository.findAndCount({
+        const [data, total] = await this.songRepository.findAndCount({
             skip,
             take: limit,
             order: { index: 'ASC' }
@@ -81,7 +81,7 @@ export class SongService {
                 currentPage: page
             }
         }
-        
+
     }
 
     async create(createSongDto: CreateSongDto): Promise<ResCreateInterface> {
@@ -115,7 +115,7 @@ export class SongService {
     }
 
     async update(updateSongDto: UpdateSongDto): Promise<ResUpdateInterface> {
-        
+
         const { id } = updateSongDto;
 
         if (!id) throw new BadRequestException({
@@ -141,9 +141,7 @@ export class SongService {
     async insertBulk(songs: CreateSongDto[]) {
         if (!songs || songs.length === 0) return;
 
-        songs.forEach( (s) => {
-            if (s.id) return s
-        })
+        songs.forEach(s => Boolean(s.id))
 
         try {
             const songEntities = this.songRepository.create(songs);
@@ -212,7 +210,7 @@ export class SongService {
                 '-g',
                 ytUrl,
             ];
-        
+
             const ytDlpBin = process.env.YTDLP_BIN || 'yt-dlp';
 
             try {
@@ -223,7 +221,7 @@ export class SongService {
                 const lines = stdout.trim().split(/\r?\n/).filter((l) => l.startsWith('http'));
 
                 if (
-                    (stderr && stderr.includes('ERROR') ) ||
+                    (stderr && stderr.includes('ERROR')) ||
                     lines.length === 0
                 ) {
                     this.logger.error(`yt-dlp stderr: ${stderr}`);
