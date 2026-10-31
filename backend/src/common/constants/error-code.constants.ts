@@ -69,4 +69,12 @@ export default class ErrorCode {
         }
     }
 
+    MANY_REQUEST(text?: string) {
+        return {
+            statusCode: 429,
+            error: 'Too Many Request',
+            message: text || 'Demasiadas peticiones'
+        }
+    }
+
 }

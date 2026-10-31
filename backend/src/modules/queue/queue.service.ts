@@ -22,6 +22,7 @@ import { UpdateQueueDto } from './dto/update-queue.dto.js';
 import { QueueEntity, QueueRelations, SongStatus } from './entities/queue.entity.js';
 import { QueueResCreateInterface } from './interface/queue-resCreate.interface.js';
 import { QueueErrorCode } from './queue.constants.js';
+import { TooManyRequestsException } from '../../common/exception/tooMany.exception.js';
 
 @Injectable()
 export class QueueService implements OnModuleInit {
@@ -237,8 +238,7 @@ export class QueueService implements OnModuleInit {
                 Queue.unshift(newQueueItem);
                 await manager.save(QueueEntity, Queue);
             } else {
-                // Round-Robin por rondas activas:
-                // Identificamos las canciones activas del mismo solicitante (Mesa o Admin)
+
                 const isSameRequester = (q: QueueEntity) => {
                     if (table && q.table?.code === table.code) return true;
                     if (user && q.user?.name === user.name) return true;
@@ -250,10 +250,12 @@ export class QueueService implements OnModuleInit {
                 let round: number;
 
                 if (requesterActiveSongs.length > 0) {
-                    // Si el solicitante ya tiene canciones en la cola, entra a la siguiente ronda
-                    // con respecto a la ronda más alta que tenga activa
+
+                    if (table && requesterActiveSongs.length >= 5) throw new TooManyRequestsException( QueueErrorCode.MANY_REQUEST('Solo puedes pedir máximo 5 canciones a la vez') )
+
                     const maxActiveRound = Math.max(...requesterActiveSongs.map((q) => q.value ?? 0));
                     round = maxActiveRound + 1;
+                    
                 } else {
                     // Si es una mesa o admin sin canciones en cola, entra a la primera ronda disponible.
                     // Se toma la ronda más baja entre las canciones que están en espera (WAITING),
