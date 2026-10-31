@@ -6,17 +6,15 @@ import { SessionService } from './session.service';
 export type SocketRol = 'admin' | 'mesa';
 
 function obtenerSocketConfig(): { url: string; path: string } {
-  try {
-    const api = environment.apiUrl || 'http://localhost:3000';
-    if (api.includes('localhost') || api.includes('127.0.0.1')) {
-      const u = new URL(api);
-      return { url: `${u.protocol}//${u.host}`, path: '/socket.io' };
-    }
-    const cleanUrl = api.replace(/\/api\/?$/, '');
-    return { url: cleanUrl || 'https://escenario89.danidev.top', path: '/api/socket.io' };
-  } catch {
-    return { url: 'http://localhost:3000', path: '/socket.io' };
+
+  const api = environment.apiUrl || 'http://localhost:3000';
+  const u = new URL(api);
+
+  if ( api.includes('https://escenario89.danidev.top') ) {
+    return { url: `${u.protocol}//${u.host}`, path: '/api/socket.io' };
   }
+
+  return { url: `${u.protocol}//${u.host}`,  path: '/socket.io' };
 }
 
 @Injectable({ providedIn: 'root' })

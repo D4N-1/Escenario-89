@@ -1,0 +1,29 @@
+{
+  "bars": [
+    {
+      "close": "04:00",
+      "status": "OPEN"
+    }
+  ],
+  "tables": [
+    { "number": 1 },
+    { "number": 2 },
+    { "number": 3 },
+    { "number": 4 },
+    { "number": 5 }
+  ],
+  "songs": [
+    {
+      "id": "nF1Rh3vdaeQ",
+      "title": "Turn to Ashes [OFFICIAL] - Elena Siegman - lyrics - Ashes of the Damned",
+      "description": "callofduty #blackops7 Listen on your fav streaming service now! https://ffm.to/ashesofthedamned",
+      "image": "https://i.ytimg.com/vi/nF1Rh3vdaeQ/hq720.jpg",
+      "seconds": 251,
+      "timestamp": "4:11",
+      "views": 829362,
+      "url": "https://youtube.com/watch?v=nF1Rh3vdaeQ",
+      "ago": "11mo ago",
+      "author": "Kevin Sherwood"
+    }
+  ]
+}

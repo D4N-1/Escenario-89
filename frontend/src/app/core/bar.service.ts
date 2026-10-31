@@ -77,16 +77,8 @@ export class BarService {
 
   async obtenerEstado(): Promise<BarDto | null> {
     try {
-      let res: { message: string; data: BarDto } | null = null;
-      if (this.session.tokenAdmin()) {
-        try {
-          res = await this.api.pedir<{ message: string; data: BarDto }>('admin', 'GET', '/bar');
-        } catch {
-          res = await this.api.pedirPublico<{ message: string; data: BarDto }>('GET', '/bar');
-        }
-      } else {
-        res = await this.api.pedirPublico<{ message: string; data: BarDto }>('GET', '/bar');
-      }
+      let res: { message: string; data: BarDto } | null = await this.api.pedirPublico<{ message: string; data: BarDto }>('GET', '/bar');
+
 
       const data = res?.data;
       if (data) {

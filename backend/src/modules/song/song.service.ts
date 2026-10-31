@@ -141,7 +141,7 @@ export class SongService {
     async insertBulk(songs: CreateSongDto[]) {
         if (!songs || songs.length === 0) return;
 
-        songs.forEach(s => Boolean(s.id))
+        songs = songs.filter(s => Boolean(s.id));
 
         try {
             const songEntities = this.songRepository.create(songs);

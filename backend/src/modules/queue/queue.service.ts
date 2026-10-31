@@ -215,7 +215,7 @@ export class QueueService implements OnModuleInit {
                     { status: SongStatus.WAITING }
                 ],
                 order: { position: 'ASC' },
-                relations: { table: true },
+                relations: { table: true, user: true },
                 lock: { mode: 'pessimistic_write' }
             })
 
@@ -225,51 +225,64 @@ export class QueueService implements OnModuleInit {
             newData.uuid = uuid || randomUUID();
             newData.fixed = false;
 
-
             const hasPlaying = Queue.some((q) => q.status === SongStatus.PLAYING);
 
-            if (table) {
-                if (!hasPlaying || Queue.length === 0) {
-                    newData.position = 0;
-                    newData.status = SongStatus.PLAYING;
-                    newData.value = 0;
+            if (!hasPlaying || Queue.length === 0) {
+                newData.position = 0;
+                newData.status = SongStatus.PLAYING;
+                newData.value = 0;
 
-                    Queue.forEach((q) => q.position!++);
-                    const newQueue = this.queueRepository.create(newData);
-                    Queue.unshift(newQueue);
-                    await manager.save(QueueEntity, Queue);
-                } else {
-                    const waitingSongs = Queue.filter((q) => q.table?.code === table.code);
-                    const value = waitingSongs.length;
-                    newData.value = value;
-
-                    const prev = Queue.findLastIndex((q) => (q.value ?? 0) <= value);
-                    const position = prev === -1 ? 1 : prev + 1;
-
-                    newData.position = position;
-                    newData.status = SongStatus.WAITING;
-
-                    Queue.forEach((q) => (q.position ?? 0) >= position ? q.position!++ : null);
-                    const newQueue = this.queueRepository.create(newData);
-                    Queue.splice(position, 0, newQueue);
-                    await manager.save(QueueEntity, Queue);
-                }
+                Queue.forEach((q) => q.position!++);
+                const newQueueItem = this.queueRepository.create(newData);
+                Queue.unshift(newQueueItem);
+                await manager.save(QueueEntity, Queue);
             } else {
-                if (!hasPlaying || Queue.length === 0) {
-                    newData.position = 0;
-                    newData.status = SongStatus.PLAYING;
-                    Queue.forEach((q) => q.position!++);
-                    const newQueue = this.queueRepository.create(newData);
-                    Queue.unshift(newQueue);
-                    await manager.save(QueueEntity, Queue);
-                } else {
-                    newData.position = Queue.length;
-                    newData.status = SongStatus.WAITING;
-                    const newQueue = this.queueRepository.create(newData);
-                    await manager.save(QueueEntity, newQueue);
-                }
-            }
+                // Round-Robin por rondas activas:
+                // Identificamos las canciones activas del mismo solicitante (Mesa o Admin)
+                const isSameRequester = (q: QueueEntity) => {
+                    if (table && q.table?.code === table.code) return true;
+                    if (user && q.user?.name === user.name) return true;
+                    return false;
+                };
 
+                const requesterActiveSongs = Queue.filter(isSameRequester);
+
+                let round: number;
+
+                if (requesterActiveSongs.length > 0) {
+                    // Si el solicitante ya tiene canciones en la cola, entra a la siguiente ronda
+                    // con respecto a la ronda más alta que tenga activa
+                    const maxActiveRound = Math.max(...requesterActiveSongs.map((q) => q.value ?? 0));
+                    round = maxActiveRound + 1;
+                } else {
+                    // Si es una mesa o admin sin canciones en cola, entra a la primera ronda disponible.
+                    // Se toma la ronda más baja entre las canciones que están en espera (WAITING),
+                    // o la ronda de la canción que está sonando si nadie más espera.
+                    const waitingSongs = Queue.filter((q) => q.status === SongStatus.WAITING);
+                    if (waitingSongs.length > 0) {
+                        round = Math.min(...waitingSongs.map((q) => q.value ?? 0));
+                    } else {
+                        const playingSong = Queue.find((q) => q.status === SongStatus.PLAYING);
+                        round = playingSong?.value ?? 0;
+                    }
+                }
+
+                newData.value = round;
+                newData.status = SongStatus.WAITING;
+
+                // Encontrar la última canción que pertenezca a una ronda menor o igual a 'round'
+                const prev = Queue.findLastIndex((q) => (q.value ?? 0) <= round);
+                const position = prev === -1 ? 1 : prev + 1;
+
+                newData.position = position;
+
+                // Desplazar las canciones posteriores
+                Queue.forEach((q) => ((q.position ?? 0) >= position ? q.position!++ : null));
+
+                const newQueueItem = this.queueRepository.create(newData);
+                Queue.splice(position, 0, newQueueItem);
+                await manager.save(QueueEntity, Queue);
+            }
 
             const newQueue = await manager.find(QueueEntity, {
                 where: [
@@ -277,7 +290,7 @@ export class QueueService implements OnModuleInit {
                     { status: SongStatus.WAITING }
                 ],
                 order: { position: 'ASC' },
-                relations: { table: true, song: true }
+                relations: { table: true, song: true, user: true }
             })
             this.queueSocketService.updateQueue(newQueue);
 
@@ -317,6 +330,8 @@ export class QueueService implements OnModuleInit {
 
             const isCancelledOrFinished = status === SongStatus.CANCELLED || status === SongStatus.FINISHED;
 
+            let songFinishedTriggered = false;
+
             if (position === 0) {
                 const playingSong = queueList.find(q => (q.status === SongStatus.PLAYING || q.position === 0) && q.uuid !== uuid);
                 if (playingSong) {
@@ -326,6 +341,7 @@ export class QueueService implements OnModuleInit {
                     await manager.save(QueueEntity, playingSong);
                     const idx = queueList.indexOf(playingSong);
                     if (idx !== -1) queueList.splice(idx, 1);
+                    songFinishedTriggered = true;
                 }
             }
 
@@ -367,12 +383,12 @@ export class QueueService implements OnModuleInit {
                     { status: SongStatus.WAITING }
                 ],
                 order: { position: 'ASC' },
-                relations: { table: true, song: true }
+                relations: { table: true, song: true, user: true }
             });
 
             this.queueSocketService.updateQueue(finalQueueList);
 
-            if (editQueue.status === SongStatus.FINISHED) {
+            if (editQueue.status === SongStatus.FINISHED || songFinishedTriggered) {
                 const intermissions = this.intermissionService.processSongFinished();
                 console.log(intermissions);
                 if (intermissions.length > 0) this.queueSocketService.updateIntermission(intermissions);
