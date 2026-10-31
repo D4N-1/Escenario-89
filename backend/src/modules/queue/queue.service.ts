@@ -230,7 +230,7 @@ export class QueueService implements OnModuleInit {
             if (!hasPlaying || Queue.length === 0) {
                 newData.position = 0;
                 newData.status = SongStatus.PLAYING;
-                newData.value = 0;
+                newData.value = 1;
 
                 Queue.forEach((q) => q.position!++);
                 const newQueueItem = this.queueRepository.create(newData);

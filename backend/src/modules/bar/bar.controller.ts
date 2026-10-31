@@ -5,7 +5,7 @@ import { Private } from "../../decorators/private.decorator";
 import { BarService } from "./bar.service";
 import { UpdateBarDto } from "./dto/update-bar.dto";
 
-@Private() @ApiBearerAuth()
+
 @Controller('bar')
 export class BarController {
 
@@ -22,7 +22,7 @@ export class BarController {
 
     @ApiOperation({ summary: 'Actualiza el estado del bar' })
     @ApiOkResponse({ description: 'Estado del bar actualizado' })
-    @Patch() @Admin()
+    @Patch() @Admin() @Private() @ApiBearerAuth()
     async updateBar(@Body() updateBar: UpdateBarDto) {
         return this.barService.updateBar(updateBar)
     }
