@@ -22,14 +22,35 @@
     }
 
     <div class="ask-box">
-      <span class="ask-text">¿Confirmar pedido para tu mesa?</span>
-      @if (state.mesa() > 0) {
-        <span class="mesa-pill">@if (state.mesa() >= 26 && state.mesa() <= 30) { Barra {{ state.mesa() - 25 }} } @else { Mesa {{ state.mesa() }} }</span>
-      }
+      <div class="ask-text-group">
+        <span class="ask-text">¿Confirmar pedido?</span>
+        @if (state.mesa() > 0) {
+          <span class="mesa-pill">@if (state.mesa() >= 26 && state.mesa() <= 30) { Barra {{ state.mesa() - 25 }} } @else { Mesa {{ state.mesa() }} }</span>
+        }
+      </div>
+      <span class="limite-pill" [class.lleno]="state.limiteAlcanzado()" title="Canciones activas en tu mesa">
+        {{ state.misCanciones().length }}/{{ state.limiteCancionesMesa }}
+      </span>
     </div>
 
+    @if (state.limiteAlcanzado() && !error()) {
+      <div class="dialog-tarjeta-roja" role="alert">
+        <app-icon name="alert" [size]="20" class="dialog-alerta-icon" />
+        <div class="dialog-tarjeta-roja-texto">
+          <b>Límite alcanzado</b>
+          <p>Espera que terminen tus canciones en cola.</p>
+        </div>
+      </div>
+    }
+
     @if (error()) {
-      <p role="alert" class="dialog-error">{{ error() }}</p>
+      <div class="dialog-tarjeta-roja" role="alert">
+        <app-icon name="alert" [size]="20" class="dialog-alerta-icon" />
+        <div class="dialog-tarjeta-roja-texto">
+          <b>Atención</b>
+          <p>{{ error() }}</p>
+        </div>
+      </div>
     }
 
     @if (enviando()) {
@@ -43,11 +64,11 @@
           <app-icon name="close" [size]="18" />
           <span>Cancelar</span>
         </button>
-        <button type="button" class="btn-confirmar" (click)="confirmar()" aria-label="Pedir canción">
+        <button type="button" class="btn-confirmar" [disabled]="state.limiteAlcanzado()" (click)="confirmar()" aria-label="Pedir canción">
           <app-icon name="check" [size]="18" />
-          <span>Pedir canción</span>
+          <span>{{ state.limiteAlcanzado() ? 'Sin espacios' : 'Pedir canción' }}</span>
         </button>
       </div>
     }
   </div>
-</div>
+</div>

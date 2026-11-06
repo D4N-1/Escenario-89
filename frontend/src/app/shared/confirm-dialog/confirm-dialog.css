@@ -116,7 +116,13 @@ h3 {
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
+}
+
+.ask-text-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .ask-text {
@@ -133,6 +139,58 @@ h3 {
     padding: 2px 8px;
     border-radius: 999px;
     white-space: nowrap;
+}
+
+.limite-pill {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--c-text2);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.limite-pill.lleno {
+    background: rgba(220, 38, 38, 0.2);
+    border-color: rgba(239, 68, 68, 0.45);
+    color: #fca5a5;
+}
+
+.dialog-tarjeta-roja {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(220, 38, 38, 0.16);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    color: #fca5a5;
+    text-align: left;
+    margin: 0 0 14px;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.15);
+}
+
+.dialog-alerta-icon {
+    flex: none;
+    color: #ef4444;
+    margin-top: 1px;
+}
+
+.dialog-tarjeta-roja-texto b {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fecaca;
+    margin-bottom: 2px;
+}
+
+.dialog-tarjeta-roja-texto p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.35;
+    color: #fca5a5;
 }
 
 .dialog-error {
@@ -205,4 +263,12 @@ h3 {
 
 .btn-confirmar:active {
     transform: scale(0.97);
-}
+}
+
+.btn-confirmar:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(0.8);
+    box-shadow: none;
+    pointer-events: none;
+}

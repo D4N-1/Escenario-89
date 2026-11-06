@@ -90,11 +90,13 @@ export class AppState {
   audios = signal<AudioItem[]>(USAR_MOCK ? AUDIOS : []);
 
   // ---- Cliente (móvil) ----
+  readonly limiteCancionesMesa = 5;
   mesa = signal(0);                                   // viene del QR: /?mesa=5
   busqueda = signal('');
   resultados = signal<Video[]>([]);                   // se llena con la búsqueda de YouTube
   populares = signal<Video[]>([]);
   misCanciones = signal<MiCancion[]>([]);
+  limiteAlcanzado = computed(() => this.misCanciones().length >= this.limiteCancionesMesa);
   cancionSeleccionada = signal<Video | null>(null);
   posicionEnCola = signal(1);
 

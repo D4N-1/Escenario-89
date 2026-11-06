@@ -71,10 +71,22 @@
   <section class="mis-canciones-section">
     <div class="seccion-head">
       <h3 class="seccion-titulo">Mis canciones pedidas</h3>
-      @if (state.misCanciones().length) {
-        <span class="count-badge">{{ state.misCanciones().length }}</span>
-      }
+      <span class="count-badge" [class.lleno]="state.limiteAlcanzado()">
+        {{ state.misCanciones().length }} / {{ state.limiteCancionesMesa }}
+      </span>
     </div>
+
+    @if (state.limiteAlcanzado()) {
+      <div class="tarjeta-roja-limite" role="alert">
+        <div class="tarjeta-roja-icon">
+          <app-icon name="alert" [size]="20" />
+        </div>
+        <div class="tarjeta-roja-texto">
+          <b>Sin espacios disponibles</b>
+          <p>Espera que terminen tus canciones en cola.</p>
+        </div>
+      </div>
+    }
 
     @if (state.misCanciones().length) {
       <div class="hscroll">
@@ -90,7 +102,7 @@
           <app-icon name="music" [size]="28" />
         </div>
         <h4>Tu mesa aún no ha pedido canciones</h4>
-        <p>Busca arriba un tema o karaoke y sé el próximo en sonar.</p>
+        <p>Busca arriba un tema o karaoke y sé el próximo en sonar (máximo {{ state.limiteCancionesMesa }} canciones activas por mesa).</p>
       </div>
     }
   </section>
@@ -111,7 +123,6 @@
   <app-client-footer />
 </main>
 
-
 @if (seleccion(); as v) {
   <app-confirm-dialog [video]="v" (cerrar)="seleccion.set(null)" />
-}
+}

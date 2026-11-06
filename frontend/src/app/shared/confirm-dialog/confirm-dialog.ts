@@ -33,6 +33,10 @@ export class ConfirmDialog {
       this.error.set('El local está cerrando. Solo se reproducen las canciones que ya están en cola.');
       return;
     }
+    if (this.state.limiteAlcanzado()) {
+      this.error.set('Espera que terminen tus canciones en cola.');
+      return;
+    }
 
     const v = this.video();
     if (!v) {
@@ -49,8 +53,13 @@ export class ConfirmDialog {
       this.state.posicionEnCola.set(posicion);
       this.state.misCanciones.update(lista => [{ video: v, posicion }, ...lista]);
       this.router.navigate(['/agregado']);
-    } catch (e) {
-      this.error.set(e instanceof Error ? e.message : 'No se pudo pedir la canción. Intenta de nuevo.');
+    } catch (e: any) {
+      const msg = e instanceof Error ? e.message : (typeof e === 'string' ? e : '');
+      if (e?.estado === 429 || msg.includes('máximo') || msg.includes('5')) {
+        this.error.set('Espera que terminen tus canciones en cola.');
+      } else {
+        this.error.set(msg || 'No se pudo pedir la canción. Intenta de nuevo.');
+      }
     } finally {
       this.enviando.set(false);
     }
