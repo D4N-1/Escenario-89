@@ -19,26 +19,42 @@ export class ActivityMiddleware implements NestMiddleware {
   ) { }
 
   use(req: Request, res: Response, next: NextFunction) {
+
     const authHeader = req.headers['authorization'];
 
     if (!authHeader) throw new UnauthorizedException('Token no proporcionado');
 
     const token = authHeader.split(' ')[1];
 
+    if (!token) throw new UnauthorizedException('Formato de token inválido');
 
-    const payload: AnyRequest & JwtToken = this.jwtService.verify(token, { secret: this.configService.getOrThrow<string>('JWT_SECRET') });
+    let payload: AnyRequest & JwtToken;
+
+    try {
+
+      payload = this.jwtService.verify(token, { 
+        secret: this.configService.getOrThrow<string>('JWT_SECRET') 
+      });
+
+    } catch (error: any) {
+
+      if (error?.name === 'TokenExpiredError') throw new UnauthorizedException('El token ha expirado');
+
+      throw new UnauthorizedException('Token inválido');
+    }
 
     if (payload.type === TypeRequest.TABLE) return next();
 
     const user = payload;
 
-
     const now = Date.now();
     const inactivityLimit = 4 * 60 * 60_000;
     const lastActivity = ActivityMiddleware.sessionStore.get(user.iat.toString());
 
-
-    if (lastActivity && (now - lastActivity > inactivityLimit)) throw new UnauthorizedException('Sesión cerrada por inactividad (más de 4 horas sin peticiones)');
+    if (lastActivity && (now - lastActivity > inactivityLimit)) {
+      ActivityMiddleware.sessionStore.delete(user.iat.toString());
+      throw new UnauthorizedException('Sesión cerrada por inactividad (más de 4 horas sin peticiones)');
+    }
 
     ActivityMiddleware.sessionStore.set(user.iat.toString(), now);
 

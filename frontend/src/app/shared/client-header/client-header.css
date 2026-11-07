@@ -72,12 +72,17 @@
 
 h1 {
     margin: 0;
-    font-size: 19px;
-    font-weight: 400;
+    font-size: 21px; /* Aumentado ligeramente */
+    font-weight: 800; /* Mayor peso para presencia */
     line-height: 1;
-    letter-spacing: 0.5px;
-    text-shadow: 0 0 10px rgba(242, 206, 100, 0.3);
+    letter-spacing: 0.6px;
     white-space: nowrap;
+    
+    /* Gradiente dorado con resplandor intenso */
+    background: linear-gradient(180deg, #ffffff 0%, #ffe885 50%, #e6b83b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(242, 206, 100, 0.45));
 }
 
 .head-right {
@@ -89,25 +94,58 @@ h1 {
 .mesa-badge {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #1a1202;
-    background: linear-gradient(180deg, #fceda2 0%, #dfb752 50%, #c9982a 100%);
-    border: 1px solid rgba(255, 238, 170, 0.45);
+    gap: 7px;
+    font-size: 13px; /* Aumentado de 11px a 13px para mejorar lectura */
+    font-weight: 800;
+    
+    background: transparent;
+    border: none;
     border-radius: 8px;
-    padding: 5px 11px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.55);
+    padding: 5px 8px;
     white-space: nowrap;
     text-decoration: none;
+
+    /* Gradiente dorado de alto contraste */
+    background-image: linear-gradient(180deg, #ffffff 0%, #ffe359 40%, #cca010 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+    /* Animación de pulso en el brillo */
+    animation: goldGlowPulse 20s infinite ease-in-out;
 }
 
 .mesa-dot {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background: #15803d;
+    background: #ffe359;
     display: inline-block;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px #ffd700;
+    animation: dotPulse 20s infinite ease-in-out;
+}
+
+/* --- DEFINICIÓN DE ANIMACIONES DE PULSO --- */
+@keyframes goldGlowPulse {
+    0%, 100% {
+        filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.2));
+    }
+    50% {
+        filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6)) drop-shadow(0 0 18px rgba(255, 230, 100, 0.8));
+    }
+}
+
+@keyframes dotPulse {
+    0%, 100% {
+        transform: scale(0.8);
+        opacity: 0.7;
+        box-shadow: 0 0 4px #ffd700;
+    }
+    50% {
+        transform: scale(1.3);
+        opacity: 1;
+        box-shadow: 0 0 10px #ffd700, 0 0 16px #ffae00;
+    }
 }
 
 .mesa-badge.libre {
@@ -119,4 +157,4 @@ h1 {
     font-weight: 600;
     padding: 5px 10px;
     box-shadow: none;
-}
+}
